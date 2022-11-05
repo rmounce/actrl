@@ -44,6 +44,13 @@ soft_delay = int(7.5/interval)
 # then gradually report the actual rval over 5 mins
 soft_ramp = int(7.5/interval)
 
+# report 0.2 degree offset to aircon as 1 degree, 5x amplification
+compress_factor = 0.2
+
+# per second
+compress_ki = 0.0005
+# a 0.1 deg error will accumulate 0.1 in ~30 minutes
+
 class MyWMA:
     def __init__(self, window):
         self.window = window
@@ -101,10 +108,12 @@ class MyDeriv:
         return self.factor * self.wma.get()
 
 class MyPID:
-    def __init__(self, kp, ki, kd, window):
+    def __init__(self, kp, ki, kd, window, clamp_low, clamp_high):
         self.kp = kp
         self.ki = ki
         self.deriv = MyDeriv(window, kd)
+        self.clamp_low = clamp_low
+        self.clamp_high = clamp_high
         self.clear()
 
     def clear(self):
@@ -119,11 +128,11 @@ class MyPID:
         self.integral += val
         self.deriv.set(error, target)
         # clamp between +-1
-        if not -1.0 <= self.get() <= 1.0:
-            if self.get() >  1.0:
-                clamp_to = 1.0
+        if not clamp_low <= self.get() <= clamp_high:
+            if self.get() >  clamp_high:
+                clamp_to = clamp_high
             else:
-                clamp_to = -1.0
+                clamp_to = clamp_low
             self.integral = -(clamp_to + self.deriv.get() + (self.last_val * self.kp))/self.ki
 
     def get(self):
@@ -134,6 +143,7 @@ class Actrl(hass.Hass):
         self.pids = {}
         self.rooms_enabled = {}
         self.temp_deriv = MyDeriv(int(temp_deriv_window/interval), int(temp_deriv_window/interval))
+        self.temp_pi = MyPID(kp=1, ki=(compress_ki * 60.0 * interval), kd=0, window=1, clamp_low=-compress_factor, clamp_high=compress_factor)
         self.ramping_down = True
         self.totally_off = True
         self.heat_mode = False
@@ -141,7 +151,7 @@ class Actrl(hass.Hass):
 
         for room in rooms:
             #self.pids[room]=PID(Kp=1.0, Ki=0.001, Kd=0, setpoint=0, sample_time=None, output_limits=(-1.0, 1.0))
-            self.pids[room]=MyPID(kp, (ki * 60.0 * interval), int(room_deriv_factor/interval), int(room_deriv_window/interval))
+            self.pids[room]=MyPID(kp, (ki * 60.0 * interval), int(room_deriv_factor/interval), int(room_deriv_window/interval), -1.0, 1.0)
             self.rooms_enabled[room]=True
         # run every interval (in minutes)
         self.run_every(self.main, "now", 60.0 * interval)
@@ -180,6 +190,7 @@ class Actrl(hass.Hass):
             for room, pid in self.pids.items():
                 pid.clear()
             self.temp_deriv.clear()
+            self.temp_pi.clear()
             self.totally_off = True
             self.on_counter = 0
             if self.get_state("climate.aircon") != "fan_only":
@@ -257,6 +268,9 @@ class Actrl(hass.Hass):
         self.temp_deriv.set(weighted_error, weighted_target)
         avg_deriv = self.temp_deriv.get()
 
+        self.temp_pi.set(weighted_error, 0.0)
+        weighted_error = self.temp_pi.get()
+
         weighted_error *= heat_cool_sign
         avg_deriv *= heat_cool_sign
 
@@ -295,8 +309,9 @@ class Actrl(hass.Hass):
             self.call_service('climate/set_hvac_mode', entity_id="climate.aircon", hvac_mode=mode)
 
     def actually_compress(self, error):
-        # tell the aircon that temp variations are 5x worse than reality
-        return 0.5 + error / 0.2
+        # tell the aircon that temp variations are worse than reality
+        # static 0.5 degree offset
+        return 0.5 + error / compress_factor
 
     def compress(self, error, deriv):
         if self.heat_mode:
