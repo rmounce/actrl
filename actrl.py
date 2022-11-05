@@ -1,20 +1,15 @@
 import hassapi as hass
 import datetime
 import math
-#from simple_pid import PID
+
+# from simple_pid import PID
 from collections import deque
 import time
 
-rooms = [
-         "bed_1",
-         "bed_2",
-         "bed_3",
-         "kitchen",
-         "study"
-         ]
+rooms = ["bed_1", "bed_2", "bed_3", "kitchen", "study"]
 
 # in minutes
-interval = 0.25 # 15 seconds
+interval = 0.25  # 15 seconds
 
 # WMA over the last 7.5 minutes
 temp_deriv_window = 7.5
@@ -27,10 +22,10 @@ kp = 0.5
 ki = 0.0005
 # a 0.1 deg error will accumulate 0.1 in ~30 minutes
 
-#kd considers the last 15 minutes
+# kd considers the last 15 minutes
 room_deriv_window = 15.0
-#for a constant 1.0 deg / min over the last 15 mins, swing full scale
-#or for 1 degree every 5 mins, contribute 0.66
+# for a constant 1.0 deg / min over the last 15 mins, swing full scale
+# or for 1 degree every 5 mins, contribute 0.66
 room_deriv_factor = 2.0
 
 # percent
@@ -40,9 +35,9 @@ damper_deadband = 7.0
 # start at min power and gradually report the actual rval
 # 5 min delay at min power
 # covers a defrost cycle
-soft_delay = int(7.5/interval)
+soft_delay = int(7.5 / interval)
 # then gradually report the actual rval over 5 mins
-soft_ramp = int(7.5/interval)
+soft_ramp = int(7.5 / interval)
 
 # report 0.2 degree offset to aircon as 1 degree, 5x amplification
 compress_factor = 0.2
@@ -50,6 +45,7 @@ compress_factor = 0.2
 # per second
 compress_ki = 0.0005
 # a 0.1 deg error will accumulate 0.1 in ~30 minutes
+
 
 class MyWMA:
     def __init__(self, window):
@@ -82,6 +78,7 @@ class MyWMA:
 
         return val_sum / i_sum
 
+
 # ignores steps due to changed target
 class MyDeriv:
     def __init__(self, window, factor):
@@ -107,6 +104,7 @@ class MyDeriv:
     def get(self):
         return self.factor * self.wma.get()
 
+
 class MyPID:
     def __init__(self, kp, ki, kd, window, clamp_low, clamp_high):
         self.kp = kp
@@ -122,21 +120,28 @@ class MyPID:
         self.integral = 0.0
 
     def set(self, error, target):
-        print(' error ' + str(error) + ' target ' + str(target) )
+        print(" error " + str(error) + " target " + str(target))
         val = error - target
         self.last_val = val
         self.integral += val
         self.deriv.set(error, target)
         # clamp between +-1
         if not self.clamp_low <= self.get() <= self.clamp_high:
-            if self.get() >  self.clamp_high:
+            if self.get() > self.clamp_high:
                 clamp_to = self.clamp_high
             else:
                 clamp_to = self.clamp_low
-            self.integral = -(clamp_to + self.deriv.get() + (self.last_val * self.kp))/self.ki
+            self.integral = (
+                -(clamp_to + self.deriv.get() + (self.last_val * self.kp)) / self.ki
+            )
 
     def get(self):
-        return (-self.last_val * self.kp) + (-self.integral * self.ki) + (-self.deriv.get())
+        return (
+            (-self.last_val * self.kp)
+            + (-self.integral * self.ki)
+            + (-self.deriv.get())
+        )
+
 
 class MySimplerIntegral:
     def __init__(self, ki, clamp_low, clamp_high):
@@ -149,7 +154,7 @@ class MySimplerIntegral:
         self.integral = 0.0
 
     def set(self, error):
-        self.integral += ( error * self.ki )
+        self.integral += error * self.ki
         if self.integral < self.clamp_low:
             self.integral = self.clamp_low
         if self.integral > self.clamp_high:
@@ -158,20 +163,35 @@ class MySimplerIntegral:
     def get(self):
         return self.integral
 
+
 class Actrl(hass.Hass):
     def initialize(self):
         self.pids = {}
         self.rooms_enabled = {}
-        self.temp_deriv = MyDeriv(window=int(temp_deriv_window/interval), factor=int(temp_deriv_window/interval))
-        self.temp_integral = MySimplerIntegral(ki=(compress_ki * 60.0 * interval), clamp_low=-compress_factor, clamp_high=compress_factor)
+        self.temp_deriv = MyDeriv(
+            window=int(temp_deriv_window / interval),
+            factor=int(temp_deriv_window / interval),
+        )
+        self.temp_integral = MySimplerIntegral(
+            ki=(compress_ki * 60.0 * interval),
+            clamp_low=-compress_factor,
+            clamp_high=compress_factor,
+        )
         self.ramping_down = True
         self.totally_off = True
         self.heat_mode = False
         self.on_counter = 0
 
         for room in rooms:
-            self.pids[room]=MyPID(kp=kp, ki=(ki * 60.0 * interval), kd=int(room_deriv_factor/interval), window=int(room_deriv_window/interval), clamp_low=-1.0, clamp_high=1.0)
-            self.rooms_enabled[room]=True
+            self.pids[room] = MyPID(
+                kp=kp,
+                ki=(ki * 60.0 * interval),
+                kd=int(room_deriv_factor / interval),
+                window=int(room_deriv_window / interval),
+                clamp_low=-1.0,
+                clamp_high=1.0,
+            )
+            self.rooms_enabled[room] = True
         # run every interval (in minutes)
         self.run_every(self.main, "now", 60.0 * interval)
         self.main(None)
@@ -188,24 +208,34 @@ class Actrl(hass.Hass):
         heat_room_count = 0
         cool_room_count = 0
 
-        main_setpoint=float(self.get_entity("climate.aircon").get_state("temperature"))
+        main_setpoint = float(
+            self.get_entity("climate.aircon").get_state("temperature")
+        )
 
         for room in rooms:
-            if self.get_state("climate."+room+"_aircon") != "off":
+            if self.get_state("climate." + room + "_aircon") != "off":
                 all_disabled = False
-                #temps[room] = float(self.get_entity("climate."+room+"_aircon").get_state("current_temperature"))
-                temps[room] = float(self.get_state("sensor."+room+"_average_temperature"))
-                targets[room] = float(self.get_entity("climate."+room+"_aircon").get_state("temperature"))
+                # temps[room] = float(self.get_entity("climate."+room+"_aircon").get_state("current_temperature"))
+                temps[room] = float(
+                    self.get_state("sensor." + room + "_average_temperature")
+                )
+                targets[room] = float(
+                    self.get_entity("climate." + room + "_aircon").get_state(
+                        "temperature"
+                    )
+                )
                 errors[room] = temps[room] - targets[room]
-                if self.get_state("climate."+room+"_aircon") == "heat":
-                    heat_room_count+=1
-                if self.get_state("climate."+room+"_aircon") == "cool":
-                    cool_room_count+=1
+                if self.get_state("climate." + room + "_aircon") == "heat":
+                    heat_room_count += 1
+                if self.get_state("climate." + room + "_aircon") == "cool":
+                    cool_room_count += 1
             else:
                 disabled_rooms.append(room)
 
         if all_disabled:
-            self.get_entity("input_number.fake_temperature").set_state(state=main_setpoint)
+            self.get_entity("input_number.fake_temperature").set_state(
+                state=main_setpoint
+            )
             for room, pid in self.pids.items():
                 pid.clear()
             self.temp_deriv.clear()
@@ -229,40 +259,43 @@ class Actrl(hass.Hass):
             self.heat_mode = False
             self.try_set_mode("cool")
 
-        avg_temp   = sum(temps.values())   / len(temps.values())
+        avg_temp = sum(temps.values()) / len(temps.values())
         avg_target = sum(targets.values()) / len(targets.values())
-        avg_error  = sum(errors.values())  / len(errors.values())
-
+        avg_error = sum(errors.values()) / len(errors.values())
 
         for room, error in errors.items():
             if not self.rooms_enabled[room]:
                 self.pids[room].clear()
                 self.rooms_enabled[room] = True
-                #self.pids[room].set_auto_mode(True, last_output=0.0)
+                # self.pids[room].set_auto_mode(True, last_output=0.0)
                 # a new room has been enabled, reset the deriv history
                 self.temp_deriv.clear()
                 # and return half-way through soft-start
                 self.on_counter = min(self.on_counter, soft_delay)
 
-            print('setting ' + room)
+            print("setting " + room)
             self.pids[room].set(error, avg_error)
             pid_vals[room] = heat_cool_sign * self.pids[room].get()
-            print('outcome was ' + str(pid_vals[room]))
-            #pid_vals[room] = self.pids[room](heat_cool_sign * (error - avg_error))
-            self.get_entity("input_number."+room+"_pid").set_state(state=pid_vals[room])
+            print("outcome was " + str(pid_vals[room]))
+            # pid_vals[room] = self.pids[room](heat_cool_sign * (error - avg_error))
+            self.get_entity("input_number." + room + "_pid").set_state(
+                state=pid_vals[room]
+            )
 
         for room in disabled_rooms:
             if self.rooms_enabled[room]:
                 self.pids[room].clear()
                 self.rooms_enabled[room] = False
-                self.get_entity("input_number."+room+"_pid").set_state(state=float('nan'))
+                self.get_entity("input_number." + room + "_pid").set_state(
+                    state=float("nan")
+                )
                 # a new room has been disabled, reset the deriv history
                 self.temp_deriv.clear()
 
-            if self.get_entity("cover."+room).get_state("current_position") != "0":
+            if self.get_entity("cover." + room).get_state("current_position") != "0":
                 self.log("closing damper for disabled room " + room)
-                #self.call_service('cover/set_cover_position', entity_id=("cover."+room), position=0)
-                #self.get_entity("input_number."+room+"_damper").set_state(state=0)
+                # self.call_service('cover/set_cover_position', entity_id=("cover."+room), position=0)
+                # self.get_entity("input_number."+room+"_damper").set_state(state=0)
                 self.set_damper_pos(room, 0)
 
         min_pid = min(pid_vals.values())
@@ -272,9 +305,8 @@ class Actrl(hass.Hass):
         target_sum = 0.0
         weight_sum = 0.0
 
-
         for room, pid_val in pid_vals.items():
-            scaled = 100.0*((1.01 - pid_val) / (1.01 - min_pid))
+            scaled = 100.0 * ((1.01 - pid_val) / (1.01 - min_pid))
 
             damper_vals[room] = scaled
             target_sum += targets[room] * scaled
@@ -284,22 +316,37 @@ class Actrl(hass.Hass):
         weighted_error = error_sum / weight_sum
         weighted_target = target_sum / weight_sum
 
-        self.log("oc "+str(self.on_counter)+" error weighted "+str(weighted_error))
+        self.log(
+            "oc " + str(self.on_counter) + " error weighted " + str(weighted_error)
+        )
 
         self.temp_deriv.set(weighted_error, weighted_target)
         avg_deriv = self.temp_deriv.get()
 
-        self.get_entity("input_number.aircon_weighted_error").set_state(state=weighted_error)
+        self.get_entity("input_number.aircon_weighted_error").set_state(
+            state=weighted_error
+        )
         self.temp_integral.set(weighted_error)
-        self.get_entity("input_number.aircon_integrated_error").set_state(state=self.temp_integral.get())
+        self.get_entity("input_number.aircon_integrated_error").set_state(
+            state=self.temp_integral.get()
+        )
         weighted_error += self.temp_integral.get()
 
         weighted_error *= heat_cool_sign
         avg_deriv *= heat_cool_sign
 
         compressed_error = heat_cool_sign * self.compress(weighted_error, avg_deriv)
-        self.log("deriv "+str(avg_deriv)+" integral "+str(self.temp_integral.get())+" compressed "+str(compressed_error))
-        self.get_entity("input_number.fake_temperature").set_state(state=(main_setpoint+compressed_error))
+        self.log(
+            "deriv "
+            + str(avg_deriv)
+            + " integral "
+            + str(self.temp_integral.get())
+            + " compressed "
+            + str(compressed_error)
+        )
+        self.get_entity("input_number.fake_temperature").set_state(
+            state=(main_setpoint + compressed_error)
+        )
 
         self.on_counter += 1
 
@@ -307,29 +354,47 @@ class Actrl(hass.Hass):
             self.log("indoor fan is not running, not adjusting dampers")
         else:
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
-                #damper_val = damper_vals[room]
+                # damper_val = damper_vals[room]
                 self.set_damper_pos(room, damper_vals[room])
 
-    def set_damper_pos(self ,room, damper_val):
-        cur_pos = float(self.get_entity("cover."+room).get_state("current_position"))
+    def set_damper_pos(self, room, damper_val):
+        cur_pos = float(self.get_entity("cover." + room).get_state("current_position"))
         self.log(room + " scaled: " + str(damper_val) + " cur_pos: " + str(cur_pos))
-        self.get_entity("input_number."+room+"_damper_target").set_state(state=damper_val)
+        self.get_entity("input_number." + room + "_damper_target").set_state(
+            state=damper_val
+        )
 
         # damper won't do much if the fan isn't running
-        cur_deadband = (2.0 * damper_deadband) if (self.totally_off and self.heat_mode) else damper_deadband
+        cur_deadband = (
+            (2.0 * damper_deadband)
+            if (self.totally_off and self.heat_mode)
+            else damper_deadband
+        )
 
-        if (damper_val > 99.9 and cur_pos < 100.0) or (damper_val > (cur_pos+cur_deadband)) or (damper_val < (cur_pos-cur_deadband)):
+        if (
+            (damper_val > 99.9 and cur_pos < 100.0)
+            or (damper_val > (cur_pos + cur_deadband))
+            or (damper_val < (cur_pos - cur_deadband))
+        ):
             self.log("setting " + room)
-            self.call_service('cover/set_cover_position', entity_id=("cover."+room), position=(damper_val))
-            self.get_entity("input_number."+room+"_damper").set_state(state=(5 * round(damper_val/5)))
+            self.call_service(
+                "cover/set_cover_position",
+                entity_id=("cover." + room),
+                position=(damper_val),
+            )
+            self.get_entity("input_number." + room + "_damper").set_state(
+                state=(5 * round(damper_val / 5))
+            )
             time.sleep(1)
         else:
             self.log("within deadband, not setting " + room)
-            self.get_entity("input_number."+room+"_damper").set_state(state=cur_pos)
+            self.get_entity("input_number." + room + "_damper").set_state(state=cur_pos)
 
     def try_set_mode(self, mode):
         if self.get_state("climate.aircon") != mode:
-            self.call_service('climate/set_hvac_mode', entity_id="climate.aircon", hvac_mode=mode)
+            self.call_service(
+                "climate/set_hvac_mode", entity_id="climate.aircon", hvac_mode=mode
+            )
 
     def actually_compress(self, error):
         # tell the aircon that temp variations are worse than reality
@@ -353,7 +418,7 @@ class Actrl(hass.Hass):
         if not self.totally_off and (round(rval) > off_threshold):
             rval = max((off_threshold + 1), self.actually_compress(error + deriv))
 
-        rval = min(rval,  15.0)
+        rval = min(rval, 15.0)
         rval = max(rval, -15.0)
         unrounded_rval = rval
         rval = round(rval)
@@ -374,9 +439,16 @@ class Actrl(hass.Hass):
                 return on_threshold
             if self.on_counter < (soft_delay + soft_ramp):
                 ramp_progress = (self.on_counter - soft_delay) / soft_ramp
-                print("ramping " + str(ramp_progress) + ", on_counter: " + str(self.on_counter))
-                return round((ramp_progress * unrounded_rval) + ((1.0-ramp_progress) * on_threshold))
-
+                print(
+                    "ramping "
+                    + str(ramp_progress)
+                    + ", on_counter: "
+                    + str(self.on_counter)
+                )
+                return round(
+                    (ramp_progress * unrounded_rval)
+                    + ((1.0 - ramp_progress) * on_threshold)
+                )
 
         # behaviour only observed in cooling mode
         # at the setpoint ac will start ramping back power
