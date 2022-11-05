@@ -12,14 +12,22 @@ rooms = ["bed_1", "bed_2", "bed_3", "kitchen", "study"]
 interval = 0.25  # 15 seconds
 
 # WMA over the last 7.5 minutes
-temp_deriv_window = 7.5
+global_temp_deriv_window = 7.5
 # to predict 10 minutes into the future
-temp_deriv_factor = 10.0
+global_temp_deriv_factor = 10.0
 
-kp = 0.5
+# report 0.2 degree offset to aircon as 1 degree, 5x amplification
+global_compress_factor = 0.2
 
 # per second
-ki = 0.0005
+global_ki = 0.0005
+# a 0.1 deg error will accumulate 0.1 in ~30 minutes
+
+
+room_kp = 0.5
+
+# per second
+room_ki = 0.0005
 # a 0.1 deg error will accumulate 0.1 in ~30 minutes
 
 # kd considers the last 15 minutes
@@ -30,6 +38,7 @@ room_deriv_factor = 2.0
 
 # percent
 damper_deadband = 7.0
+damper_round = 5.0
 
 # soft start to avoid overshoot
 # start at min power and gradually report the actual rval
@@ -38,13 +47,6 @@ damper_deadband = 7.0
 soft_delay = int(7.5 / interval)
 # then gradually report the actual rval over 5 mins
 soft_ramp = int(7.5 / interval)
-
-# report 0.2 degree offset to aircon as 1 degree, 5x amplification
-compress_factor = 0.2
-
-# per second
-compress_ki = 0.0005
-# a 0.1 deg error will accumulate 0.1 in ~30 minutes
 
 
 class MyWMA:
@@ -169,13 +171,13 @@ class Actrl(hass.Hass):
         self.pids = {}
         self.rooms_enabled = {}
         self.temp_deriv = MyDeriv(
-            window=int(temp_deriv_window / interval),
-            factor=int(temp_deriv_window / interval),
+            window=int(global_temp_deriv_window / interval),
+            factor=int(global_temp_deriv_window / interval),
         )
         self.temp_integral = MySimplerIntegral(
-            ki=(compress_ki * 60.0 * interval),
-            clamp_low=-compress_factor,
-            clamp_high=compress_factor,
+            ki=(global_ki * 60.0 * interval),
+            clamp_low=-global_compress_factor,
+            clamp_high=global_compress_factor,
         )
         self.ramping_down = True
         self.totally_off = True
@@ -184,8 +186,8 @@ class Actrl(hass.Hass):
 
         for room in rooms:
             self.pids[room] = MyPID(
-                kp=kp,
-                ki=(ki * 60.0 * interval),
+                kp=room_kp,
+                ki=(room_ki * 60.0 * interval),
                 kd=int(room_deriv_factor / interval),
                 window=int(room_deriv_window / interval),
                 clamp_low=-1.0,
@@ -215,7 +217,6 @@ class Actrl(hass.Hass):
         for room in rooms:
             if self.get_state("climate." + room + "_aircon") != "off":
                 all_disabled = False
-                # temps[room] = float(self.get_entity("climate."+room+"_aircon").get_state("current_temperature"))
                 temps[room] = float(
                     self.get_state("sensor." + room + "_average_temperature")
                 )
@@ -235,6 +236,12 @@ class Actrl(hass.Hass):
         if all_disabled:
             self.get_entity("input_number.fake_temperature").set_state(
                 state=main_setpoint
+            )
+            self.get_entity("input_number.aircon_weighted_error").set_state(
+                state=float("nan")
+            )
+            self.get_entity("input_number.aircon_integrated_error").set_state(
+                state=float("nan")
             )
             for room, pid in self.pids.items():
                 pid.clear()
@@ -259,15 +266,12 @@ class Actrl(hass.Hass):
             self.heat_mode = False
             self.try_set_mode("cool")
 
-        avg_temp = sum(temps.values()) / len(temps.values())
-        avg_target = sum(targets.values()) / len(targets.values())
         avg_error = sum(errors.values()) / len(errors.values())
 
         for room, error in errors.items():
             if not self.rooms_enabled[room]:
                 self.pids[room].clear()
                 self.rooms_enabled[room] = True
-                # self.pids[room].set_auto_mode(True, last_output=0.0)
                 # a new room has been enabled, reset the deriv history
                 self.temp_deriv.clear()
                 # and return half-way through soft-start
@@ -277,7 +281,6 @@ class Actrl(hass.Hass):
             self.pids[room].set(error, avg_error)
             pid_vals[room] = heat_cool_sign * self.pids[room].get()
             print("outcome was " + str(pid_vals[room]))
-            # pid_vals[room] = self.pids[room](heat_cool_sign * (error - avg_error))
             self.get_entity("input_number." + room + "_pid").set_state(
                 state=pid_vals[room]
             )
@@ -299,7 +302,6 @@ class Actrl(hass.Hass):
                 self.set_damper_pos(room, 0)
 
         min_pid = min(pid_vals.values())
-        max_pid = max(pid_vals.values())
 
         error_sum = 0.0
         target_sum = 0.0
@@ -377,13 +379,14 @@ class Actrl(hass.Hass):
             or (damper_val < (cur_pos - cur_deadband))
         ):
             self.log("setting " + room)
+            rounded_damper_val = damper_round * round(damper_val * damper_round)
             self.call_service(
                 "cover/set_cover_position",
                 entity_id=("cover." + room),
-                position=(damper_val),
+                position=rounded_damper_val,
             )
             self.get_entity("input_number." + room + "_damper").set_state(
-                state=(5 * round(damper_val / 5))
+                state=rounded_damper_val
             )
             time.sleep(1)
         else:
@@ -399,7 +402,7 @@ class Actrl(hass.Hass):
     def actually_compress(self, error):
         # tell the aircon that temp variations are worse than reality
         # static 0.5 degree offset
-        return 0.5 + error / compress_factor
+        return 0.5 + error / global_compress_factor
 
     def compress(self, error, deriv):
         if self.heat_mode:
