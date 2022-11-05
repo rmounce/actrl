@@ -359,6 +359,7 @@ class Actrl(hass.Hass):
 
     def set_damper_pos(self, room, damper_val):
         cur_pos = float(self.get_entity("cover." + room).get_state("current_position"))
+        self.get_entity("input_number." + room + "_damper").set_state(state=cur_pos)
         self.log(room + " scaled: " + str(damper_val) + " cur_pos: " + str(cur_pos))
         self.get_entity("input_number." + room + "_damper_target").set_state(
             state=damper_val
@@ -383,13 +384,9 @@ class Actrl(hass.Hass):
                 entity_id=("cover." + room),
                 position=rounded_damper_val,
             )
-            self.get_entity("input_number." + room + "_damper").set_state(
-                state=rounded_damper_val
-            )
-            time.sleep(1)
+            time.sleep(0.1)
         else:
             self.log("within deadband, not setting " + room)
-            self.get_entity("input_number." + room + "_damper").set_state(state=cur_pos)
 
     def try_set_mode(self, mode):
         if self.get_state("climate.aircon") != mode:
