@@ -128,22 +128,42 @@ class MyPID:
         self.integral += val
         self.deriv.set(error, target)
         # clamp between +-1
-        if not clamp_low <= self.get() <= clamp_high:
-            if self.get() >  clamp_high:
-                clamp_to = clamp_high
+        if not self.clamp_low <= self.get() <= self.clamp_high:
+            if self.get() >  self.clamp_high:
+                clamp_to = self.clamp_high
             else:
-                clamp_to = clamp_low
+                clamp_to = self.clamp_low
             self.integral = -(clamp_to + self.deriv.get() + (self.last_val * self.kp))/self.ki
 
     def get(self):
         return (-self.last_val * self.kp) + (-self.integral * self.ki) + (-self.deriv.get())
+
+class MySimplerIntegral:
+    def __init__(self, ki, clamp_low, clamp_high):
+        self.ki = ki
+        self.clamp_low = clamp_low
+        self.clamp_high = clamp_high
+        self.clear()
+
+    def clear(self):
+        self.integral = 0.0
+
+    def set(self, error):
+        self.integral += ( error * self.ki )
+        if self.integral < self.clamp_low:
+            self.integral = self.clamp_low
+        if self.integral > self.clamp_high:
+            self.integral = self.clamp_high
+
+    def get(self):
+        return self.integral
 
 class Actrl(hass.Hass):
     def initialize(self):
         self.pids = {}
         self.rooms_enabled = {}
         self.temp_deriv = MyDeriv(int(temp_deriv_window/interval), int(temp_deriv_window/interval))
-        self.temp_pi = MyPID(kp=1, ki=(compress_ki * 60.0 * interval), kd=0, window=1, clamp_low=-compress_factor, clamp_high=compress_factor)
+        self.temp_pi = MySimplerIntegral(ki=(compress_ki * 60.0 * interval), clamp_low=-compress_factor, clamp_high=compress_factor)
         self.ramping_down = True
         self.totally_off = True
         self.heat_mode = False
@@ -268,14 +288,14 @@ class Actrl(hass.Hass):
         self.temp_deriv.set(weighted_error, weighted_target)
         avg_deriv = self.temp_deriv.get()
 
-        self.temp_pi.set(weighted_error, 0.0)
-        weighted_error = self.temp_pi.get()
+        self.temp_pi.set(weighted_error)
+        weighted_error += self.temp_pi.get()
 
         weighted_error *= heat_cool_sign
         avg_deriv *= heat_cool_sign
 
         compressed_error = heat_cool_sign * self.compress(weighted_error, avg_deriv)
-        self.log("oc "+str(self.on_counter)+" error weighted "+str(weighted_error)+" deriv "+str(avg_deriv)+" compressed "+str(compressed_error))
+        self.log("oc "+str(self.on_counter)+" error weighted "+str(weighted_error)+" deriv "+str(avg_deriv)+" integral "+str(self.temp_pi.get())+" compressed "+str(compressed_error))
         self.get_entity("input_number.fake_temperature").set_state(state=(main_setpoint+compressed_error))
 
         self.on_counter += 1
