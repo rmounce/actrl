@@ -37,7 +37,7 @@ room_deriv_window = 15.0
 room_deriv_factor = 2.0
 
 # percent
-damper_deadband = 7.0
+damper_deadband = 5.0
 damper_round = 5
 
 # soft start to avoid overshoot
