@@ -163,7 +163,7 @@ class Actrl(hass.Hass):
         self.pids = {}
         self.rooms_enabled = {}
         self.temp_deriv = MyDeriv(window=int(temp_deriv_window/interval), factor=int(temp_deriv_window/interval))
-        self.temp_pi = MySimplerIntegral(ki=(compress_ki * 60.0 * interval), clamp_low=-compress_factor, clamp_high=compress_factor)
+        self.temp_integral = MySimplerIntegral(ki=(compress_ki * 60.0 * interval), clamp_low=-compress_factor, clamp_high=compress_factor)
         self.ramping_down = True
         self.totally_off = True
         self.heat_mode = False
@@ -209,7 +209,7 @@ class Actrl(hass.Hass):
             for room, pid in self.pids.items():
                 pid.clear()
             self.temp_deriv.clear()
-            self.temp_pi.clear()
+            self.temp_integral.clear()
             self.totally_off = True
             self.on_counter = 0
             if self.get_state("climate.aircon") != "fan_only":
@@ -290,15 +290,15 @@ class Actrl(hass.Hass):
         avg_deriv = self.temp_deriv.get()
 
         self.get_entity("input_number.aircon_weighted_error").set_state(state=weighted_error)
-        self.temp_pi.set(weighted_error)
-        self.get_entity("input_number.aircon_integrated_error").set_state(state=self.temp_pi.get())
-        weighted_error += self.temp_pi.get()
+        self.temp_integral.set(weighted_error)
+        self.get_entity("input_number.aircon_integrated_error").set_state(state=self.temp_integral.get())
+        weighted_error += self.temp_integral.get()
 
         weighted_error *= heat_cool_sign
         avg_deriv *= heat_cool_sign
 
         compressed_error = heat_cool_sign * self.compress(weighted_error, avg_deriv)
-        self.log("deriv "+str(avg_deriv)+" integral "+str(self.temp_pi.get())+" compressed "+str(compressed_error))
+        self.log("deriv "+str(avg_deriv)+" integral "+str(self.temp_integral.get())+" compressed "+str(compressed_error))
         self.get_entity("input_number.fake_temperature").set_state(state=(main_setpoint+compressed_error))
 
         self.on_counter += 1
