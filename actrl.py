@@ -38,7 +38,7 @@ room_deriv_factor = 2.0
 
 # percent
 damper_deadband = 7.0
-damper_round = 5.0
+damper_round = 5
 
 # soft start to avoid overshoot
 # start at min power and gradually report the actual rval
@@ -297,8 +297,6 @@ class Actrl(hass.Hass):
 
             if self.get_entity("cover." + room).get_state("current_position") != "0":
                 self.log("closing damper for disabled room " + room)
-                # self.call_service('cover/set_cover_position', entity_id=("cover."+room), position=0)
-                # self.get_entity("input_number."+room+"_damper").set_state(state=0)
                 self.set_damper_pos(room, 0)
 
         min_pid = min(pid_vals.values())
@@ -379,7 +377,7 @@ class Actrl(hass.Hass):
             or (damper_val < (cur_pos - cur_deadband))
         ):
             self.log("setting " + room)
-            rounded_damper_val = damper_round * round(damper_val * damper_round)
+            rounded_damper_val = damper_round * round(damper_val / damper_round)
             self.call_service(
                 "cover/set_cover_position",
                 entity_id=("cover." + room),
