@@ -285,17 +285,21 @@ class Actrl(hass.Hass):
         weighted_error = error_sum / weight_sum
         weighted_target = target_sum / weight_sum
 
+        self.log("oc "+str(self.on_counter)+" error weighted "+str(weighted_error))
+
         self.temp_deriv.set(weighted_error, weighted_target)
         avg_deriv = self.temp_deriv.get()
 
+        self.get_entity("input_number.aircon_weighted_error").set_state(state=weighted_error)
         self.temp_pi.set(weighted_error)
+        self.get_entity("input_number.aircon_integrated_error").set_state(state=self.temp_pi.get())
         weighted_error += self.temp_pi.get()
 
         weighted_error *= heat_cool_sign
         avg_deriv *= heat_cool_sign
 
         compressed_error = heat_cool_sign * self.compress(weighted_error, avg_deriv)
-        self.log("oc "+str(self.on_counter)+" error weighted "+str(weighted_error)+" deriv "+str(avg_deriv)+" integral "+str(self.temp_pi.get())+" compressed "+str(compressed_error))
+        self.log("deriv "+str(avg_deriv)+" integral "+str(self.temp_pi.get())+" compressed "+str(compressed_error))
         self.get_entity("input_number.fake_temperature").set_state(state=(main_setpoint+compressed_error))
 
         self.on_counter += 1
