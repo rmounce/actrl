@@ -85,7 +85,7 @@ class MyWMA:
 # ignores steps due to changed target
 class MyDeriv:
     def __init__(self, window, factor):
-        self.wma = MyWMA(window)
+        self.wma = MyWMA(window=window)
         self.factor = factor
         self.clear()
 
@@ -162,7 +162,7 @@ class Actrl(hass.Hass):
     def initialize(self):
         self.pids = {}
         self.rooms_enabled = {}
-        self.temp_deriv = MyDeriv(int(temp_deriv_window/interval), int(temp_deriv_window/interval))
+        self.temp_deriv = MyDeriv(window=int(temp_deriv_window/interval), factor=int(temp_deriv_window/interval))
         self.temp_pi = MySimplerIntegral(ki=(compress_ki * 60.0 * interval), clamp_low=-compress_factor, clamp_high=compress_factor)
         self.ramping_down = True
         self.totally_off = True
@@ -170,8 +170,7 @@ class Actrl(hass.Hass):
         self.on_counter = 0
 
         for room in rooms:
-            #self.pids[room]=PID(Kp=1.0, Ki=0.001, Kd=0, setpoint=0, sample_time=None, output_limits=(-1.0, 1.0))
-            self.pids[room]=MyPID(kp, (ki * 60.0 * interval), int(room_deriv_factor/interval), int(room_deriv_window/interval), -1.0, 1.0)
+            self.pids[room]=MyPID(kp=kp, ki=(ki * 60.0 * interval), kd=int(room_deriv_factor/interval), window=int(room_deriv_window/interval), clamp_low=-1.0, clamp_high=1.0)
             self.rooms_enabled[room]=True
         # run every interval (in minutes)
         self.run_every(self.main, "now", 60.0 * interval)
@@ -393,4 +392,3 @@ class Actrl(hass.Hass):
             return max(rval, on_threshold)
 
         return rval
-
