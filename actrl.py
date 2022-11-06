@@ -20,8 +20,8 @@ global_temp_deriv_factor = 10.0
 global_compress_factor = 0.2
 
 # per second
-global_ki = 0.0005
-# a 0.1 deg error will accumulate 0.1 in ~30 minutes
+global_ki = 0.00025
+# a 0.1 deg error will accumulate 0.1 in ~60 minutes
 
 
 room_kp = 0.5
