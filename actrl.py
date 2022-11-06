@@ -16,8 +16,8 @@ global_temp_deriv_window = 7.5
 # to predict 10 minutes into the future
 global_temp_deriv_factor = 10.0
 
-# report 0.2 degree offset to aircon as 1 degree, 5x amplification
-global_compress_factor = 0.2
+# report 0.25 degree offset to aircon as 1 degree, 4x amplification
+global_compress_factor = 0.25
 
 # per second
 global_ki = 0.0005
