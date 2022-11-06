@@ -342,7 +342,7 @@ class Actrl(hass.Hass):
 
         compressed_error = heat_cool_sign * self.compress(weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign)
         self.log(
-            + " weighted_error post-integral: " + str(weighted_error)
+            " weighted_error post-integral: " + str(weighted_error)
             + " compressed_error: " + str(compressed_error)
         )
         self.get_entity("input_number.fake_temperature").set_state(
