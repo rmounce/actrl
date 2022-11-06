@@ -374,6 +374,7 @@ class Actrl(hass.Hass):
 
         if (
             (damper_val > 99.9 and cur_pos < 100.0)
+            or (damper_val < 0.9 and cur_pos > 0.0)
             or (damper_val > (cur_pos + cur_deadband))
             or (damper_val < (cur_pos - cur_deadband))
         ):
