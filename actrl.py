@@ -305,7 +305,7 @@ class Actrl(hass.Hass):
         weight_sum = 0.0
 
         for room, pid_val in pid_vals.items():
-            scaled = 100.0 * ((1.01 - pid_val) / (1.01 - min_pid))
+            scaled = 100.0 * ((1.001 - pid_val) / (1.001 - min_pid))
 
             damper_vals[room] = scaled
             target_sum += targets[room] * scaled
@@ -377,7 +377,7 @@ class Actrl(hass.Hass):
 
         if (
             (damper_val > 99.9 and cur_pos < 100.0)
-            or (damper_val < 0.9 and cur_pos > 0.0)
+            or (damper_val < 0.1 and cur_pos > 0.0)
             or (damper_val > (cur_pos + cur_deadband))
             or (damper_val < (cur_pos - cur_deadband))
         ):
