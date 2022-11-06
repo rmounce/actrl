@@ -122,7 +122,7 @@ class MyPID:
         self.integral = 0.0
 
     def set(self, error, target):
-        print(" error " + str(error) + " target " + str(target))
+        #print(" error " + str(error) + " target " + str(target))
         val = error - target
         self.last_val = val
         self.integral += val
@@ -277,10 +277,9 @@ class Actrl(hass.Hass):
                 # and return half-way through soft-start
                 self.on_counter = min(self.on_counter, soft_delay)
 
-            print("setting " + room)
             self.pids[room].set(error, avg_error)
             pid_vals[room] = heat_cool_sign * self.pids[room].get()
-            print("outcome was " + str(pid_vals[room]))
+            #self.log(room + " PID outcome was " + str(pid_vals[room]))
             self.get_entity("input_number." + room + "_pid").set_state(
                 state=pid_vals[room]
             )
@@ -296,7 +295,7 @@ class Actrl(hass.Hass):
                 self.temp_deriv.clear()
 
             if self.get_entity("cover." + room).get_state("current_position") != "0":
-                self.log("closing damper for disabled room " + room)
+                self.log("Closing damper for disabled room: " + room)
                 self.set_damper_pos(room, 0)
 
         min_pid = min(pid_vals.values())
@@ -316,33 +315,35 @@ class Actrl(hass.Hass):
         weighted_error = error_sum / weight_sum
         weighted_target = target_sum / weight_sum
 
-        self.log(
-            "oc " + str(self.on_counter) + " error weighted " + str(weighted_error)
-        )
-
         self.temp_deriv.set(weighted_error, weighted_target)
         avg_deriv = self.temp_deriv.get()
+
+        self.temp_integral.set(weighted_error)
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
             state=weighted_error
         )
-        self.temp_integral.set(weighted_error)
+        self.get_entity("input_number.aircon_avg_deriv").set_state(
+            state=avg_deriv
+        )
         self.get_entity("input_number.aircon_integrated_error").set_state(
             state=self.temp_integral.get()
         )
+
+        self.log(
+            "totally_off: " + str(self.totally_off)
+            + " on_counter: " + str(self.on_counter)
+            + " weighted_error pre-integral: " + str(weighted_error)
+            + " avg_deriv: " + str(avg_deriv)
+            + " temp_integral: " + str(self.temp_integral.get())
+        )
+
         weighted_error += self.temp_integral.get()
 
-        weighted_error *= heat_cool_sign
-        avg_deriv *= heat_cool_sign
-
-        compressed_error = heat_cool_sign * self.compress(weighted_error, avg_deriv)
+        compressed_error = heat_cool_sign * self.compress(weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign)
         self.log(
-            "deriv "
-            + str(avg_deriv)
-            + " integral "
-            + str(self.temp_integral.get())
-            + " compressed "
-            + str(compressed_error)
+            + " weighted_error post-integral: " + str(weighted_error)
+            + " compressed_error: " + str(compressed_error)
         )
         self.get_entity("input_number.fake_temperature").set_state(
             state=(main_setpoint + compressed_error)
@@ -360,7 +361,7 @@ class Actrl(hass.Hass):
     def set_damper_pos(self, room, damper_val):
         cur_pos = float(self.get_entity("cover." + room).get_state("current_position"))
         self.get_entity("input_number." + room + "_damper").set_state(state=cur_pos)
-        self.log(room + " scaled: " + str(damper_val) + " cur_pos: " + str(cur_pos))
+        damper_log = room + " damper scaled: " + str(damper_val) + " cur_pos: " + str(cur_pos)
         self.get_entity("input_number." + room + "_damper_target").set_state(
             state=damper_val
         )
@@ -374,10 +375,11 @@ class Actrl(hass.Hass):
 
         if (
             (damper_val > 99.9 and cur_pos < 100.0)
+            or (damper_val < 0.9 and cur_pos > 0.0)
             or (damper_val > (cur_pos + cur_deadband))
             or (damper_val < (cur_pos - cur_deadband))
         ):
-            self.log("setting " + room)
+            self.log(damper_log + " adjusting")
             rounded_damper_val = damper_round * round(damper_val / damper_round)
             self.call_service(
                 "cover/set_cover_position",
@@ -386,7 +388,7 @@ class Actrl(hass.Hass):
             )
             time.sleep(0.1)
         else:
-            self.log("within deadband, not setting " + room)
+            self.log(damper_log + " within deadband")
 
     def try_set_mode(self, mode):
         if self.get_state("climate.aircon") != mode:
