@@ -23,6 +23,12 @@ global_compress_factor = 0.25
 global_ki = 0.00025
 # a 0.1 deg error will accumulate 0.1 in ~60 minutes
 
+# per second
+global_deadband_ki = 0.05
+# a 0.1 deg error will accumulate 1 in ~1.66 minutes
+
+# in seconds, time for aircon to ramp up power 1 increment & stay there
+step_time = 200
 
 room_kp = 0.5
 
@@ -165,6 +171,40 @@ class MySimplerIntegral:
     def get(self):
         return self.integral
 
+class DeadbandIntegrator:
+    def __init__(self, ki, step_intervals):
+        self.ki = ki
+        self.step_intervals = step_intervals        
+        self.clear()
+
+    def clear(self):
+        self.integral = 0.0
+        self.ramp_count = 0
+
+    def set(self, error):
+        self.integral += error * self.ki
+
+        if self.ramp_count == 0 and abs(self.integral) > 1.0:
+            self.ramp_count = math.copysign(1, self.integral)
+            self.integral += math.copysign(2.0, self.ramp_count)
+
+        if abs(self.ramp_count) > 0 and (abs(self.ramp_count) >= self.step_intervals or 
+            abs(self.integral - math.copysign(1.0, self.ramp_count)) > 2.0):
+            self.ramp_count = 0            
+
+        if self.integral < -1:
+            self.integral = -1
+        if self.integral > 1:
+            self.integral = 1
+
+        if abs(self.ramp_count) > 0:
+            return math.copysign(1, self.ramp_count)
+        else:
+            return 0
+
+
+    def get(self):
+        return self.integral
 
 class Actrl(hass.Hass):
     def initialize(self):
