@@ -174,7 +174,7 @@ class MySimplerIntegral:
 class DeadbandIntegrator:
     def __init__(self, ki, step_intervals):
         self.ki = ki
-        self.step_intervals = step_intervals        
+        self.step_intervals = step_intervals
         self.clear()
 
     def clear(self):
@@ -183,14 +183,23 @@ class DeadbandIntegrator:
 
     def set(self, error):
         self.integral += error * self.ki
+        print("input " + str(error) + " integral " + str(self.integral))
+
+        if abs(self.ramp_count) > 0 and (
+            abs(self.ramp_count) > self.step_intervals
+            or abs(self.integral - math.copysign(1.0, self.ramp_count)) > 2.0
+        ):
+            print("over thresh, resetting")
+            print("step_intervals " + str(self.step_intervals))
+            print("other thingy " + str(abs(self.integral - math.copysign(1.0, self.ramp_count))))
+            self.ramp_count = 0
 
         if self.ramp_count == 0 and abs(self.integral) > 1.0:
+            print("over thresh, starting")
             self.ramp_count = math.copysign(1, self.integral)
-            self.integral += math.copysign(2.0, self.ramp_count)
+            self.integral -= math.copysign(2.0, self.ramp_count)
 
-        if abs(self.ramp_count) > 0 and (abs(self.ramp_count) >= self.step_intervals or 
-            abs(self.integral - math.copysign(1.0, self.ramp_count)) > 2.0):
-            self.ramp_count = 0            
+        print("ramp_count " + str(self.ramp_count))
 
         if self.integral < -1:
             self.integral = -1
@@ -198,13 +207,11 @@ class DeadbandIntegrator:
             self.integral = 1
 
         if abs(self.ramp_count) > 0:
+            print("aircon is ramping, step_intervals " + str(self.step_intervals))
+            self.ramp_count += 1
             return math.copysign(1, self.ramp_count)
         else:
             return 0
-
-
-    def get(self):
-        return self.integral
 
 class Actrl(hass.Hass):
     def initialize(self):
@@ -223,6 +230,8 @@ class Actrl(hass.Hass):
         self.totally_off = True
         self.heat_mode = False
         self.on_counter = 0
+        self.deadband_integrator = DeadbandIntegrator(kp=1, step_intervals=step_time/(60.0 * interval))
+
 
         for room in rooms:
             self.pids[room] = MyPID(
@@ -292,6 +301,7 @@ class Actrl(hass.Hass):
             self.temp_integral.clear()
             self.totally_off = True
             self.on_counter = 0
+            self.deadband_integrator.clear()
             if self.get_state("climate.aircon") != "fan_only":
                 self.try_set_mode("off")
             return
@@ -317,6 +327,7 @@ class Actrl(hass.Hass):
                 self.rooms_enabled[room] = True
                 # a new room has been enabled, reset the deriv history
                 self.temp_deriv.clear()
+                self.deadband_integrator.clear()
                 # and return half-way through soft-start
                 self.on_counter = min(self.on_counter, soft_delay)
 
@@ -473,12 +484,14 @@ class Actrl(hass.Hass):
 
         if self.totally_off:
             self.on_counter = 0
+            self.deadband_integrator.clear()
             if rval < on_threshold:
                 return rval
 
         self.totally_off = False
 
         if rval > on_threshold:
+            self.deadband_integrator.clear()
             if self.on_counter < soft_delay:
                 print("soft start, on_counter: " + str(self.on_counter))
                 return on_threshold
@@ -494,6 +507,13 @@ class Actrl(hass.Hass):
                     (ramp_progress * unrounded_rval)
                     + ((1.0 - ramp_progress) * on_threshold)
                 )
+
+
+        if 0 < rval and rval < 2:
+            unrounded_rval = self.deadband_integrator.set((unrounded_rval - 1.0) * global_compress_factor) + 1.0
+            rval = round(rval)
+        else:
+            self.deadband_integrator.clear()
 
         # behaviour only observed in cooling mode
         # at the setpoint ac will start ramping back power
