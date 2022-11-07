@@ -518,7 +518,7 @@ class Actrl(hass.Hass):
                 )
 
 
-        if 0 < rval and rval < 2:
+        if 0 <= rval and rval <= 2:
             unrounded_rval = self.deadband_integrator.set((unrounded_rval - 1.0) * global_compress_factor) + 1.0
             rval = round(rval)
         else:
