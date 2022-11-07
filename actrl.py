@@ -230,7 +230,7 @@ class Actrl(hass.Hass):
         self.totally_off = True
         self.heat_mode = False
         self.on_counter = 0
-        self.deadband_integrator = DeadbandIntegrator(kp=1, step_intervals=step_time/(60.0 * interval))
+        self.deadband_integrator = DeadbandIntegrator(ki=(global_deadband_ki* 60.0 * interval), step_intervals=step_time/(60.0 * interval))
 
 
         for room in rooms:
