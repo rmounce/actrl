@@ -240,6 +240,9 @@ class Actrl(hass.Hass):
             self.get_entity("input_number.aircon_weighted_error").set_state(
                 state=float("nan")
             )
+            self.get_entity("input_number.aircon_avg_deriv").set_state(
+                state=float("nan")
+            )
             self.get_entity("input_number.aircon_integrated_error").set_state(
                 state=float("nan")
             )
@@ -332,12 +335,12 @@ class Actrl(hass.Hass):
 
         self.log(
             "totally_off: " + str(self.totally_off)
-            + " on_counter: " + str(self.on_counter)
-            + " weighted_error pre-integral: " + str(weighted_error)
+            + ", on_counter: " + str(self.on_counter)
+            + ", weighted_error pre-integral: " + str(weighted_error)
         )
         self.log(
             "avg_deriv: " + str(avg_deriv)
-            + " temp_integral: " + str(self.temp_integral.get())
+            + ", temp_integral: " + str(self.temp_integral.get())
         )
 
         weighted_error += self.temp_integral.get()
@@ -345,7 +348,7 @@ class Actrl(hass.Hass):
         compressed_error = heat_cool_sign * self.compress(weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign)
         self.log(
             "weighted_error post-integral: " + str(weighted_error)
-            + " compressed_error: " + str(compressed_error)
+            + ", compressed_error: " + str(compressed_error)
         )
         self.get_entity("input_number.fake_temperature").set_state(
             state=(main_setpoint + compressed_error)
@@ -363,7 +366,7 @@ class Actrl(hass.Hass):
     def set_damper_pos(self, room, damper_val):
         cur_pos = float(self.get_entity("cover." + room).get_state("current_position"))
         self.get_entity("input_number." + room + "_damper").set_state(state=cur_pos)
-        damper_log = room + " damper scaled: " + str(damper_val) + " cur_pos: " + str(cur_pos)
+        damper_log = room + " damper scaled: " + str(damper_val) + ", cur_pos: " + str(cur_pos)
         self.get_entity("input_number." + room + "_damper_target").set_state(
             state=damper_val
         )
