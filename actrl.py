@@ -181,6 +181,10 @@ class DeadbandIntegrator:
         self.integral = 0.0
         self.ramp_count = 0
 
+        self.get_entity("input_number.aircon_meta_integral").set_state(
+            state=self.integral
+        )
+
     def set(self, error):
         self.integral += error * self.ki
         print("input " + str(error) + " integral " + str(self.integral))
@@ -205,6 +209,10 @@ class DeadbandIntegrator:
             self.integral = -1
         if self.integral > 1:
             self.integral = 1
+
+        self.get_entity("input_number.aircon_meta_integral").set_state(
+            state=self.integral
+        )
 
         if abs(self.ramp_count) > 0:
             print("aircon is ramping, step_intervals " + str(self.step_intervals))
@@ -293,6 +301,9 @@ class Actrl(hass.Hass):
                 state=float("nan")
             )
             self.get_entity("input_number.aircon_integrated_error").set_state(
+                state=float("nan")
+            )
+            self.get_entity("input_number.aircon_meta_integral").set_state(
                 state=float("nan")
             )
             for room, pid in self.pids.items():
