@@ -208,7 +208,7 @@ class DeadbandIntegrator:
 
         if abs(self.ramp_count) > 0:
             print("aircon is ramping, step_intervals " + str(self.step_intervals))
-            self.ramp_count += 1
+            self.ramp_count += math.copysign(1, self.ramp_count)
             return math.copysign(1, self.ramp_count)
         else:
             return 0
