@@ -24,11 +24,13 @@ global_ki = 0.00025
 # a 0.1 deg error will accumulate 0.1 in ~60 minutes
 
 # per second
-global_deadband_ki = 0.05
-# a 0.1 deg error will accumulate 1 in ~1.66 minutes
+global_deadband_ki = 0.025
+# a 0.1 deg error will accumulate 1 in ~3.33 minutes
 
 # in seconds, time for aircon to ramp up power 1 increment & stay there
-step_time = 200
+step_up_time = 200
+# shorter as it latches instantly
+step_down_time = 120
 
 room_kp = 0.5
 
@@ -172,9 +174,10 @@ class MySimplerIntegral:
         return self.integral
 
 class DeadbandIntegrator:
-    def __init__(self, ki, step_intervals):
+    def __init__(self, ki, step_up_intervals, step_down_intervals):
         self.ki = ki
-        self.step_intervals = step_intervals
+        self.step_up_intervals = step_up_intervals
+        self.step_down_intervals = step_down_intervals
         self.clear()
 
     def clear(self):
@@ -186,11 +189,11 @@ class DeadbandIntegrator:
         print("input " + str(error) + " integral " + str(self.integral))
 
         if abs(self.ramp_count) > 0 and (
-            abs(self.ramp_count) > self.step_intervals
+            ( self.ramp_count > self.step_up_intervals or self.ramp_count < -self.step_down_intervals )
             or abs(self.integral - math.copysign(1.0, self.ramp_count)) > 2.0
         ):
             print("over thresh, resetting")
-            print("step_intervals " + str(self.step_intervals))
+            #print("step_intervals " + str(self.step_intervals))
             print("other thingy " + str(abs(self.integral - math.copysign(1.0, self.ramp_count))))
             self.ramp_count = 0
 
@@ -207,7 +210,7 @@ class DeadbandIntegrator:
             self.integral = 1
 
         if abs(self.ramp_count) > 0:
-            print("aircon is ramping, step_intervals " + str(self.step_intervals))
+            print("aircon is ramping")
             self.ramp_count += math.copysign(1, self.ramp_count)
             return math.copysign(1, self.ramp_count)
         else:
@@ -233,7 +236,7 @@ class Actrl(hass.Hass):
         self.totally_off = True
         self.heat_mode = False
         self.on_counter = 0
-        self.deadband_integrator = DeadbandIntegrator(ki=(global_deadband_ki* 60.0 * interval), step_intervals=step_time/(60.0 * interval))
+        self.deadband_integrator = DeadbandIntegrator(ki=(global_deadband_ki* 60.0 * interval), step_up_intervals=step_up_time/(60.0 * interval), step_down_intervals=step_down_time/(60.0 * interval))
 
 
         for room in rooms:
@@ -494,6 +497,7 @@ class Actrl(hass.Hass):
         if self.totally_off:
             self.on_counter = 0
             self.deadband_integrator.clear()
+            self.temp_deriv.clear()
             if rval < on_threshold:
                 return rval
 
