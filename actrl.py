@@ -184,6 +184,10 @@ class DeadbandIntegrator:
         self.integral = 0.0
         self.ramp_count = 0
 
+    def clear_set(self, integral):
+        self.integral = integral
+        self.ramp_count = 0
+
     def set(self, error):
         self.integral += error * self.ki
         print("input " + str(error) + " integral " + str(self.integral))
@@ -496,10 +500,11 @@ class Actrl(hass.Hass):
 
         if self.totally_off:
             self.on_counter = 0
-            self.deadband_integrator.clear()
-            self.temp_deriv.clear()
             if rval < on_threshold:
                 return rval
+            else:
+                self.temp_deriv.clear()
+                self.deadband_integrator.clear_set(-1.0)
 
         self.totally_off = False
 
