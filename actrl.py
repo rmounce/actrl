@@ -276,9 +276,16 @@ class Actrl(hass.Hass):
         for room in rooms:
             if self.get_state("climate." + room + "_aircon") != "off":
                 all_disabled = False
-                temps[room] = float(
-                    self.get_state("sensor." + room + "_average_temperature")
-                )
+
+                if self.get_state("input_boolean.ac_use_follow_me") == "on":
+                    temps[room] = float(
+                        self.get_state("sensor." + room + "_feels_like")
+                    )
+                else:
+                    temps[room] = float(
+                        self.get_state("sensor." + room + "_average_temperature")
+                    )
+
                 targets[room] = float(
                     self.get_entity("climate." + room + "_aircon").get_state(
                         "temperature"
