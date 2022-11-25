@@ -357,7 +357,7 @@ class Actrl(hass.Hass):
             pre_avg_value_sum += weight*error
 
         avg_error = pre_avg_value_sum/pre_avg_weight_sum
-        self.log("naive average: " + str(unweighted_avg_error), ", weighted average: " + str(avg_error))
+        self.log("naive average: " + str(unweighted_avg_error) + ", weighted average: " + str(avg_error))
 
         for room, error in errors.items():
             if not self.rooms_enabled[room]:
