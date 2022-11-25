@@ -237,9 +237,15 @@ class Actrl(hass.Hass):
             clamp_high=global_compress_factor,
         )
         self.ramping_down = True
-        self.totally_off = True
         self.heat_mode = False
-        self.on_counter = 0
+
+        if self.get_state("input_boolean.ac_already_on_bypass") == "on":
+            self.totally_off = False
+            self.on_counter = soft_delay + soft_ramp
+        else:
+            self.totally_off = True
+            self.on_counter = 0
+
         self.deadband_integrator = DeadbandIntegrator(ki=(global_deadband_ki* 60.0 * interval), step_up_intervals=step_up_time/(60.0 * interval), step_down_intervals=step_down_time/(60.0 * interval))
 
 
