@@ -225,6 +225,7 @@ class DeadbandIntegrator:
 
 class Actrl(hass.Hass):
     def initialize(self):
+        self.log("INITIALISING")
         self.pids = {}
         self.rooms_enabled = {}
         self.temp_deriv = MyDeriv(
