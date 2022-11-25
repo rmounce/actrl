@@ -150,7 +150,7 @@ class MyPID:
         scaledcurrent = 1.0 - current
         target = 1.0 - (scaledcurrent * factor)
         delta = current - target
-        self.integral += delta / self.kp
+        self.integral += delta / self.ki
 
     def get(self):
         return (
@@ -380,6 +380,15 @@ class Actrl(hass.Hass):
             self.pids[room].set(error, avg_error)
             pid_vals[room] = heat_cool_sign * self.pids[room].get()
             #self.log(room + " PID outcome was " + str(pid_vals[room]))
+
+        unscaled_min_pid = min(pid_vals.values())
+        unscaled_max_pid = max(pid_vals.values())
+
+        scalefactor = 2.0 / ( (1.0-unscaled_min_pid) + (1.0-unscaled_max_pid) )
+        self.log("scaling all PIDs by: " + str(scalefactor))
+        for room, pid_val in pid_vals.items():
+            self.pids[room].scale(scalefactor)
+            pid_vals[room] = heat_cool_sign * self.pids[room].get()
             self.get_entity("input_number." + room + "_pid").set_state(
                 state=pid_vals[room]
             )
@@ -398,15 +407,8 @@ class Actrl(hass.Hass):
                 self.log("Closing damper for disabled room: " + room)
                 self.set_damper_pos(room, 0)
 
-        min_pid = min(pid_vals.values())
-        max_pid = max(pid_vals.values())
 
-        scalefactor = 1.0 / ( (1.0-min_pid) / (1.0-max_pid) )
-        self.log("scaling all PIDs by: " + str(scalefactor))
-        for room, pid_val in pid_vals.items():
-            self.log("room " + room + " pre "  + str(self.pids[room].get()))
-            self.pids[room].scale(scalefactor)
-            self.log("room " + room + " post " + str(self.pids[room].get()))
+        min_pid = min(pid_vals.values())
 
         error_sum = 0.0
         target_sum = 0.0
