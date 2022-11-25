@@ -145,6 +145,13 @@ class MyPID:
                 -(clamp_to + self.deriv.get() + (self.last_val * self.kp)) / self.ki
             )
 
+    def scale(self, factor):
+        current = self.get()
+        scaledcurrent = 1.0 - current
+        target = 1.0 - (scaledcurrent * factor)
+        delta = current - target
+        self.integral += delta / self.kp
+
     def get(self):
         return (
             (-self.last_val * self.kp)
@@ -392,6 +399,12 @@ class Actrl(hass.Hass):
                 self.set_damper_pos(room, 0)
 
         min_pid = min(pid_vals.values())
+        max_pid = max(pid_vals.values())
+
+        scalefactor = 1.0 / ( (1.0-min_pid) / (1.0-max_pid) )
+        self.log("scaling all PIDs by: " + str(scalefactor))
+        for room, pid_val in pid_vals.items():
+            pids[room].scale(scalefactor)
 
         error_sum = 0.0
         target_sum = 0.0
