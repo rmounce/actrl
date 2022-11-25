@@ -240,6 +240,7 @@ class Actrl(hass.Hass):
         self.heat_mode = False
 
         if self.get_state("input_boolean.ac_already_on_bypass") == "on":
+            self.log("ASSUMING THAT THE AIRCON IS ALREADY RUNNING")
             self.totally_off = False
             self.on_counter = soft_delay + soft_ramp
         else:
@@ -351,12 +352,12 @@ class Actrl(hass.Hass):
         pre_avg_value_sum = 0
         for room, error in errors.items():
             weight = (1.0 + heat_cool_sign * self.pids[room].get())
-            print("room: " + room + ", error: " + str(error) + ", weight: " + str(weight))
+            self.log("room: " + room + ", error: " + str(error) + ", weight: " + str(weight))
             pre_avg_weight_sum += weight
             pre_avg_value_sum += weight*error
 
         avg_error = pre_avg_value_sum/pre_avg_weight_sum
-        print("naive average: " + str(unweighted_avg_error), ", weighted average: " + str(avg_error))
+        self.log("naive average: " + str(unweighted_avg_error), ", weighted average: " + str(avg_error))
 
         for room, error in errors.items():
             if not self.rooms_enabled[room]:
