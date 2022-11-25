@@ -404,7 +404,9 @@ class Actrl(hass.Hass):
         scalefactor = 1.0 / ( (1.0-min_pid) / (1.0-max_pid) )
         self.log("scaling all PIDs by: " + str(scalefactor))
         for room, pid_val in pid_vals.items():
+            self.log("room " + room + " pre "  + str(self.pids[room].get()))
             self.pids[room].scale(scalefactor)
+            self.log("room " + room + " post " + str(self.pids[room].get()))
 
         error_sum = 0.0
         target_sum = 0.0
