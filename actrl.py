@@ -339,7 +339,18 @@ class Actrl(hass.Hass):
             self.heat_mode = False
             self.try_set_mode("cool")
 
-        avg_error = sum(errors.values()) / len(errors.values())
+        unweighted_avg_error = sum(errors.values()) / len(errors.values())
+
+        pre_avg_weight_sum = 0
+        pre_avg_value_sum = 0
+        for room, error in errors.items():
+            weight = (1.0 + heat_cool_sign * self.pids[room].get())
+            print("room: " + room + ", error: " + str(error) + ", weight: " + str(weight))
+            pre_avg_weight_sum += weight
+            pre_avg_value_sum += weight*error
+
+        avg_error = pre_avg_value_sum/pre_avg_weight_sum
+        print("naive average: " + str(unweighted_avg_error), ", weighted average: " + str(avg_error))
 
         for room, error in errors.items():
             if not self.rooms_enabled[room]:
