@@ -40,9 +40,9 @@ room_ki = 0.0005
 
 # kd considers the last 15 minutes
 room_deriv_window = 15.0
-# for a constant 1.0 deg / min over the last 15 mins, swing full scale
-# or for 1 degree every 5 mins, contribute 0.66
-room_deriv_factor = 2.0
+
+# for a constant 0.4 deg / min over the last 15 mins, swing full scale
+room_deriv_factor = 5.0
 
 # percent
 damper_deadband = 5.0
@@ -359,7 +359,7 @@ class Actrl(hass.Hass):
         pre_avg_weight_sum = 0
         pre_avg_value_sum = 0
         for room, error in errors.items():
-            weight = (1.0 + heat_cool_sign * self.pids[room].get())
+            weight = (1.0 - heat_cool_sign * self.pids[room].get())
             self.log("room: " + room + ", error: " + str(error) + ", weight: " + str(weight))
             pre_avg_weight_sum += weight
             pre_avg_value_sum += weight*error
