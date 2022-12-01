@@ -415,7 +415,8 @@ class Actrl(hass.Hass):
         weight_sum = 0.0
 
         for room, pid_val in pid_vals.items():
-            scaled = 100.0 * ((1.001 - pid_val) / (1.001 - min_pid))
+            # keep low values way down in the hole
+            scaled = max(0, -5.0 + 105.0 * ((1.001 - pid_val) / (1.001 - min_pid)))
 
             damper_vals[room] = scaled
             target_sum += targets[room] * scaled
