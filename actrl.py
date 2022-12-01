@@ -32,7 +32,8 @@ step_up_time = 200
 # shorter as it latches instantly
 step_down_time = 120
 
-room_kp = 0.5
+# swing full scale across 2.0C of error
+room_kp = 1.0
 
 # per second
 room_ki = 0.0005
@@ -41,12 +42,14 @@ room_ki = 0.0005
 # kd considers the last 15 minutes
 room_deriv_window = 15.0
 
-# for a constant 0.4 deg / min over the last 15 mins, swing full scale
-room_deriv_factor = 5.0
+# for a constant 1.0 deg / min over the last 15 mins, swing full scale from -1 to 1
+room_deriv_factor = 2.0
 
 # percent
 damper_deadband = 5.0
 damper_round = 5
+# 10% of extra virtual closed-ness
+damper_fully_closed_buffer = 10.0
 
 # soft start to avoid overshoot
 # start at min power and gradually report the actual rval
@@ -416,7 +419,7 @@ class Actrl(hass.Hass):
 
         for room, pid_val in pid_vals.items():
             # keep low values way down in the hole
-            scaled = max(0, -5.0 + 105.0 * ((1.001 - pid_val) / (1.001 - min_pid)))
+            scaled = max(0, -damper_fully_closed_buffer + (100.0 + damper_fully_closed_buffer) * ((1.001 - pid_val) / (1.001 - min_pid)))
 
             damper_vals[room] = scaled
             target_sum += targets[room] * scaled
