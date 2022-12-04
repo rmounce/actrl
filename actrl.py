@@ -576,13 +576,11 @@ class Actrl(hass.Hass):
                 self.temp_deriv.clear()
                 self.deadband_integrator.clear_set(-1.0)
 
-        self.totally_off = False
+            self.totally_off = False
+            return initial_on_threshold
 
-        if rval >= on_threshold:
+        if rval > on_threshold:
             self.deadband_integrator.clear()
-            if self.on_counter == 0:
-                print("beginning soft start")
-                return initial_on_threshold
             if self.on_counter < soft_delay:
                 print("soft start, on_counter: " + str(self.on_counter))
                 return on_threshold
