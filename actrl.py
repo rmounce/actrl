@@ -242,6 +242,7 @@ class Actrl(hass.Hass):
     def initialize(self):
         self.log("INITIALISING")
         self.pids = {}
+        self.targets = {}       
         self.rooms_enabled = {}
         self.temp_deriv = MyDeriv(
             window=int(global_temp_deriv_window / interval),
@@ -282,7 +283,6 @@ class Actrl(hass.Hass):
 
     def main(self, kwargs):
         temps = {}
-        targets = {}
         errors = {}
         damper_vals = {}
         pid_vals = {}
@@ -315,29 +315,29 @@ class Actrl(hass.Hass):
                             "temperature"
                         )
                 )
-                if room in targets:
-                    target_delta = cur_target - targets[room]
+                if room in self.targets:
+                    target_delta = cur_target - self.targets[room]
 
                     if abs(target_delta) <= target_ramp_linear_increment:
-                        targets[room] = cur_target
+                        self.targets[room] = cur_target
                     elif abs(target_delta) <= target_ramp_linear_threshold:
-                        targets[room] += math.copysign(target_ramp_linear_increment, target_delta)
-                        self.log("linearly ramping target room: " + room + ", smooth target: " + str(targets[room]))
+                        self.targets[room] += math.copysign(target_ramp_linear_increment, target_delta)
+                        self.log("linearly ramping target room: " + room + ", smooth target: " + str(self.targets[room]))
                     else:
-                        targets[room] += target_delta * target_ramp_proportional
-                        self.log("proportionally ramping target room: " + room + ", smooth target: " + str(targets[room]))
+                        self.targets[room] += target_delta * target_ramp_proportional
+                        self.log("proportionally ramping target room: " + room + ", smooth target: " + str(self.targets[room]))
                 else:
-                    self.log("setting target for previously disabled room" + room)                    
-                    targets[room] = cur_target
+                    self.log("setting target for previously disabled room " + room)                    
+                    self.targets[room] = cur_target
 
-                errors[room] = temps[room] - targets[room]
+                errors[room] = temps[room] - self.targets[room]
                 if self.get_state("climate." + room + "_aircon") == "heat":
                     heat_room_count += 1
                 if self.get_state("climate." + room + "_aircon") == "cool":
                     cool_room_count += 1
             else:
                 disabled_rooms.append(room)
-                targets.pop(room)
+                self.targets.pop(room)
 
         if all_disabled:
             self.get_entity("input_number.fake_temperature").set_state(
@@ -444,7 +444,7 @@ class Actrl(hass.Hass):
             scaled = max(0, -damper_fully_closed_buffer + (100.0 + damper_fully_closed_buffer) * ((1.001 - pid_val) / (1.001 - min_pid)))
 
             damper_vals[room] = scaled
-            target_sum += targets[room] * scaled
+            target_sum += self.targets[room] * scaled
             error_sum += errors[room] * scaled
             weight_sum += scaled
 
