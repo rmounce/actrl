@@ -337,7 +337,8 @@ class Actrl(hass.Hass):
                     cool_room_count += 1
             else:
                 disabled_rooms.append(room)
-                self.targets.pop(room)
+                if room in self.targets:
+                    self.targets.pop(room)
 
         if all_disabled:
             self.get_entity("input_number.fake_temperature").set_state(
