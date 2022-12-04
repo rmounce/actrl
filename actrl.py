@@ -59,10 +59,10 @@ soft_delay = int(7.5 / interval)
 # then gradually report the actual rval over 5 mins
 soft_ramp = int(7.5 / interval)
 
-# 10% per minute above 0.2C
-target_ramp_proportional = 0.1 * interval
-# linear below 0.2C
-target_ramp_linear_threshold = 0.2
+# 20% per minute above 0.2C
+target_ramp_proportional = 0.2 * interval
+# linear below 0.1C
+target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
 
 class MyWMA:
