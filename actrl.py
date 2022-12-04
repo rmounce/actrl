@@ -36,8 +36,8 @@ step_down_time = 120
 room_kp = 1.0
 
 # per second
-room_ki = 0.0005
-# a 0.1 deg error will accumulate 0.1 in ~30 minutes
+room_ki = 0.001
+# a 0.1 deg error will accumulate 0.1 in ~15 minutes
 
 # kd considers the last 15 minutes
 room_deriv_window = 15.0
