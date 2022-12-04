@@ -327,6 +327,7 @@ class Actrl(hass.Hass):
                         targets[room] += target_delta * target_ramp_proportional
                         self.log("proportionally ramping target room: " + room + ", smooth target: " + str(targets[room]))
                 else:
+                    self.log("setting target for previously disabled room" + room)                    
                     targets[room] = cur_target
 
                 errors[room] = temps[room] - targets[room]
