@@ -59,6 +59,11 @@ soft_delay = int(7.5 / interval)
 # then gradually report the actual rval over 5 mins
 soft_ramp = int(7.5 / interval)
 
+# 10% per minute above 0.2C
+target_ramp_proportional = 0.1 * interval
+# linear below 0.2C
+target_ramp_linear_threshold = 0.2
+target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
 
 class MyWMA:
     def __init__(self, window):
@@ -304,11 +309,25 @@ class Actrl(hass.Hass):
                         self.get_state("sensor." + room + "_average_temperature")
                     )
 
-                targets[room] = float(
-                    self.get_entity("climate." + room + "_aircon").get_state(
-                        "temperature"
-                    )
-                )
+
+                cur_target = float(
+                        self.get_entity("climate." + room + "_aircon").get_state(
+                            "temperature"
+                        )
+                if room in targets:
+                    target_delta = cur_target - targets[room]
+
+                    if abs(target_delta) <= target_ramp_linear_increment:
+                        targets[room] = cur_target
+                    elif abs(target_delta) <= target_ramp_linear_threshold:
+                        targets[room] += math.copysign(target_ramp_linear_increment, target_delta)
+                        self.log("linearly ramping target room: " + room + ", smooth target: " + str(targets[room]))
+                    else:
+                        targets[room] += target_delta * target_ramp_proportional
+                        self.log("proportionally ramping target room: " + room + ", smooth target: " + str(targets[room]))
+                else:
+                    targets[room] = cur_target
+
                 errors[room] = temps[room] - targets[room]
                 if self.get_state("climate." + room + "_aircon") == "heat":
                     heat_room_count += 1
@@ -316,6 +335,7 @@ class Actrl(hass.Hass):
                     cool_room_count += 1
             else:
                 disabled_rooms.append(room)
+                targets.pop(room)
 
         if all_disabled:
             self.get_entity("input_number.fake_temperature").set_state(
