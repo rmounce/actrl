@@ -521,12 +521,13 @@ class Actrl(hass.Hass):
         return 0.5 + error / global_compress_factor
 
     def compress(self, error, deriv):
-        if self.heat_mode:
-            on_threshold = 1
-        else:
-            on_threshold = 2
-
+        on_threshold = 1
         off_threshold = -2
+
+        if self.heat_mode:
+            initial_on_threshold = 1
+        else:
+            initial_on_threshold = 2
 
         rval = self.actually_compress(error)
 
@@ -555,8 +556,11 @@ class Actrl(hass.Hass):
 
         self.totally_off = False
 
-        if rval > on_threshold:
+        if rval >= on_threshold:
             self.deadband_integrator.clear()
+            if self.on_counter == 0:
+                print("beginning soft start")
+                return initial_on_threshold
             if self.on_counter < soft_delay:
                 print("soft start, on_counter: " + str(self.on_counter))
                 return on_threshold
@@ -591,6 +595,6 @@ class Actrl(hass.Hass):
 
         if self.ramping_down:
             self.ramping_down = False
-            return max(rval, on_threshold)
+            return max(rval, initial_on_threshold)
 
         return rval
