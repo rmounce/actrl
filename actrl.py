@@ -314,6 +314,7 @@ class Actrl(hass.Hass):
                         self.get_entity("climate." + room + "_aircon").get_state(
                             "temperature"
                         )
+                )
                 if room in targets:
                     target_delta = cur_target - targets[room]
 
