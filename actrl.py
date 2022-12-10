@@ -581,7 +581,6 @@ class Actrl(hass.Hass):
             return initial_on_threshold
 
         if rval > on_threshold:
-            self.deadband_integrator.clear()
             if self.on_counter < soft_delay:
                 print("soft start, on_counter: " + str(self.on_counter))
                 return on_threshold
