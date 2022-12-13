@@ -502,7 +502,6 @@ class Actrl(hass.Hass):
 
     def set_damper_pos(self, room, damper_val):
         cur_pos = float(self.get_entity("cover." + room).get_state("current_position"))
-        self.get_entity("input_number." + room + "_damper").set_state(state=cur_pos)
         damper_log = room + " damper scaled: " + str(damper_val) + ", cur_pos: " + str(cur_pos)
         self.get_entity("input_number." + room + "_damper_target").set_state(
             state=damper_val
