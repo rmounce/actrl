@@ -30,7 +30,8 @@ global_deadband_ki = 0.025
 # in seconds, time for aircon to ramp up power 1 increment & stay there
 step_up_time = 200
 # shorter as it latches instantly
-step_down_time = 120
+# 120s sufficient to step down, but an extra 30 seconds added to make soft start more reliable
+step_down_time = 150
 
 # swing full scale across 2.0C of error
 room_kp = 1.0
