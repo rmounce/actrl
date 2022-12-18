@@ -60,11 +60,16 @@ soft_delay = int(7.5 / interval)
 # then gradually report the actual rval over 5 mins
 soft_ramp = int(7.5 / interval)
 
+# setpoint - 1 takes about this long to bring a/c to min power
+# don't hold it there forever as it'll shut down after 1hr at this temp
+min_power_time = int(7.5 / interval)
+
 # 20% per minute above 0.2C
 target_ramp_proportional = 0.2 * interval
 # linear below 0.1C
 target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
+
 
 class MyWMA:
     def __init__(self, window):
@@ -139,7 +144,7 @@ class MyPID:
         self.integral = 0.0
 
     def set(self, error, target):
-        #print(" error " + str(error) + " target " + str(target))
+        # print(" error " + str(error) + " target " + str(target))
         val = error - target
         self.last_val = val
         self.integral += val
@@ -189,6 +194,7 @@ class MySimplerIntegral:
     def get(self):
         return self.integral
 
+
 class DeadbandIntegrator:
     def __init__(self, ki, step_up_intervals, step_down_intervals):
         self.ki = ki
@@ -209,12 +215,18 @@ class DeadbandIntegrator:
         print("input " + str(error) + " integral " + str(self.integral))
 
         if abs(self.ramp_count) > 0 and (
-            ( self.ramp_count > self.step_up_intervals or self.ramp_count < -self.step_down_intervals )
+            (
+                self.ramp_count > self.step_up_intervals
+                or self.ramp_count < -self.step_down_intervals
+            )
             or abs(self.integral - math.copysign(1.0, self.ramp_count)) > 2.0
         ):
             print("over thresh, resetting")
-            #print("step_intervals " + str(self.step_intervals))
-            print("other thingy " + str(abs(self.integral - math.copysign(1.0, self.ramp_count))))
+            # print("step_intervals " + str(self.step_intervals))
+            print(
+                "other thingy "
+                + str(abs(self.integral - math.copysign(1.0, self.ramp_count)))
+            )
             self.ramp_count = 0
 
         if self.ramp_count == 0 and abs(self.integral) > 1.0:
@@ -239,11 +251,12 @@ class DeadbandIntegrator:
     def get(self):
         return self.integral
 
+
 class Actrl(hass.Hass):
     def initialize(self):
         self.log("INITIALISING")
         self.pids = {}
-        self.targets = {}       
+        self.targets = {}
         self.rooms_enabled = {}
         self.temp_deriv = MyDeriv(
             window=int(global_temp_deriv_window / interval),
@@ -255,6 +268,7 @@ class Actrl(hass.Hass):
             clamp_high=global_compress_factor,
         )
         self.ramping_down = True
+        self.min_power_counter = 0
         self.heat_mode = False
 
         if self.get_state("input_boolean.ac_already_on_bypass") == "on":
@@ -265,8 +279,11 @@ class Actrl(hass.Hass):
             self.totally_off = True
             self.on_counter = 0
 
-        self.deadband_integrator = DeadbandIntegrator(ki=(global_deadband_ki* 60.0 * interval), step_up_intervals=step_up_time/(60.0 * interval), step_down_intervals=step_down_time/(60.0 * interval))
-
+        self.deadband_integrator = DeadbandIntegrator(
+            ki=(global_deadband_ki * 60.0 * interval),
+            step_up_intervals=step_up_time / (60.0 * interval),
+            step_down_intervals=step_down_time / (60.0 * interval),
+        )
 
         for room in rooms:
             self.pids[room] = MyPID(
@@ -310,11 +327,10 @@ class Actrl(hass.Hass):
                         self.get_state("sensor." + room + "_average_temperature")
                     )
 
-
                 cur_target = float(
-                        self.get_entity("climate." + room + "_aircon").get_state(
-                            "temperature"
-                        )
+                    self.get_entity("climate." + room + "_aircon").get_state(
+                        "temperature"
+                    )
                 )
                 if room in self.targets:
                     target_delta = cur_target - self.targets[room]
@@ -322,13 +338,25 @@ class Actrl(hass.Hass):
                     if abs(target_delta) <= target_ramp_linear_increment:
                         self.targets[room] = cur_target
                     elif abs(target_delta) <= target_ramp_linear_threshold:
-                        self.targets[room] += math.copysign(target_ramp_linear_increment, target_delta)
-                        self.log("linearly ramping target room: " + room + ", smooth target: " + str(self.targets[room]))
+                        self.targets[room] += math.copysign(
+                            target_ramp_linear_increment, target_delta
+                        )
+                        self.log(
+                            "linearly ramping target room: "
+                            + room
+                            + ", smooth target: "
+                            + str(self.targets[room])
+                        )
                     else:
                         self.targets[room] += target_delta * target_ramp_proportional
-                        self.log("proportionally ramping target room: " + room + ", smooth target: " + str(self.targets[room]))
+                        self.log(
+                            "proportionally ramping target room: "
+                            + room
+                            + ", smooth target: "
+                            + str(self.targets[room])
+                        )
                 else:
-                    self.log("setting target for previously disabled room " + room)                    
+                    self.log("setting target for previously disabled room " + room)
                     self.targets[room] = cur_target
 
                 errors[room] = temps[room] - self.targets[room]
@@ -386,13 +414,20 @@ class Actrl(hass.Hass):
         pre_avg_weight_sum = 0
         pre_avg_value_sum = 0
         for room, error in errors.items():
-            weight = (1.0 - heat_cool_sign * self.pids[room].get())
-            self.log("room: " + room + ", error: " + str(error) + ", weight: " + str(weight))
+            weight = 1.0 - heat_cool_sign * self.pids[room].get()
+            self.log(
+                "room: " + room + ", error: " + str(error) + ", weight: " + str(weight)
+            )
             pre_avg_weight_sum += weight
-            pre_avg_value_sum += weight*error
+            pre_avg_value_sum += weight * error
 
-        avg_error = pre_avg_value_sum/pre_avg_weight_sum
-        self.log("naive average: " + str(unweighted_avg_error) + ", weighted average: " + str(avg_error))
+        avg_error = pre_avg_value_sum / pre_avg_weight_sum
+        self.log(
+            "naive average: "
+            + str(unweighted_avg_error)
+            + ", weighted average: "
+            + str(avg_error)
+        )
 
         for room, error in errors.items():
             if not self.rooms_enabled[room]:
@@ -406,12 +441,12 @@ class Actrl(hass.Hass):
 
             self.pids[room].set(error, avg_error)
             pid_vals[room] = heat_cool_sign * self.pids[room].get()
-            #self.log(room + " PID outcome was " + str(pid_vals[room]))
+            # self.log(room + " PID outcome was " + str(pid_vals[room]))
 
         unscaled_min_pid = min(pid_vals.values())
         unscaled_max_pid = max(pid_vals.values())
 
-        scalefactor = 2.0 / ( (1.0-unscaled_min_pid) + (1.0-unscaled_max_pid) )
+        scalefactor = 2.0 / ((1.0 - unscaled_min_pid) + (1.0 - unscaled_max_pid))
         self.log("scaling all PIDs by: " + str(scalefactor))
         for room, pid_val in pid_vals.items():
             self.pids[room].scale(scalefactor)
@@ -434,7 +469,6 @@ class Actrl(hass.Hass):
                 self.log("Closing damper for disabled room: " + room)
                 self.set_damper_pos(room, 0)
 
-
         min_pid = min(pid_vals.values())
 
         error_sum = 0.0
@@ -443,7 +477,12 @@ class Actrl(hass.Hass):
 
         for room, pid_val in pid_vals.items():
             # keep low values way down in the hole
-            scaled = max(0, -damper_fully_closed_buffer + (100.0 + damper_fully_closed_buffer) * ((1.001 - pid_val) / (1.001 - min_pid)))
+            scaled = max(
+                0,
+                -damper_fully_closed_buffer
+                + (100.0 + damper_fully_closed_buffer)
+                * ((1.001 - pid_val) / (1.001 - min_pid)),
+            )
 
             damper_vals[room] = scaled
             target_sum += self.targets[room] * scaled
@@ -461,29 +500,36 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_weighted_error").set_state(
             state=weighted_error
         )
-        self.get_entity("input_number.aircon_avg_deriv").set_state(
-            state=avg_deriv
-        )
+        self.get_entity("input_number.aircon_avg_deriv").set_state(state=avg_deriv)
         self.get_entity("input_number.aircon_integrated_error").set_state(
             state=self.temp_integral.get()
         )
 
         self.log(
-            "totally_off: " + str(self.totally_off)
-            + ", on_counter: " + str(self.on_counter)
-            + ", weighted_error pre-integral: " + str(weighted_error)
+            "totally_off: "
+            + str(self.totally_off)
+            + ", on_counter: "
+            + str(self.on_counter)
+            + ", weighted_error pre-integral: "
+            + str(weighted_error)
         )
         self.log(
-            "avg_deriv: " + str(avg_deriv)
-            + ", temp_integral: " + str(self.temp_integral.get())
+            "avg_deriv: "
+            + str(avg_deriv)
+            + ", temp_integral: "
+            + str(self.temp_integral.get())
         )
 
         weighted_error += self.temp_integral.get()
 
-        compressed_error = heat_cool_sign * self.compress(weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign)
+        compressed_error = heat_cool_sign * self.compress(
+            weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign
+        )
         self.log(
-            "weighted_error post-integral: " + str(weighted_error)
-            + ", compressed_error: " + str(compressed_error)
+            "weighted_error post-integral: "
+            + str(weighted_error)
+            + ", compressed_error: "
+            + str(compressed_error)
         )
         self.get_entity("input_number.fake_temperature").set_state(
             state=(main_setpoint + compressed_error)
@@ -503,7 +549,9 @@ class Actrl(hass.Hass):
 
     def set_damper_pos(self, room, damper_val):
         cur_pos = float(self.get_entity("cover." + room).get_state("current_position"))
-        damper_log = room + " damper scaled: " + str(damper_val) + ", cur_pos: " + str(cur_pos)
+        damper_log = (
+            room + " damper scaled: " + str(damper_val) + ", cur_pos: " + str(cur_pos)
+        )
         self.get_entity("input_number." + room + "_damper_target").set_state(
             state=damper_val
         )
@@ -571,14 +619,15 @@ class Actrl(hass.Hass):
 
         if self.totally_off:
             self.on_counter = 0
+            self.min_power_counter = 0
+
             if rval < on_threshold:
                 return rval
             else:
+                self.totally_off = False
                 self.temp_deriv.clear()
                 self.deadband_integrator.clear()
-
-            self.totally_off = False
-            return initial_on_threshold
+                return initial_on_threshold
 
         if self.on_counter < soft_delay and rval >= 0:
             print("soft start, on_counter: " + str(self.on_counter))
@@ -592,27 +641,38 @@ class Actrl(hass.Hass):
                 + ", on_counter: "
                 + str(self.on_counter)
             )
-            return round(
-                (ramp_progress * unrounded_rval)
-                + ((1.0 - ramp_progress) * 1)
-            )
+            return round((ramp_progress * unrounded_rval) + ((1.0 - ramp_progress) * 1))
 
         if 0 <= rval and rval <= 2:
-            unrounded_rval = self.deadband_integrator.set((unrounded_rval - 1.0) * global_compress_factor) + 1.0
+            unrounded_rval = (
+                self.deadband_integrator.set(
+                    (unrounded_rval - 1.0) * global_compress_factor
+                )
+                + 1.0
+            )
             rval = round(unrounded_rval)
         else:
             self.deadband_integrator.clear()
+
+        if rval <= 0:
+            self.ramping_down = True
+
+        if rval == -1:
+            self.min_power_counter += 1
+            if self.min_power_counter <= min_power_time:
+                return -1
+            else:
+                return 0
+        else:
+            self.min_power_counter = 0
 
         # behaviour only observed in cooling mode
         # at the setpoint ac will start ramping back power
         # and will continue ramping back at setpoint+1
         # a brief jump up to setpoint+2 is needed to arrest the fall and stabilise output power
         # in heating mode there is no gradual rampdown at all, it drops straight to min power
-        if rval <= 0:
-            self.ramping_down = True
-            return rval
 
-        if self.ramping_down:
+        if self.ramping_down and rval > 0:
             self.ramping_down = False
             return max(rval, initial_on_threshold)
 
