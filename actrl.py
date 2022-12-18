@@ -31,7 +31,7 @@ global_deadband_ki = 0.025
 step_up_time = 200
 # shorter as it latches instantly
 # 120s sufficient to step down, but an extra 30 seconds added to make soft start more reliable
-step_down_time = 150
+step_down_time = 120
 
 # swing full scale across 2.0C of error
 room_kp = 1.0
@@ -575,28 +575,27 @@ class Actrl(hass.Hass):
                 return rval
             else:
                 self.temp_deriv.clear()
-                self.deadband_integrator.clear_set(-1.0)
+                self.deadband_integrator.clear()
 
             self.totally_off = False
             return initial_on_threshold
 
-        if rval > on_threshold:
-            if self.on_counter < soft_delay:
-                print("soft start, on_counter: " + str(self.on_counter))
-                return on_threshold
-            if self.on_counter < (soft_delay + soft_ramp):
-                ramp_progress = (self.on_counter - soft_delay) / soft_ramp
-                print(
-                    "ramping "
-                    + str(ramp_progress)
-                    + ", on_counter: "
-                    + str(self.on_counter)
-                )
-                return round(
-                    (ramp_progress * unrounded_rval)
-                    + ((1.0 - ramp_progress) * on_threshold)
-                )
+        if self.on_counter < soft_delay and rval >= 0:
+            print("soft start, on_counter: " + str(self.on_counter))
+            return 0
 
+        if self.on_counter < (soft_delay + soft_ramp) and rval > 2:
+            ramp_progress = (self.on_counter - soft_delay) / soft_ramp
+            print(
+                "ramping "
+                + str(ramp_progress)
+                + ", on_counter: "
+                + str(self.on_counter)
+            )
+            return round(
+                (ramp_progress * unrounded_rval)
+                + ((1.0 - ramp_progress) * 1)
+            )
 
         if 0 <= rval and rval <= 2:
             unrounded_rval = self.deadband_integrator.set((unrounded_rval - 1.0) * global_compress_factor) + 1.0
