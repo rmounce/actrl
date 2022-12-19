@@ -273,10 +273,10 @@ class Actrl(hass.Hass):
 
         if self.get_state("input_boolean.ac_already_on_bypass") == "on":
             self.log("ASSUMING THAT THE AIRCON IS ALREADY RUNNING")
-            self.totally_off = False
+            self.compressor_totally_off = False
             self.on_counter = soft_delay + soft_ramp
         else:
-            self.totally_off = True
+            self.compressor_totally_off = True
             self.on_counter = 0
 
         self.deadband_integrator = DeadbandIntegrator(
@@ -389,7 +389,7 @@ class Actrl(hass.Hass):
                 pid.clear()
             self.temp_deriv.clear()
             self.temp_integral.clear()
-            self.totally_off = True
+            self.compressor_totally_off = True
             self.on_counter = 0
             self.deadband_integrator.clear()
             if self.get_state("climate.aircon") != "fan_only":
@@ -504,8 +504,8 @@ class Actrl(hass.Hass):
         )
 
         self.log(
-            "totally_off: "
-            + str(self.totally_off)
+            "compressor_totally_off: "
+            + str(self.compressor_totally_off)
             + ", on_counter: "
             + str(self.on_counter)
             + ", weighted_error pre-integral: "
@@ -568,7 +568,7 @@ class Actrl(hass.Hass):
         # damper won't do much if the fan isn't running
         cur_deadband = (
             (2.0 * damper_deadband)
-            if (self.totally_off and self.heat_mode)
+            if (self.compressor_totally_off and self.heat_mode)
             else damper_deadband
         )
 
@@ -615,7 +615,7 @@ class Actrl(hass.Hass):
         # - aircon is currently running
         # - the current temp (ignoring RoC) has not yet reached off threshold
         # goal of the derivative is to proactively reduce/increase compressor power, but not to influence on/off state
-        if not self.totally_off and (round(rval) > off_threshold):
+        if not self.compressor_totally_off and (round(rval) > off_threshold):
             rval = max((off_threshold + 1), self.actually_compress(error + deriv))
 
         rval = min(rval, 15.0)
@@ -624,16 +624,16 @@ class Actrl(hass.Hass):
         rval = round(rval)
 
         if rval <= off_threshold:
-            self.totally_off = True
+            self.compressor_totally_off = True
 
-        if self.totally_off:
+        if self.compressor_totally_off:
             self.on_counter = 0
             self.min_power_counter = 0
 
             if rval < on_threshold:
                 return rval
             else:
-                self.totally_off = False
+                self.compressor_totally_off = False
                 self.temp_deriv.clear()
                 self.deadband_integrator.clear()
                 return initial_on_threshold
