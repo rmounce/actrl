@@ -539,7 +539,13 @@ class Actrl(hass.Hass):
 
         self.on_counter += 1
 
-        if not self.heat_mode and (unsigned_compressed_error < -2 or (self.get_state("climate.aircon") == "off" and unsigned_compressed_error < 1)):
+        if not self.heat_mode and (
+            unsigned_compressed_error < -2
+            or (
+                self.get_state("climate.aircon") == "off"
+                and unsigned_compressed_error < 1
+            )
+        ):
             self.log("cool mode and temp too low, turning off altogether")
             self.try_set_mode("off")
             return
