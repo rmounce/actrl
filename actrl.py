@@ -404,10 +404,8 @@ class Actrl(hass.Hass):
         if self.get_state("input_boolean.heat_mode") == "on":
             heat_cool_sign = -1.0
             self.heat_mode = True
-            self.try_set_mode("heat")
         else:
             self.heat_mode = False
-            self.try_set_mode("cool")
 
         unweighted_avg_error = sum(errors.values()) / len(errors.values())
 
@@ -522,9 +520,10 @@ class Actrl(hass.Hass):
 
         weighted_error += self.temp_integral.get()
 
-        compressed_error = heat_cool_sign * self.compress(
+        unsigned_compressed_error = self.compress(
             weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign
         )
+        compressed_error = heat_cool_sign * unsigned_compressed_error
         self.log(
             "weighted_error post-integral: "
             + str(weighted_error)
@@ -540,12 +539,22 @@ class Actrl(hass.Hass):
 
         self.on_counter += 1
 
+        if not self.heat_mode and (unsigned_compressed_error < -2 or (self.get_state("climate.aircon") == "off" and unsigned_compressed_error < 1)):
+            self.log("cool mode and temp too low, turning off altogether")
+            self.try_set_mode("off")
+            return
+
         if False:
-            self.log("indoor fan is not running, not adjusting dampers")
+            self.log("heat mode and indoor fan is not running, not adjusting dampers")
         else:
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
                 # damper_val = damper_vals[room]
                 self.set_damper_pos(room, damper_vals[room])
+
+        if self.heat_mode:
+            self.try_set_mode("heat")
+        else:
+            self.try_set_mode("cool")
 
     def set_damper_pos(self, room, damper_val):
         cur_pos = float(self.get_entity("cover." + room).get_state("current_position"))
