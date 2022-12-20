@@ -304,6 +304,7 @@ class Actrl(hass.Hass):
         self.main(None)
 
     def main(self, kwargs):
+        self.log("#### BEGIN CYCLE ####")
         temps = {}
         errors = {}
         damper_vals = {}
