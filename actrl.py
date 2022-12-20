@@ -529,7 +529,7 @@ class Actrl(hass.Hass):
         )
 
         if self.get_state("climate.aircon") == "off":
-            compressed_error = heat_cool_sign * min(unsigned_compressed_error, -1)
+            compressed_error = heat_cool_sign * min(unsigned_compressed_error, 0)
         else:
             compressed_error = heat_cool_sign * unsigned_compressed_error
         self.log(
