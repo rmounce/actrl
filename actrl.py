@@ -64,6 +64,9 @@ soft_ramp = int(7.5 / interval)
 # don't hold it there forever as it'll shut down after 1hr at this temp
 min_power_time = int(7.5 / interval)
 
+# in cooling mode, how long to keep blowing the fan
+off_fan_running_time = int(2.5 / interval)
+
 # 20% per minute above 0.2C
 target_ramp_proportional = 0.2 * interval
 # linear below 0.1C
@@ -269,6 +272,7 @@ class Actrl(hass.Hass):
         )
         self.ramping_down = True
         self.min_power_counter = 0
+        self.off_fan_running_counter = 0
         self.heat_mode = False
 
         if self.get_state("input_boolean.ac_already_on_bypass") == "on":
@@ -539,8 +543,17 @@ class Actrl(hass.Hass):
 
         self.on_counter += 1
 
+        if (
+            self.get_state("climate.aircon") == "cool"
+            and unsigned_compressed_error <= -2
+        ):
+            self.off_fan_running_counter += 1
+        else:
+            self.off_fan_running_counter = 0
+
         if not self.heat_mode and (
             unsigned_compressed_error < -2
+            or self.off_fan_running_counter >= off_fan_running_time
             or (
                 self.get_state("climate.aircon") == "off"
                 and unsigned_compressed_error < 1
@@ -548,6 +561,8 @@ class Actrl(hass.Hass):
         ):
             self.log("cool mode and temp too low, turning off altogether")
             self.try_set_mode("off")
+            self.off_fan_running_counter = 0
+            self.on_counter = 0
             return
 
         if False:
@@ -644,9 +659,9 @@ class Actrl(hass.Hass):
                 self.deadband_integrator.clear()
                 return initial_on_threshold
 
-        if self.on_counter < soft_delay and rval >= 0:
+        if self.on_counter < soft_delay and rval > 0:
             print("soft start, on_counter: " + str(self.on_counter))
-            return 0
+            return -1
 
         if self.on_counter < (soft_delay + soft_ramp) and rval > 2:
             ramp_progress = (self.on_counter - soft_delay) / soft_ramp
@@ -656,7 +671,7 @@ class Actrl(hass.Hass):
                 + ", on_counter: "
                 + str(self.on_counter)
             )
-            return round((ramp_progress * unrounded_rval) + ((1.0 - ramp_progress) * 1))
+            return round((ramp_progress * unrounded_rval) + ((1.0 - ramp_progress) * 0))
 
         if 0 <= rval and rval <= 2:
             unrounded_rval = (
