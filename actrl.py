@@ -258,6 +258,7 @@ class DeadbandIntegrator:
 class Actrl(hass.Hass):
     def initialize(self):
         self.log("INITIALISING")
+        return
         self.pids = {}
         self.targets = {}
         self.rooms_enabled = {}
@@ -625,10 +626,11 @@ class Actrl(hass.Hass):
         on_threshold = 1
         off_threshold = -2
 
-        if self.heat_mode:
-            initial_on_threshold = 1
-        else:
+        # higher threshold in cool mode while already running
+        if self.get_state("climate.aircon") == "cool":
             initial_on_threshold = 2
+        else:
+            initial_on_threshold = 1
 
         rval = self.actually_compress(error)
 
