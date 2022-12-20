@@ -258,7 +258,6 @@ class DeadbandIntegrator:
 class Actrl(hass.Hass):
     def initialize(self):
         self.log("INITIALISING")
-        return
         self.pids = {}
         self.targets = {}
         self.rooms_enabled = {}
@@ -528,7 +527,11 @@ class Actrl(hass.Hass):
         unsigned_compressed_error = self.compress(
             weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign
         )
-        compressed_error = heat_cool_sign * unsigned_compressed_error
+
+        if self.get_state("climate.aircon") == "off":
+            compressed_error = heat_cool_sign * min(unsigned_compressed_error, -1)
+        else:
+            compressed_error = heat_cool_sign * unsigned_compressed_error
         self.log(
             "weighted_error post-integral: "
             + str(weighted_error)
