@@ -556,8 +556,7 @@ class Actrl(hass.Hass):
             self.off_fan_running_counter = 0
 
         if not self.heat_mode and (
-            unsigned_compressed_error < -2
-            or self.off_fan_running_counter >= off_fan_running_time
+            self.off_fan_running_counter >= off_fan_running_time
             or (
                 self.get_state("climate.aircon") == "off"
                 and unsigned_compressed_error < 1
@@ -651,6 +650,9 @@ class Actrl(hass.Hass):
 
         if rval <= off_threshold:
             self.compressor_totally_off = True
+            # sometimes -2 isn't the true off_threshold?!
+            # shut things down more decisively
+            rval = min(rval, -3)
 
         if self.compressor_totally_off:
             self.on_counter = 0
