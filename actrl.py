@@ -669,7 +669,7 @@ class Actrl(hass.Hass):
 
         if self.on_counter < soft_delay and rval >= 0:
             print("soft start, on_counter: " + str(self.on_counter))
-            self.ramping_down = False
+            self.ramping_down = True
             return -1
 
         if self.on_counter < (soft_delay + soft_ramp) and rval > 2:
