@@ -153,10 +153,10 @@ class MyPID:
         self.integral += val
         self.deriv.set(error, target)
         # clamp between +-1
-        #if not self.clamp_low <= self.get() <= self.clamp_high:
+        # if not self.clamp_low <= self.get() <= self.clamp_high:
         if self.get() > self.clamp_high:
             clamp_to = self.clamp_high
-            #else:
+            # else:
             #    clamp_to = self.clamp_low
             self.integral = (
                 -(clamp_to + self.deriv.get() + (self.last_val * self.kp)) / self.ki
@@ -557,7 +557,7 @@ class Actrl(hass.Hass):
         else:
             self.off_fan_running_counter = 0
 
-        if not self.heat_mode and (
+        if self.get_state("climate.aircon") == "cool" and (
             self.off_fan_running_counter >= off_fan_running_time
             or (
                 self.get_state("climate.aircon") == "off"
@@ -579,6 +579,8 @@ class Actrl(hass.Hass):
 
         if self.heat_mode:
             self.try_set_mode("heat")
+        elif self.get_state("climate.aircon") == "dry":
+            self.try_set_mode("dry")
         else:
             self.try_set_mode("cool")
 
