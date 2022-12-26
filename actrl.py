@@ -153,11 +153,11 @@ class MyPID:
         self.integral += val
         self.deriv.set(error, target)
         # clamp between +-1
-        if not self.clamp_low <= self.get() <= self.clamp_high:
-            if self.get() > self.clamp_high:
-                clamp_to = self.clamp_high
-            else:
-                clamp_to = self.clamp_low
+        #if not self.clamp_low <= self.get() <= self.clamp_high:
+        if self.get() > self.clamp_high:
+            clamp_to = self.clamp_high
+            #else:
+            #    clamp_to = self.clamp_low
             self.integral = (
                 -(clamp_to + self.deriv.get() + (self.last_val * self.kp)) / self.ki
             )
@@ -551,6 +551,7 @@ class Actrl(hass.Hass):
         if (
             self.get_state("climate.aircon") == "cool"
             and unsigned_compressed_error <= -2
+            or (self.off_fan_running_counter > 0 and unsigned_compressed_error < 1)
         ):
             self.off_fan_running_counter += 1
         else:
@@ -670,7 +671,7 @@ class Actrl(hass.Hass):
         if self.on_counter < soft_delay and rval >= 0:
             print("soft start, on_counter: " + str(self.on_counter))
             self.ramping_down = True
-            return -1
+            return 0
 
         if self.on_counter < (soft_delay + soft_ramp) and rval > 2:
             ramp_progress = (self.on_counter - soft_delay) / soft_ramp
@@ -680,7 +681,7 @@ class Actrl(hass.Hass):
                 + ", on_counter: "
                 + str(self.on_counter)
             )
-            return round((ramp_progress * unrounded_rval) + ((1.0 - ramp_progress) * 0))
+            return round((ramp_progress * unrounded_rval) + ((1.0 - ramp_progress) * 1))
 
         if 0 <= rval and rval <= 2:
             unrounded_rval = (
