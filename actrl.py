@@ -557,7 +557,7 @@ class Actrl(hass.Hass):
         else:
             self.off_fan_running_counter = 0
 
-        if self.get_state("climate.aircon") == "cool" and (
+        if not self.heat_mode and (
             self.off_fan_running_counter >= off_fan_running_time
             or (
                 self.get_state("climate.aircon") == "off"
