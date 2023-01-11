@@ -67,7 +67,7 @@ min_power_time = int(7.5 / interval)
 # in cooling mode, how long to keep blowing the fan
 off_fan_running_time = int(2.5 / interval)
 
-# 10% per minute above 0.2C
+# 10% per minute above threshold
 target_ramp_proportional = 0.1 * interval
 # linear below 0.1C
 target_ramp_linear_threshold = 0.1
@@ -267,7 +267,7 @@ class Actrl(hass.Hass):
         )
         self.temp_integral = MySimplerIntegral(
             ki=(global_ki * 60.0 * interval),
-            clamp_low=-global_compress_factor,
+            clamp_low=0,
             clamp_high=global_compress_factor,
         )
         self.ramping_down = True
