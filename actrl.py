@@ -9,10 +9,10 @@ import time
 rooms = ["bed_1", "bed_2", "bed_3", "kitchen", "study"]
 
 # in minutes
-interval = 0.25  # 15 seconds
+interval = 0.20  # 12 seconds
 
-# WMA over the last 7.5 minutes
-global_temp_deriv_window = 7.5
+# WMA over the last 5 minutes
+global_temp_deriv_window = 5
 # to predict 10 minutes into the future
 global_temp_deriv_factor = 10.0
 
@@ -40,10 +40,10 @@ room_kp = 1.0
 room_ki = 0.001
 # a 0.1 deg error will accumulate 0.1 in ~15 minutes
 
-# kd considers the last 15 minutes
-room_deriv_window = 15.0
+# kd considers the last 10 minutes
+room_deriv_window = 10.0
 
-# for a constant 1.0 deg / min over the last 15 mins, swing full scale from -1 to 1
+# for a constant 1.0 deg / min over the last 10 mins, swing full scale from -1 to 1
 room_deriv_factor = 2.0
 
 # percent
@@ -67,8 +67,8 @@ min_power_time = int(7.5 / interval)
 # in cooling mode, how long to keep blowing the fan
 off_fan_running_time = int(2.5 / interval)
 
-# 20% per minute above 0.2C
-target_ramp_proportional = 0.2 * interval
+# 10% per minute above 0.2C
+target_ramp_proportional = 0.1 * interval
 # linear below 0.1C
 target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
