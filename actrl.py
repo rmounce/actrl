@@ -263,7 +263,7 @@ class Actrl(hass.Hass):
         self.rooms_enabled = {}
         self.temp_deriv = MyDeriv(
             window=int(global_temp_deriv_window / interval),
-            factor=int(global_temp_deriv_window / interval),
+            factor=int(global_temp_deriv_factor / interval),
         )
         self.temp_integral = MySimplerIntegral(
             ki=(global_ki * 60.0 * interval),
