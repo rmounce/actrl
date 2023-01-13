@@ -515,6 +515,8 @@ class Actrl(hass.Hass):
             + str(self.on_counter)
             + ", weighted_error pre-integral: "
             + str(weighted_error)
+            + ", weighted_target: "
+            + str(weighted_target)
         )
         self.log(
             "avg_deriv: "
