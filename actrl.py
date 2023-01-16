@@ -687,16 +687,16 @@ class Actrl(hass.Hass):
             )
             return round((ramp_progress * unrounded_rval) + ((1.0 - ramp_progress) * 1))
 
-        deadband_rval = (
+        if 0 <= rval and rval <= 2:
+            unrounded_rval = (
                 self.deadband_integrator.set(
                     (unrounded_rval - 1.0) * global_compress_factor
                 )
                 + 1.0
-        )
-
-        if 0 <= rval and rval <= 2:
-            unrounded_rval = deadband_rval
+            )
             rval = round(unrounded_rval)
+        else:
+            self.deadband_integrator.clear()
 
         if rval <= 0:
             self.ramping_down = True
