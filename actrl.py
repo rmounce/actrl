@@ -273,6 +273,8 @@ class Actrl(hass.Hass):
         self.ramping_down = True
         self.min_power_counter = 0
         self.off_fan_running_counter = 0
+        self.outer_ramp_count = 0
+        self.outer_ramp_rval = 1
         self.heat_mode = False
 
         if self.get_state("input_boolean.ac_already_on_bypass") == "on":
@@ -698,8 +700,40 @@ class Actrl(hass.Hass):
         else:
             self.deadband_integrator.clear()
 
-        if rval <= 0:
+        # self.outer_ramp_count = 0
+        # self.outer_ramp_rval = 1
+        if (
+            (self.outer_ramp_count > 0 and rval < 1)
+            or (self.outer_ramp_count < 0 and rval > 1)
+            or (self.outer_ramp_count > self.step_up_intervals)
+            or (self.outer_ramp_count < -self.step_down_intervals)
+        ):
+            self.outer_ramp_count = 0
+
+        # restart if the temp goes even further in the direction we're holding
+        if rval > 1 and rval > self.outer_ramp_rval:
+            self.outer_ramp_rval = rval
+            self.outer_ramp_count = 1
+        elif rval < 1 and rval < self.outer_ramp_rval:
+            self.outer_ramp_rval = rval
+            self.outer_ramp_count = -1
+
+        if self.outer_ramp_rval > 0:
+            rval = self.outer_ramp_rval
+            self.outer_ramp_count += 1
+        elif self.outer_ramp_rval < 0:
+            rval = self.outer_ramp_rval
+            self.outer_ramp_count -= 1
+        else:
+            self.outer_ramp_rval = rval
+
+
+        if rval == 0:
             self.ramping_down = True
+        # if rval goes below 0 then we wanted min power
+        # no need to arrest the fall in that case
+        elif rval < 0:
+            self.ramping_down = False
 
         if rval == -1:
             self.min_power_counter += 1
