@@ -62,9 +62,10 @@ soft_delay = int(7.5 / interval)
 # then gradually report the actual rval over 5 mins
 soft_ramp = int(7.5 / interval)
 
-# setpoint - 1 takes about this long to bring a/c to min power
+# setpoint - it takes about 7.5 (sometimes longer) to bring a/c to min power
 # don't hold it there forever as it'll shut down after 1hr at this temp
-min_power_time = int(7.5 / interval)
+# 30 mins should be safe
+min_power_time = int(30 / interval)
 
 # in cooling mode, how long to keep blowing the fan
 off_fan_running_time = int(2.5 / interval)
@@ -720,12 +721,12 @@ class Actrl(hass.Hass):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = -1
 
-        if self.outer_ramp_rval > 0:
-            rval = self.outer_ramp_rval
+        if self.outer_ramp_count > 0:
             self.outer_ramp_count += 1
-        elif self.outer_ramp_rval < 0:
             rval = self.outer_ramp_rval
+        elif self.outer_ramp_count < 0:
             self.outer_ramp_count -= 1
+            rval = self.outer_ramp_rval
         else:
             self.outer_ramp_rval = rval
 
