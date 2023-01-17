@@ -29,9 +29,11 @@ global_deadband_ki = 0.025
 
 # in seconds, time for aircon to ramp up power 1 increment & stay there
 step_up_time = 200
+step_up_intervals = step_up_time / (60.0 * interval)
 # shorter as it latches instantly
 # 120s sufficient to step down, but an extra 30 seconds added to make soft start more reliable
 step_down_time = 120
+step_down_intervals = step_down_time / (60.0 * interval)
 
 # swing full scale across 2.0C of error
 room_kp = 1.0
@@ -287,8 +289,8 @@ class Actrl(hass.Hass):
 
         self.deadband_integrator = DeadbandIntegrator(
             ki=(global_deadband_ki * 60.0 * interval),
-            step_up_intervals=step_up_time / (60.0 * interval),
-            step_down_intervals=step_down_time / (60.0 * interval),
+            step_up_intervals=step_up_intervals,
+            step_down_intervals=step_up_intervals,
         )
 
         for room in rooms:
