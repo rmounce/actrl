@@ -290,7 +290,7 @@ class Actrl(hass.Hass):
         self.deadband_integrator = DeadbandIntegrator(
             ki=(global_deadband_ki * 60.0 * interval),
             step_up_intervals=step_up_intervals,
-            step_down_intervals=step_up_intervals,
+            step_down_intervals=step_down_intervals,
         )
 
         for room in rooms:
@@ -707,8 +707,8 @@ class Actrl(hass.Hass):
         if (
             (self.outer_ramp_count > 0 and rval < 1)
             or (self.outer_ramp_count < 0 and rval > 1)
-            or (self.outer_ramp_count > self.step_up_intervals)
-            or (self.outer_ramp_count < -self.step_down_intervals)
+            or (self.outer_ramp_count > step_up_intervals)
+            or (self.outer_ramp_count < -step_down_intervals)
         ):
             self.outer_ramp_count = 0
 
