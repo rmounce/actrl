@@ -264,6 +264,7 @@ class Actrl(hass.Hass):
         self.pids = {}
         self.targets = {}
         self.rooms_enabled = {}
+        self.damper_pos = {}
         self.temp_deriv = MyDeriv(
             window=int(global_temp_deriv_window / interval),
             factor=int(global_temp_deriv_factor / interval),
@@ -304,6 +305,9 @@ class Actrl(hass.Hass):
                 clamp_high=1.0,
             )
             self.rooms_enabled[room] = True
+            self.damper_pos[room] = float(
+                self.get_entity("cover." + room).get_state("current_position")
+            )
         # run every interval (in minutes)
         self.run_every(self.main, "now", 60.0 * interval)
         self.main(None)
@@ -592,10 +596,14 @@ class Actrl(hass.Hass):
             self.try_set_mode("cool")
 
     def set_damper_pos(self, room, damper_val):
-        cur_pos = float(self.get_entity("cover." + room).get_state("current_position"))
-        damper_log = (
-            room + " damper scaled: " + str(damper_val) + ", cur_pos: " + str(cur_pos)
+        actual_cur_pos = float(
+            self.get_entity("cover." + room).get_state("current_position")
         )
+        if abs(self.damper_pos[room] - actual_cur_pos) > 5:
+            self.damper_pos[room] = actual_cur_pos
+        cur_pos = self.damper_pos[room]
+
+        damper_log = f"{room} damper scaled: {damper_val}, cur_pos: {cur_pos}, actual_cur_pos: {actual_cur_pos}"
         self.get_entity("input_number." + room + "_damper_target").set_state(
             state=damper_val
         )
@@ -620,6 +628,7 @@ class Actrl(hass.Hass):
                 entity_id=("cover." + room),
                 position=rounded_damper_val,
             )
+            self.damper_pos[room] = rounded_damper_val
             time.sleep(0.1)
         else:
             self.log(damper_log + " within deadband")
