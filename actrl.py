@@ -49,7 +49,7 @@ room_deriv_window = 10.0
 room_deriv_factor = 2.0
 
 # percent
-damper_deadband = 5.0
+damper_deadband = 7.5
 damper_round = 5
 # 10% of extra virtual closed-ness
 damper_fully_closed_buffer = 10.0
@@ -622,7 +622,13 @@ class Actrl(hass.Hass):
             or (damper_val < (cur_pos - cur_deadband))
         ):
             self.log(damper_log + " adjusting")
-            rounded_damper_val = damper_round * round(damper_val / damper_round)
+
+            if cur_pos < damper_val < (cur_pos + damper_round) + cur_deadband:
+                rounded_damper_val = cur_pos + damper_round
+            elif cur_pos > damper_val > (cur_pos - damper_round) - cur_deadband:
+                rounded_damper_val = cur_pos - damper_round
+            else:
+                rounded_damper_val = damper_round * round(damper_val / damper_round)
             self.call_service(
                 "cover/set_cover_position",
                 entity_id=("cover." + room),
@@ -738,7 +744,6 @@ class Actrl(hass.Hass):
             rval = self.outer_ramp_rval
         else:
             self.outer_ramp_rval = rval
-
 
         if rval == 0:
             self.ramping_down = True
