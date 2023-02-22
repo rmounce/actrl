@@ -275,6 +275,7 @@ class Actrl(hass.Hass):
             clamp_high=global_compress_factor,
         )
         self.ramping_down = True
+        self.prev_unsigned_compressed_error = 0
         self.min_power_counter = 0
         self.off_fan_running_counter = 0
         self.outer_ramp_count = 0
@@ -539,6 +540,7 @@ class Actrl(hass.Hass):
         unsigned_compressed_error = self.compress(
             weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign
         )
+        self.prev_unsigned_compressed_error = unsigned_compressed_error
 
         if self.get_state("climate.aircon") == "off":
             compressed_error = heat_cool_sign * min(unsigned_compressed_error, 0)
@@ -750,14 +752,19 @@ class Actrl(hass.Hass):
         else:
             self.outer_ramp_rval = rval
 
-        if rval == 0:
+        if rval <= 0:
             self.ramping_down = True
         # if rval goes below 0 then we wanted min power
-        # no need to arrest the fall in that case
-        elif rval < 0:
-            self.ramping_down = False
+        # WRONG: no need to arrest the fall in that case
+        # the 'blip' is needed in order to maintain min power...
+        # elif rval < 0:
+        #    self.ramping_down = False
 
         if rval == -1:
+            if self.prev_unsigned_compressed_error > 0:
+                # aircon seems to decrement compressor speed on downward edges
+                # so give 'em as many such edges as possible to decrement more quickly
+                return prev_unsigned_compressed_error - 1
             self.min_power_counter += 1
             if self.min_power_counter <= min_power_time:
                 return -1
