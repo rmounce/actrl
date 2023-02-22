@@ -77,6 +77,10 @@ target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
 
 
+def clamp(min_val, input_val, max_val):
+    return min(max(min_val, input_val), max_val)
+
+
 class MyWMA:
     def __init__(self, window):
         self.window = window
@@ -676,8 +680,7 @@ class Actrl(hass.Hass):
         if not self.compressor_totally_off and (round(rval) > off_threshold):
             rval = max((off_threshold + 1), self.actually_compress(error + deriv))
 
-        rval = min(rval, 15.0)
-        rval = max(rval, -15.0)
+        rval = clamp(-15, rval, 15)
         unrounded_rval = rval
         rval = round(rval)
 
@@ -725,6 +728,13 @@ class Actrl(hass.Hass):
         else:
             self.deadband_integrator.clear()
 
+        # aircon seems to react to edges
+        # so give 'em as many as possible
+        if rval > 1:
+            rval = clamp(1, self.prev_unsigned_compressed_error + 1, rval)
+        elif rval < 1:
+            rval = clamp(rval, self.prev_unsigned_compressed_error - 1, 1)
+
         # self.outer_ramp_count = 0
         # self.outer_ramp_rval = 1
         if (
@@ -761,10 +771,6 @@ class Actrl(hass.Hass):
         #    self.ramping_down = False
 
         if rval == -1:
-            if self.prev_unsigned_compressed_error > 0:
-                # aircon seems to decrement compressor speed on downward edges
-                # so give 'em as many such edges as possible to decrement more quickly
-                return prev_unsigned_compressed_error - 1
             self.min_power_counter += 1
             if self.min_power_counter <= min_power_time:
                 return -1
