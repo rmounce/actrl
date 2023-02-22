@@ -644,6 +644,11 @@ class Actrl(hass.Hass):
             self.call_service(
                 "climate/set_hvac_mode", entity_id="climate.aircon", hvac_mode=mode
             )
+            # workaround to retransmit IR code
+            time.sleep(0.1)
+            self.call_service(
+                "climate/set_hvac_mode", entity_id="climate.aircon", hvac_mode=mode
+            )
 
     def actually_compress(self, error):
         # tell the aircon that temp variations are worse than reality
