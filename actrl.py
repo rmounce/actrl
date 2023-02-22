@@ -732,13 +732,6 @@ class Actrl(hass.Hass):
         else:
             self.deadband_integrator.clear()
 
-        # aircon seems to react to edges
-        # so give 'em as many as possible
-        if rval > 1:
-            rval = clamp(1, self.prev_unsigned_compressed_error + 1, rval)
-        elif rval < 1:
-            rval = clamp(rval, self.prev_unsigned_compressed_error - 1, 1)
-
         # self.outer_ramp_count = 0
         # self.outer_ramp_rval = 1
         if (
@@ -765,6 +758,13 @@ class Actrl(hass.Hass):
             rval = self.outer_ramp_rval
         else:
             self.outer_ramp_rval = rval
+
+        # aircon seems to react to edges
+        # so give 'em as many as possible
+        if rval > 1:
+            rval = clamp(1, self.prev_unsigned_compressed_error + 1, rval)
+        elif rval < 1:
+            rval = clamp(rval, self.prev_unsigned_compressed_error - 1, 1)
 
         if rval <= 0:
             self.ramping_down = True
