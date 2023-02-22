@@ -355,28 +355,29 @@ class Actrl(hass.Hass):
                     )
                 )
                 if room in self.targets:
-                    target_delta = cur_target - self.targets[room]
+                    self.targets[room] = cur_target
+                    # target_delta = cur_target - self.targets[room]
 
-                    if abs(target_delta) <= target_ramp_linear_increment:
-                        self.targets[room] = cur_target
-                    elif abs(target_delta) <= target_ramp_linear_threshold:
-                        self.targets[room] += math.copysign(
-                            target_ramp_linear_increment, target_delta
-                        )
-                        self.log(
-                            "linearly ramping target room: "
-                            + room
-                            + ", smooth target: "
-                            + str(self.targets[room])
-                        )
-                    else:
-                        self.targets[room] += target_delta * target_ramp_proportional
-                        self.log(
-                            "proportionally ramping target room: "
-                            + room
-                            + ", smooth target: "
-                            + str(self.targets[room])
-                        )
+                    # if abs(target_delta) <= target_ramp_linear_increment:
+                    #    self.targets[room] = cur_target
+                    # elif abs(target_delta) <= target_ramp_linear_threshold:
+                    #    self.targets[room] += math.copysign(
+                    #        target_ramp_linear_increment, target_delta
+                    #    )
+                    #    self.log(
+                    #        "linearly ramping target room: "
+                    #        + room
+                    #        + ", smooth target: "
+                    #        + str(self.targets[room])
+                    #    )
+                    # else:
+                    #    self.targets[room] += target_delta * target_ramp_proportional
+                    #    self.log(
+                    #        "proportionally ramping target room: "
+                    #        + room
+                    #        + ", smooth target: "
+                    #        + str(self.targets[room])
+                    #    )
                 else:
                     self.log("setting target for previously disabled room " + room)
                     self.targets[room] = cur_target
