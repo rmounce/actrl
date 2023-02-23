@@ -134,7 +134,18 @@ class MyDeriv:
         if self.prev_target is None:
             self.prev_target = target
 
-        self.wma.set((error - self.prev_error) + (target - self.prev_target))
+        error_delta = error - self.prev_error
+        target_delta = target - self.prev_target
+
+        # avoid conditions where the change in target temp outpaces the change in actual temp
+        # wherein the derivative term ends up working against us
+        # limit the derivative to zero if it's going in the opposite direction to the temp trend
+        if error_delta >= 0:
+            target_delta = max(target_delta, -error_delta)
+        else:
+            target_delta = min(target_delta, -error_delta)
+
+        self.wma.set(error_delta + target_delta)
         self.prev_error = error
         self.prev_target = target
 
