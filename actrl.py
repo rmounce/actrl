@@ -24,7 +24,7 @@ global_ki = 0.00025
 # a 0.1 deg error will accumulate 0.1 in ~60 minutes
 
 # per second
-global_deadband_ki = 0.025
+global_deadband_ki = 0.05
 # a 0.1 deg error will accumulate 1 in ~3.33 minutes
 
 # in seconds, time for aircon to ramp up power 1 increment & stay there
@@ -70,11 +70,8 @@ min_power_time = int(30 / interval)
 # in cooling mode, how long to keep blowing the fan
 off_fan_running_time = int(2.5 / interval)
 
-# 50% per minute above threshold
-# speed things up & attempt to squash some counter-intuitive behaviour
-# where increasing setpoint for one of multiple rooms (in cooling mode) results in a high deriv
-# that briefly increases the demand for cooling
-target_ramp_proportional = 0.5 * interval
+# 20% per minute above threshold
+target_ramp_proportional = 0.2 * interval
 # linear below 0.1C
 target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
