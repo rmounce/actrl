@@ -704,9 +704,9 @@ class Actrl(hass.Hass):
         if abs(self.outer_ramp_count) > 0:
             print(f"aircon is ramping, count: {self.outer_ramp_count}")
             self.outer_ramp_count += math.copysign(1, self.outer_ramp_count)
-            rval = math.copysign(1, self.outer_ramp_count)
+            rval = ac_stable_threshold + math.copysign(1, self.outer_ramp_count)
         else:
-            rval = 0
+            rval = ac_stable_threshold
 
         # behaviour only observed in cooling mode
         # at the setpoint ac will start ramping back power
