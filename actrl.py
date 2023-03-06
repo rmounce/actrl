@@ -74,6 +74,31 @@ target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
 
 
+# when the error is greater than 1.0C
+# let the Midea controller do its thing
+faithful_threshold = 1.0
+desired_on_threshold = 0.0
+min_power_threshold = -0.25
+desired_off_threshold = -0.75
+
+# try using FREEDOM UNITS
+ac_celsius = False
+
+# Midea constants depending on temp units
+if ac_celsius:
+    ac_unit_from_celsius = 1.0
+    ac_on_threshold = 2
+    ac_stable_threshold = 1
+    ac_off_threshold = -2
+else:
+    # Fahrenheit
+    ac_unit_from_celsius = 1.8
+    # https://github.com/esphome/feature-requests/issues/1627#issuecomment-1365639966
+    ac_on_threshold = 3
+    ac_stable_threshold = 2
+    ac_off_threshold = -3
+
+
 class MyWMA:
     def __init__(self, window):
         self.window = window
@@ -274,10 +299,10 @@ class Actrl(hass.Hass):
         heat_room_count = 0
         cool_room_count = 0
 
-        main_setpoint = float(
+        celsius_setpoint = float(
             self.get_entity("climate.aircon").get_state("temperature")
         )
-
+        
         for room in rooms:
             if self.get_state("climate." + room + "_aircon") != "off":
                 all_disabled = False
@@ -334,9 +359,7 @@ class Actrl(hass.Hass):
                     self.targets.pop(room)
 
         if all_disabled:
-            self.get_entity("input_number.fake_temperature").set_state(
-                state=main_setpoint
-            )
+            self.set_fake_temp(celsius_setpoint, ac_stable_threshold)
             self.get_entity("input_number.aircon_weighted_error").set_state(
                 state=float("nan")
             )
@@ -475,14 +498,9 @@ class Actrl(hass.Hass):
         )
         self.prev_unsigned_compressed_error = unsigned_compressed_error
 
-        if self.get_state("climate.aircon") == "off":
-            compressed_error = heat_cool_sign * min(unsigned_compressed_error, 0)
-        else:
-            compressed_error = heat_cool_sign * unsigned_compressed_error
+        compressed_error = heat_cool_sign * unsigned_compressed_error
         self.log("compressed_error: " + str(compressed_error))
-        self.get_entity("input_number.fake_temperature").set_state(
-            state=(main_setpoint + compressed_error)
-        )
+        self.set_fake_temp(celsius_setpoint, compressed_error)
         self.get_entity("input_number.aircon_meta_integral").set_state(
             state=self.deadband_integrator.get()
         )
@@ -491,8 +509,8 @@ class Actrl(hass.Hass):
 
         if (
             self.get_state("climate.aircon") == "cool"
-            and unsigned_compressed_error <= -2
-            or (self.off_fan_running_counter > 0 and unsigned_compressed_error < 1)
+            and unsigned_compressed_error <= ac_off_threshold
+            or (self.off_fan_running_counter > 0 and unsigned_compressed_error < ac_stable_threshold)
         ):
             self.off_fan_running_counter += 1
         else:
@@ -502,7 +520,7 @@ class Actrl(hass.Hass):
             self.off_fan_running_counter >= off_fan_running_time
             or (
                 self.get_state("climate.aircon") == "off"
-                and unsigned_compressed_error < 1
+                and unsigned_compressed_error < ac_stable_threshold
             )
         ):
             self.log("cool mode and temp too low, turning off altogether")
@@ -524,6 +542,22 @@ class Actrl(hass.Hass):
             self.try_set_mode("dry")
         else:
             self.try_set_mode("cool")
+
+    def set_fake_temp(self, celsius_setpoint, compressed_error):
+        self.get_entity("input_number.fake_temperature").set_state(
+            state=(celsius_setpoint + compressed_error)
+        )
+        if ac_celsius:
+            self.call_service(
+                "esphome/infrared_send_raw_command",
+                command=[0xA4, 0x82, 0x48, 0x7F, (int)(celsius_setpoint + compressed_error + 1)],
+                )
+        else:
+            # Power On, FM Update, Mode Auto, Fan Auto, Setpoint 68F, Room temp
+            self.call_service(
+                "esphome/infrared_send_raw_command",
+                command=[0xA4, 0x82, 0x66, 0x7F, (int)((1.8 * celsius_setpoint + 32) + compressed_error - 31)],
+                )
 
     def set_damper_pos(self, room, damper_val):
         actual_cur_pos = float(
@@ -581,28 +615,6 @@ class Actrl(hass.Hass):
             )
 
     def compress(self, error, deriv):
-        # when the error is greater than 1.0C
-        # let the Midea controller do its thing
-        faithful_threshold = 1.0
-        desired_on_threshold = 0.0
-        min_power_threshold = -0.25
-        desired_off_threshold = -0.75
-
-        ac_celsius = True
-
-        # Midea constants depending on temp units
-        if ac_celsius:
-            ac_unit_from_celsius = 1.0
-            ac_on_threshold = 2
-            ac_stable_threshold = 1
-            ac_off_threshold = -2
-        else:
-            # Fahrenheit
-            ac_unit_from_celsius = 1.8
-            # https://github.com/esphome/feature-requests/issues/1627#issuecomment-1365639966
-            ac_on_threshold = 3
-            ac_stable_threshold = 2
-            ac_off_threshold = -3
 
         if error <= desired_off_threshold:
             self.compressor_totally_off = True
@@ -619,13 +631,17 @@ class Actrl(hass.Hass):
                 self.compressor_totally_off = False
                 self.temp_deriv.clear()
                 self.deadband_integrator.clear()
-                return ac_on_threshold
+                print(f"starting compressor {ac_on_threshold}")
+
+        if self.on_counter <= 1:
+            return ac_on_threshold
 
         # conditions in which to consider the derivative
         # - aircon is currently running
         # - the current temp (ignoring RoC) has not yet reached off threshold
         # goal of the derivative is to proactively reduce/increase compressor power, but not to influence on/off state
         error = error + deriv
+
 
         if self.on_counter < soft_delay and error > 0:
             print("soft start, on_counter: " + str(self.on_counter))
