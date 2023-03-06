@@ -581,12 +581,12 @@ class Actrl(hass.Hass):
             )
 
     def compress(self, error, deriv):
-        # when the error is greater than 2.0C
+        # when the error is greater than 1.0C
         # let the Midea controller do its thing
-        faithful_threshold = 2.0
-        desired_on_threshold = 0.25
+        faithful_threshold = 1.0
+        desired_on_threshold = 0.0
         min_power_threshold = -0.25
-        desired_off_threshold = -0.5
+        desired_off_threshold = -0.75
 
         ac_celsius = True
 
@@ -685,9 +685,9 @@ class Actrl(hass.Hass):
 
         print("ramp_count " + str(self.outer_ramp_count))
 
-        if abs(self.ramp_count) > 0:
+        if abs(self.outer_ramp_count) > 0:
             print(f"aircon is ramping, count: {self.outer_ramp_count}")
-            self.ramp_count += math.copysign(1, self.outer_ramp_count)
+            self.outer_ramp_count += math.copysign(1, self.outer_ramp_count)
             rval = math.copysign(1, self.outer_ramp_count)
         else:
             rval = 0
