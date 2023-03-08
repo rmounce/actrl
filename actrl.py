@@ -9,7 +9,7 @@ import time
 rooms = ["bed_1", "bed_2", "bed_3", "kitchen", "study"]
 
 # in minutes
-interval = 0.20  # 12 seconds
+interval = 10.0 / 60.0  # 10 seconds
 
 # WMA over the last 5 minutes
 global_temp_deriv_window = 5
@@ -302,7 +302,7 @@ class Actrl(hass.Hass):
         celsius_setpoint = float(
             self.get_entity("climate.aircon").get_state("temperature")
         )
-        
+
         for room in rooms:
             if self.get_state("climate." + room + "_aircon") != "off":
                 all_disabled = False
@@ -359,6 +359,14 @@ class Actrl(hass.Hass):
                     self.targets.pop(room)
 
         if all_disabled:
+            for room, pid in self.pids.items():
+                pid.clear()
+            self.temp_deriv.clear()
+            self.compressor_totally_off = True
+            self.on_counter = 0
+            self.deadband_integrator.clear()
+            if self.get_state("climate.aircon") != "fan_only":
+                self.try_set_mode("off")
             self.set_fake_temp(celsius_setpoint, ac_stable_threshold)
             self.get_entity("input_number.aircon_weighted_error").set_state(
                 state=float("nan")
@@ -369,14 +377,6 @@ class Actrl(hass.Hass):
             self.get_entity("input_number.aircon_meta_integral").set_state(
                 state=float("nan")
             )
-            for room, pid in self.pids.items():
-                pid.clear()
-            self.temp_deriv.clear()
-            self.compressor_totally_off = True
-            self.on_counter = 0
-            self.deadband_integrator.clear()
-            if self.get_state("climate.aircon") != "fan_only":
-                self.try_set_mode("off")
             return
 
         if heat_room_count > 0 and cool_room_count == 0:
@@ -500,17 +500,16 @@ class Actrl(hass.Hass):
 
         compressed_error = heat_cool_sign * unsigned_compressed_error
         self.log("compressed_error: " + str(compressed_error))
-        self.set_fake_temp(celsius_setpoint, compressed_error)
-        self.get_entity("input_number.aircon_meta_integral").set_state(
-            state=self.deadband_integrator.get()
-        )
 
         self.on_counter += 1
 
         if (
             self.get_state("climate.aircon") == "cool"
             and unsigned_compressed_error <= ac_off_threshold
-            or (self.off_fan_running_counter > 0 and unsigned_compressed_error < ac_stable_threshold)
+            or (
+                self.off_fan_running_counter > 0
+                and unsigned_compressed_error < ac_stable_threshold
+            )
         ):
             self.off_fan_running_counter += 1
         else:
@@ -542,6 +541,10 @@ class Actrl(hass.Hass):
             self.try_set_mode("dry")
         else:
             self.try_set_mode("cool")
+        self.set_fake_temp(celsius_setpoint, compressed_error)
+        self.get_entity("input_number.aircon_meta_integral").set_state(
+            state=self.deadband_integrator.get()
+        )
 
     def set_fake_temp(self, celsius_setpoint, compressed_error):
         self.get_entity("input_number.fake_temperature").set_state(
@@ -550,14 +553,26 @@ class Actrl(hass.Hass):
         if ac_celsius:
             self.call_service(
                 "esphome/infrared_send_raw_command",
-                command=[0xA4, 0x82, 0x48, 0x7F, (int)(celsius_setpoint + compressed_error + 1)],
-                )
+                command=[
+                    0xA4,
+                    0x82,
+                    0x48,
+                    0x7F,
+                    (int)(celsius_setpoint + compressed_error + 1),
+                ],
+            )
         else:
             # Power On, FM Update, Mode Auto, Fan Auto, Setpoint 68F, Room temp
             self.call_service(
                 "esphome/infrared_send_raw_command",
-                command=[0xA4, 0x82, 0x66, 0x7F, (int)((1.8 * celsius_setpoint + 32) + compressed_error - 31)],
-                )
+                command=[
+                    0xA4,
+                    0x82,
+                    0x66,
+                    0x7F,
+                    (int)((1.8 * celsius_setpoint + 32) + compressed_error - 31),
+                ],
+            )
 
     def set_damper_pos(self, room, damper_val):
         actual_cur_pos = float(
@@ -613,6 +628,7 @@ class Actrl(hass.Hass):
             self.call_service(
                 "climate/set_hvac_mode", entity_id="climate.aircon", hvac_mode=mode
             )
+            time.sleep(0.1)
 
     def compress(self, error, deriv):
 
@@ -641,7 +657,6 @@ class Actrl(hass.Hass):
         # - the current temp (ignoring RoC) has not yet reached off threshold
         # goal of the derivative is to proactively reduce/increase compressor power, but not to influence on/off state
         error = error + deriv
-
 
         if self.on_counter < soft_delay and error > 0:
             print("soft start, on_counter: " + str(self.on_counter))
