@@ -78,11 +78,11 @@ target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_thr
 # let the Midea controller do its thing
 faithful_threshold = 1.0
 desired_on_threshold = 0.0
-min_power_threshold = -0.25
+min_power_threshold = -0.50
 desired_off_threshold = -0.75
 
 # try using FREEDOM UNITS
-ac_celsius = False
+ac_celsius = True
 
 # Midea constants depending on temp units
 if ac_celsius:
@@ -551,6 +551,7 @@ class Actrl(hass.Hass):
             state=(celsius_setpoint + compressed_error)
         )
         if ac_celsius:
+            # Power on, FM update, mode auto, Fan auto, setpoint 25C?, room temp
             self.call_service(
                 "esphome/infrared_send_raw_command",
                 command=[
@@ -649,6 +650,7 @@ class Actrl(hass.Hass):
                 self.deadband_integrator.clear()
                 print(f"starting compressor {ac_on_threshold}")
 
+        # return twice just in case it gets missed
         if self.on_counter <= 1:
             return ac_on_threshold
 
