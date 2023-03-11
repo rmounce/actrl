@@ -154,12 +154,12 @@ class MyDeriv:
         # avoid conditions where the change in target temp outpaces the change in actual temp
         # wherein the derivative term ends up working against us
         # limit the derivative to zero if it's going in the opposite direction to the temp trend
-        if error_delta >= 0:
-            target_delta = max(target_delta, -error_delta)
+        if (target_delta > 0 and target_delta > -error_delta) or (
+            target_delta < 0 and target_delta < -error_delta
+        ):
+            self.wma.set(0)
         else:
-            target_delta = min(target_delta, -error_delta)
-
-        self.wma.set(error_delta + target_delta)
+            self.wma.set(error_delta + target_delta)
         self.prev_error = error
         self.prev_target = target
 
