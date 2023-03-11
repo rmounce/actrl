@@ -702,7 +702,9 @@ class Actrl(hass.Hass):
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_stable_threshold - 1)
 
-        return self.midea_runtime_quirks(self.deadband_integrator.set(error))
+        return self.midea_runtime_quirks(
+            ac_stable_threshold + self.deadband_integrator.set(error)
+        )
 
     def midea_runtime_quirks(self, rval):
         rval = round(rval)
