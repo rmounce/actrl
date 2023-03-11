@@ -41,8 +41,7 @@ room_ki = 0.001
 
 # kd considers the last 10 minutes
 room_deriv_window = 10.0
-
-# for a constant 1.0 deg / min over the last 10 mins, swing full scale from -1 to 1
+# looking 2 minutes into the future
 room_deriv_factor = 2.0
 
 # percent
@@ -249,7 +248,7 @@ class Actrl(hass.Hass):
         self.damper_pos = {}
         self.temp_deriv = MyDeriv(
             window=int(global_temp_deriv_window / interval),
-            factor=int(global_temp_deriv_factor / interval),
+            factor=global_temp_deriv_factor / interval,
         )
         self.prev_unsigned_compressed_error = 0
         self.min_power_counter = 0
@@ -274,7 +273,7 @@ class Actrl(hass.Hass):
             self.pids[room] = MyPID(
                 kp=room_kp,
                 ki=(room_ki * 60.0 * interval),
-                kd=int(room_deriv_factor / interval),
+                kd=room_deriv_factor / interval,
                 window=int(room_deriv_window / interval),
                 clamp_low=-1.0,
                 clamp_high=1.0,
