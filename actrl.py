@@ -132,9 +132,10 @@ class MyWMA:
 
 # ignores steps due to changed target
 class MyDeriv:
-    def __init__(self, window, factor):
+    def __init__(self, window, factor, clamp_reverse_deriv=False):
         self.wma = MyWMA(window=window)
         self.factor = factor
+        self.clamp_reverse_deriv = clamp_reverse_deriv
         self.clear()
 
     def clear(self):
@@ -154,8 +155,9 @@ class MyDeriv:
         # avoid conditions where the change in target temp outpaces the change in actual temp
         # wherein the derivative term ends up working against us
         # limit the derivative to zero if it's going in the opposite direction to the temp trend
-        if (target_delta > 0 and target_delta > -error_delta) or (
-            target_delta < 0 and target_delta < -error_delta
+        if self.clamp_reverse_deriv and (
+            (target_delta > 0 and target_delta > -error_delta)
+            or (target_delta < 0 and target_delta < -error_delta)
         ):
             self.wma.set(0)
         else:
@@ -171,7 +173,7 @@ class MyPID:
     def __init__(self, kp, ki, kd, window, clamp_low, clamp_high):
         self.kp = kp
         self.ki = ki
-        self.deriv = MyDeriv(window, kd)
+        self.deriv = MyDeriv(window=window, factor=kd, clamp_reverse_deriv=False)
         self.clamp_low = clamp_low
         self.clamp_high = clamp_high
         self.clear()
@@ -249,6 +251,7 @@ class Actrl(hass.Hass):
         self.temp_deriv = MyDeriv(
             window=int(global_temp_deriv_window / interval),
             factor=global_temp_deriv_factor / interval,
+            clamp_reverse_deriv=True,
         )
         self.prev_unsigned_compressed_error = 0
         self.min_power_counter = 0
