@@ -74,9 +74,9 @@ target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
 
 
-# when the error is greater than 1.0C
+# when the error is greater than 2.0C
 # let the Midea controller do its thing
-faithful_threshold = 1.0
+faithful_threshold = 2.0
 desired_on_threshold = 0.0
 min_power_threshold = -0.50
 desired_off_threshold = -0.75
@@ -676,7 +676,7 @@ class Actrl(hass.Hass):
             else:
                 ramp_progress = 1
 
-            return round(
+            return self.midea_runtime_quirks(
                 ac_stable_threshold
                 + ramp_progress
                 * (2 + ac_unit_from_celsius * (error - faithful_threshold))
@@ -687,7 +687,7 @@ class Actrl(hass.Hass):
             if self.min_power_counter <= min_power_time:
                 # aircon seems to react to edges
                 # so provide as many as possible to quickly reduce power?
-                # may be extra helpful in fahrenheit mode?
+                # may be extra helpful in fahrenheit mode? (seemingly not)
                 return max(
                     ac_off_threshold + 1, self.prev_unsigned_compressed_error - 1
                 )
@@ -697,33 +697,45 @@ class Actrl(hass.Hass):
             self.min_power_counter = 0
 
         if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
-            step = 1
             self.deadband_integrator.clear()
+            return self.midea_runtime_quirks(ac_stable_threshold + 1)
         elif self.prev_unsigned_compressed_error < ac_stable_threshold - 1:
-            step = -1
             self.deadband_integrator.clear()
-        else:
-            step = self.deadband_integrator.set(error)
+            return self.midea_runtime_quirks(ac_stable_threshold - 1)
 
-        if abs(self.outer_ramp_count) > 0 and (
-            self.outer_ramp_count > step_up_intervals
-            or self.outer_ramp_count < -step_down_intervals
+        return self.midea_runtime_quirks(self.deadband_integrator.set(error))
+
+    def midea_runtime_quirks(self, rval):
+        rval = round(rval)
+
+        if (
+            (self.outer_ramp_count > 0 and rval < ac_stable_threshold)
+            or (self.outer_ramp_count < 0 and rval > ac_stable_threshold)
+            or (self.outer_ramp_count > step_up_intervals)
+            or (self.outer_ramp_count < -step_down_intervals)
         ):
-            print("count is up, step is over")
             self.outer_ramp_count = 0
 
-        if step != 0:
-            print("(re)starting due to step")
-            self.outer_ramp_count = step
+        # restart if the temp goes even further in the direction we're holding
+        if (rval > ac_stable_threshold and rval > self.outer_ramp_rval) or (
+            rval == self.outer_ramp_rval == ac_stable_threshold + 1
+        ):
+            self.outer_ramp_rval = rval
+            self.outer_ramp_count = 1
+        elif (rval < ac_stable_threshold and rval < self.outer_ramp_rval) or (
+            rval == self.outer_ramp_rval == ac_stable_threshold - 1
+        ):
+            self.outer_ramp_rval = rval
+            self.outer_ramp_count = -1
 
-        print("ramp_count " + str(self.outer_ramp_count))
-
-        if abs(self.outer_ramp_count) > 0:
-            print(f"aircon is ramping, count: {self.outer_ramp_count}")
-            self.outer_ramp_count += math.copysign(1, self.outer_ramp_count)
-            rval = ac_stable_threshold + math.copysign(1, self.outer_ramp_count)
+        if self.outer_ramp_count > 0:
+            self.outer_ramp_count += 1
+            rval = self.outer_ramp_rval
+        elif self.outer_ramp_count < 0:
+            self.outer_ramp_count -= 1
+            rval = self.outer_ramp_rval
         else:
-            rval = ac_stable_threshold
+            self.outer_ramp_rval = rval
 
         # behaviour only observed in cooling mode
         # at the setpoint ac will start ramping back power
