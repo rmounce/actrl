@@ -86,7 +86,7 @@ ac_celsius = True
 # Midea constants depending on temp units
 if ac_celsius:
     ac_unit_from_celsius = 1.0
-    ac_on_threshold = 2
+    ac_on_threshold = 1
     ac_stable_threshold = 1
     ac_off_threshold = -2
 else:
