@@ -247,7 +247,7 @@ class DeadbandIntegrator:
 
         self.increment_count += rval
         # lazy heuristic to avoid overshoot due to time delay
-        if abs(self.increment_count) == 3:
+        if self.increment_count == 3:
             rval = 0
 
         print(
