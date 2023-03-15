@@ -224,25 +224,35 @@ class DeadbandIntegrator:
         self.increment_count = 0
 
     def set(self, error):
+        if (self.error > 0 and self.increment_count < 0) or (
+            self.error < 0 and self.increment_count > 0
+        ):
+            self.clear()
+
+        if self.increment_count == 0:
+            self.increment_count = math.copysign(1, error)
+
         self.integral += error * self.ki
 
         rval = 0
 
         if self.integral > 1:
             self.integral = min(1, self.integral - 2)
-            self.increment_count = max(0, self.increment_count)
+            self.increment_count = max(1, self.increment_count)
             rval = 1
         elif self.integral < -1:
             self.integral = max(-1, self.integral + 2)
-            self.increment_count = min(0, self.increment_count)
+            self.increment_count = min(-1, self.increment_count)
             rval = -1
 
         self.increment_count += rval
         # lazy heuristic to avoid overshoot due to time delay
-        if abs(self.increment_count) == 2:
+        if abs(self.increment_count) == 3:
             rval = 0
 
-        print(f"input: {error}, integral: {self.integral}, increment_count: {self.increment_count} rval: {rval}")
+        print(
+            f"input: {error}, integral: {self.integral}, increment_count: {self.increment_count} rval: {rval}"
+        )
         return rval
 
     def get(self):
