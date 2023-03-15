@@ -224,8 +224,8 @@ class DeadbandIntegrator:
         self.increment_count = 0
 
     def set(self, error):
-        if (self.error > 0 and self.increment_count < 0) or (
-            self.error < 0 and self.increment_count > 0
+        if (error > 0 and self.increment_count < 0) or (
+            error < 0 and self.increment_count > 0
         ):
             self.clear()
 
