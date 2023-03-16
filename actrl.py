@@ -21,8 +21,8 @@ global_ki = 0.00025
 # a 0.1 deg error will accumulate 0.1 in ~60 minutes
 
 # per second
-global_deadband_ki = 0.05
-# a 0.1 deg error will accumulate 1 in ~3.33 minutes
+global_deadband_ki = 0.0125
+# a 0.1 deg error will accumulate 1 in ~13.33 minutes
 
 # in seconds, time for aircon to ramp up power 1 increment & stay there
 step_up_time = 200
@@ -77,8 +77,8 @@ target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_thr
 # let the Midea controller do its thing
 faithful_threshold = 2.0
 desired_on_threshold = 0.0
-min_power_threshold = -0.70
-desired_off_threshold = -0.75
+min_power_threshold = -0.75
+desired_off_threshold = -1.0
 
 # try using FREEDOM UNITS
 ac_celsius = True
@@ -224,13 +224,13 @@ class DeadbandIntegrator:
         self.increment_count = 0
 
     def set(self, error):
-        if (error > 0 and self.increment_count < 0) or (
-            error < 0 and self.increment_count > 0
-        ):
-            self.clear()
+        if error > 0 and self.increment_count <= 0:
+            self.integral = max(0.75, self.integral)
+            self.increment_count = 1
 
-        if self.increment_count == 0:
-            self.increment_count = math.copysign(1, error)
+        if error < 0 and self.increment_count >= 0:
+            self.integral = min(-0.75, self.integral)
+            self.increment_count = -1
 
         self.integral += error * self.ki
 
@@ -238,17 +238,17 @@ class DeadbandIntegrator:
 
         if self.integral > 1:
             self.integral = min(1, self.integral - 2)
-            self.increment_count = max(1, self.increment_count)
+            #self.increment_count = max(1, self.increment_count)
             rval = 1
         elif self.integral < -1:
             self.integral = max(-1, self.integral + 2)
-            self.increment_count = min(-1, self.increment_count)
+            #self.increment_count = min(-1, self.increment_count)
             rval = -1
 
-        self.increment_count += rval
+        #self.increment_count += rval
         # lazy heuristic to avoid overshoot due to time delay
-        if self.increment_count == 3:
-            rval = 0
+        #if self.increment_count == 3:
+        #    rval = 0
 
         print(
             f"input: {error}, integral: {self.integral}, increment_count: {self.increment_count} rval: {rval}"
