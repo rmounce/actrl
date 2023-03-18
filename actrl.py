@@ -238,16 +238,16 @@ class DeadbandIntegrator:
 
         if self.integral > 1:
             self.integral = min(1, self.integral - 2)
-            #self.increment_count = max(1, self.increment_count)
+            # self.increment_count = max(1, self.increment_count)
             rval = 1
         elif self.integral < -1:
             self.integral = max(-1, self.integral + 2)
-            #self.increment_count = min(-1, self.increment_count)
+            # self.increment_count = min(-1, self.increment_count)
             rval = -1
 
-        #self.increment_count += rval
+        # self.increment_count += rval
         # lazy heuristic to avoid overshoot due to time delay
-        #if self.increment_count == 3:
+        # if self.increment_count == 3:
         #    rval = 0
 
         print(
@@ -387,7 +387,7 @@ class Actrl(hass.Hass):
             self.deadband_integrator.clear()
             if self.get_state("climate.aircon") != "fan_only":
                 self.try_set_mode("off")
-            self.set_fake_temp(celsius_setpoint, ac_stable_threshold)
+            self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
             self.get_entity("input_number.aircon_weighted_error").set_state(
                 state=float("nan")
             )
@@ -561,15 +561,17 @@ class Actrl(hass.Hass):
             self.try_set_mode("dry")
         else:
             self.try_set_mode("cool")
-        self.set_fake_temp(celsius_setpoint, compressed_error)
         self.get_entity("input_number.aircon_meta_integral").set_state(
             state=self.deadband_integrator.get()
         )
+        self.set_fake_temp(celsius_setpoint, compressed_error, True)
 
-    def set_fake_temp(self, celsius_setpoint, compressed_error):
+    def set_fake_temp(self, celsius_setpoint, compressed_error, transmit=True):
         self.get_entity("input_number.fake_temperature").set_state(
             state=(celsius_setpoint + compressed_error)
         )
+        if not transmit:
+            return
         if ac_celsius:
             # Power on, FM update, mode auto, Fan auto, setpoint 25C?, room temp
             self.call_service(
@@ -594,6 +596,7 @@ class Actrl(hass.Hass):
                     (int)((1.8 * celsius_setpoint + 32) + compressed_error - 31),
                 ],
             )
+        time.sleep(0.1)
 
     def set_damper_pos(self, room, damper_val):
         actual_cur_pos = float(
@@ -670,8 +673,8 @@ class Actrl(hass.Hass):
                 self.deadband_integrator.clear()
                 print(f"starting compressor {ac_on_threshold}")
 
-        # return twice just in case it gets missed
-        if self.on_counter <= 1:
+        # DON'T return twice just in case it gets missed
+        if self.on_counter < 1:
             return ac_on_threshold
 
         # conditions in which to consider the derivative
