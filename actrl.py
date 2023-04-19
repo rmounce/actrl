@@ -555,6 +555,11 @@ class Actrl(hass.Hass):
                 # damper_val = damper_vals[room]
                 self.set_damper_pos(room, damper_vals[room])
 
+
+        # Unsure if it does anything, send the current feels like immediately before powering on
+        if self.get_state("climate.aircon") == "off":
+            self.set_fake_temp(celsius_setpoint, compressed_error, True)
+
         if self.heat_mode:
             self.try_set_mode("heat")
         elif self.get_state("climate.aircon") == "dry":
@@ -673,7 +678,7 @@ class Actrl(hass.Hass):
                 self.deadband_integrator.clear()
                 print(f"starting compressor {ac_on_threshold}")
 
-        # DON'T return twice just in case it gets missed
+        # "blip" the power to get AC to start
         if self.on_counter < 1:
             return ac_on_threshold
 
