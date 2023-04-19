@@ -97,6 +97,8 @@ else:
     ac_stable_threshold = 2
     ac_off_threshold = -3
 
+null_state = "unknown"
+
 
 class MyWMA:
     def __init__(self, window):
@@ -389,13 +391,11 @@ class Actrl(hass.Hass):
                 self.try_set_mode("off")
             self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
             self.get_entity("input_number.aircon_weighted_error").set_state(
-                state=float("nan")
+                state=null_state
             )
-            self.get_entity("input_number.aircon_avg_deriv").set_state(
-                state=float("nan")
-            )
+            self.get_entity("input_number.aircon_avg_deriv").set_state(state=null_state)
             self.get_entity("input_number.aircon_meta_integral").set_state(
-                state=float("nan")
+                state=null_state
             )
             return
 
@@ -461,7 +461,7 @@ class Actrl(hass.Hass):
                 self.pids[room].clear()
                 self.rooms_enabled[room] = False
                 self.get_entity("input_number." + room + "_pid").set_state(
-                    state=float("nan")
+                    state=null_state
                 )
                 # a new room has been disabled, reset the deriv history
                 self.temp_deriv.clear()
@@ -554,7 +554,6 @@ class Actrl(hass.Hass):
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
                 # damper_val = damper_vals[room]
                 self.set_damper_pos(room, damper_vals[room])
-
 
         # Unsure if it does anything, send the current feels like immediately before powering on
         if self.get_state("climate.aircon") == "off":
