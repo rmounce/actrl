@@ -415,7 +415,7 @@ class Actrl(hass.Hass):
         pre_avg_weight_sum = 0
         pre_avg_value_sum = 0
         for room, error in errors.items():
-            weight = 1.0 - heat_cool_sign * self.pids[room].get()
+            weight = 1.0 - self.pids[room].get()
             self.log(
                 "room: " + room + ", error: " + str(error) + ", weight: " + str(weight)
             )
@@ -440,8 +440,8 @@ class Actrl(hass.Hass):
                 # and return half-way through soft-start
                 self.on_counter = min(self.on_counter, soft_delay)
 
-            self.pids[room].set(error, avg_error)
-            pid_vals[room] = heat_cool_sign * self.pids[room].get()
+            self.pids[room].set(heat_cool_sign * error, heat_cool_sign * avg_error)
+            pid_vals[room] = self.pids[room].get()
             # self.log(room + " PID outcome was " + str(pid_vals[room]))
 
         unscaled_min_pid = min(pid_vals.values())
@@ -451,7 +451,7 @@ class Actrl(hass.Hass):
         self.log("scaling all PIDs by: " + str(scalefactor))
         for room, pid_val in pid_vals.items():
             self.pids[room].scale(scalefactor)
-            pid_vals[room] = heat_cool_sign * self.pids[room].get()
+            pid_vals[room] = self.pids[room].get()
             self.get_entity("input_number." + room + "_pid").set_state(
                 state=pid_vals[room]
             )
