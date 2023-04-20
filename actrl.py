@@ -278,6 +278,7 @@ class Actrl(hass.Hass):
         self.off_fan_running_counter = 0
         self.outer_ramp_count = 0
         self.outer_ramp_rval = 1
+        self.guesstimated_comp_speed = 0
         self.heat_mode = False
 
         if self.get_state("input_boolean.ac_already_on_bypass") == "on":
@@ -751,11 +752,13 @@ class Actrl(hass.Hass):
         ):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = 1
+            self.guesstimated_comp_speed = max(2, self.guesstimated_comp_speed + 1)
         elif (rval < ac_stable_threshold and rval < self.outer_ramp_rval) or (
             rval == self.outer_ramp_rval == ac_stable_threshold - 1
         ):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = -1
+            self.guesstimated_comp_speed = max(0, self.guesstimated_comp_speed - 1)
 
         if self.outer_ramp_count > 0:
             self.outer_ramp_count += 1
@@ -765,6 +768,9 @@ class Actrl(hass.Hass):
             rval = self.outer_ramp_rval
         else:
             self.outer_ramp_rval = rval
+
+        if self.guesstimated_comp_speed <= 0:
+            return min(ac_stable_threshold - 1, rval)
 
         # behaviour only observed in cooling mode
         # at the setpoint ac will start ramping back power
