@@ -772,7 +772,8 @@ class Actrl(hass.Hass):
         # a brief jump up to setpoint+2 is needed to arrest the fall and stabilise output power
         # in heating mode there is no gradual rampdown at all, it drops straight to min power
         if (
-            self.prev_unsigned_compressed_error < ac_stable_threshold
+            (not self.heat_mode)
+            and self.prev_unsigned_compressed_error < ac_stable_threshold
             and rval >= ac_stable_threshold
         ):
             return max(rval, ac_stable_threshold + 1)
