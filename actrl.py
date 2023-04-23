@@ -213,6 +213,7 @@ class MyPID:
         if not self.initialised:
             self.initialised = True
             target = self.get()
+            self.deriv.clear()
             self.set(error, target)
             current = self.get()
             delta = current - target
