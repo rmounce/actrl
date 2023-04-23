@@ -308,7 +308,6 @@ class Actrl(hass.Hass):
             )
         # run every interval (in minutes)
         self.run_every(self.main, "now", 60.0 * interval)
-        self.main(None)
 
     def main(self, kwargs):
         self.log("#### BEGIN CYCLE ####")
