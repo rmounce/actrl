@@ -417,7 +417,8 @@ class Actrl(hass.Hass):
         pre_avg_weight_sum = 0
         pre_avg_value_sum = 0
         for room, error in errors.items():
-            weight = 1.0 - self.pids[room].get()
+            # give every room 0.001 weight in case they're all zeroes?
+            weight = 1.001 - self.pids[room].get()
             self.log(
                 "room: " + room + ", error: " + str(error) + ", weight: " + str(weight)
             )
