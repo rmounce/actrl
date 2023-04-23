@@ -184,6 +184,7 @@ class MyPID:
         self.deriv.clear()
         self.last_val = 0.0
         self.integral = 0.0
+        self.initialised = False
 
     def set(self, error, target):
         # print(" error " + str(error) + " target " + str(target))
@@ -207,6 +208,15 @@ class MyPID:
         target = 1.0 - (scaledcurrent * factor)
         delta = current - target
         self.integral += delta / self.ki
+
+    def initialise(self, error, target):
+        if not self.initialised:
+            self.initialised = True
+            target = self.get()
+            self.set(error, target)
+            current = self.get()
+            delta = current - target
+            self.integral += delta / self.ki
 
     def get(self):
         return (
@@ -443,7 +453,7 @@ class Actrl(hass.Hass):
 
             self.pids[room].set(heat_cool_sign * error, heat_cool_sign * avg_error)
             pid_vals[room] = self.pids[room].get()
-            # self.log(room + " PID outcome was " + str(pid_vals[room]))
+            self.log(room + " PID outcome was " + str(pid_vals[room]))
 
         unscaled_min_pid = min(pid_vals.values())
         unscaled_max_pid = max(pid_vals.values())
@@ -493,6 +503,11 @@ class Actrl(hass.Hass):
 
         weighted_error = error_sum / weight_sum
         weighted_target = target_sum / weight_sum
+
+        for room, error in errors.items():
+            if self.rooms_enabled[room]:
+                # mitigate badness on startup?
+                self.pids[room].initialise(heat_cool_sign * error, heat_cool_sign * weighted_error)
 
         self.temp_deriv.set(weighted_error, weighted_target)
         avg_deriv = self.temp_deriv.get()
