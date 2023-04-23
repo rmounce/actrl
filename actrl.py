@@ -409,6 +409,7 @@ class Actrl(hass.Hass):
             heat_cool_sign = -1.0
             self.heat_mode = True
         else:
+            heat_cool_sign = 1.0
             self.heat_mode = False
 
         unweighted_avg_error = sum(errors.values()) / len(errors.values())
