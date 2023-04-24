@@ -726,8 +726,6 @@ class Actrl(hass.Hass):
                 )
             else:
                 return ac_off_threshold + 2
-        else:
-            self.min_power_counter = 0
 
         if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
             self.deadband_integrator.clear()
@@ -774,8 +772,17 @@ class Actrl(hass.Hass):
         else:
             self.outer_ramp_rval = rval
 
-        if self.guesstimated_comp_speed <= 0:
-            return min(ac_stable_threshold - 1, rval)
+        if (self.guesstimated_comp_speed <= 0) and (
+            self.min_power_counter <= min_power_time
+        ):
+            # apparently the 1hr shut-off thing happens here too
+            self.min_power_counter += 1
+            return min(
+                self.prev_unsigned_compressed_error, ac_stable_threshold - 1, rval
+            )
+        else:
+            self.guesstimated_comp_speed = max(1, self.guesstimated_comp_speed)
+            self.min_power_counter = 0
 
         # behaviour only observed in cooling mode
         # at the setpoint ac will start ramping back power
