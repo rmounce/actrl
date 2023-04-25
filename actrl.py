@@ -211,6 +211,9 @@ class MyPID:
     def get(self):
         return min(self.get_raw(), 1.0)
 
+    def getinfo(self):
+        return f"P: {-self.last_val * self.kp} I: {-self.integral * self.ki} D: {-self.deriv.get()}"
+
 
 class DeadbandIntegrator:
     def __init__(self, ki):
@@ -444,7 +447,9 @@ class Actrl(hass.Hass):
         for room, error in errors.items():
             self.pids[room].set(heat_cool_sign * error, heat_cool_sign * avg_error)
             pid_vals[room] = self.pids[room].get()
-            self.log(room + " PID outcome was " + str(pid_vals[room]))
+            self.log(
+                f"{room} PID outcome was {pid_vals[room]} {self.pids[room].getinfo()}"
+            )
 
         if min(pid_vals.values()) >= 1.0:
             self.log(
