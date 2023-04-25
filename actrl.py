@@ -47,8 +47,6 @@ room_deriv_factor = 2.0
 # percent
 damper_deadband = 7.5
 damper_round = 5
-# 10% of extra virtual closed-ness
-damper_fully_closed_buffer = 10.0
 
 # soft start to avoid overshoot
 # start at min power and gradually report the actual rval
@@ -172,11 +170,10 @@ class MyDeriv:
 
 
 class MyPID:
-    def __init__(self, kp, ki, kd, window, clamp_low, clamp_high):
+    def __init__(self, kp, ki, kd, window, clamp_high):
         self.kp = kp
         self.ki = ki
         self.deriv = MyDeriv(window=window, factor=kd, clamp_reverse_deriv=False)
-        self.clamp_low = clamp_low
         self.clamp_high = clamp_high
         self.clear()
 
@@ -191,29 +188,28 @@ class MyPID:
         self.last_val = val
         self.integral += val
         self.deriv.set(error, target)
-        # clamp between +-1
-        # if not self.clamp_low <= self.get() <= self.clamp_high:
-        if self.get() > self.clamp_high:
-            clamp_to = self.clamp_high
-            # else:
-            #    clamp_to = self.clamp_low
+        if self.get_raw() > self.clamp_high:
             self.integral = (
-                -(clamp_to + self.deriv.get() + (self.last_val * self.kp)) / self.ki
+                -(self.clamp_high + self.deriv.get() + (self.last_val * self.kp))
+                / self.ki
             )
 
     def scale(self, factor):
-        current = self.get()
+        current = self.get_raw()
         scaledcurrent = 1.0 - current
         target = 1.0 - (scaledcurrent * factor)
         delta = current - target
         self.integral += delta / self.ki
 
-    def get(self):
+    def get_raw(self):
         return (
             (-self.last_val * self.kp)
             + (-self.integral * self.ki)
             + (-self.deriv.get())
         )
+
+    def get(self):
+        return min(self.get_raw(), 1.0)
 
 
 class DeadbandIntegrator:
@@ -299,8 +295,7 @@ class Actrl(hass.Hass):
                 ki=(room_ki * 60.0 * interval),
                 kd=room_deriv_factor / interval,
                 window=int(room_deriv_window / interval),
-                clamp_low=-1.0,
-                clamp_high=0.999,
+                clamp_high=1.2,
             )
             self.rooms_enabled[room] = False
             self.damper_pos[room] = float(
@@ -451,6 +446,17 @@ class Actrl(hass.Hass):
             pid_vals[room] = self.pids[room].get()
             self.log(room + " PID outcome was " + str(pid_vals[room]))
 
+        if min(pid_vals.values()) >= 1.0:
+            self.log(
+                "SOMETHING BAD HAPPENED, min PID >= 1.0. Resetting PIDs in hope of recovery."
+            )
+            for room, error in errors.items():
+                self.pids[room].clear()
+                self.pids[room].set(
+                    heat_cool_sign * error, heat_cool_sign * unweighted_avg_error
+                )
+                pid_vals[room] = self.pids[room].get()
+
         unscaled_min_pid = min(pid_vals.values())
         unscaled_max_pid = max(pid_vals.values())
 
@@ -484,13 +490,7 @@ class Actrl(hass.Hass):
         weight_sum = 0.0
 
         for room, pid_val in pid_vals.items():
-            # keep low values way down in the hole
-            scaled = max(
-                0,
-                -damper_fully_closed_buffer
-                + (100.0 + damper_fully_closed_buffer)
-                * ((1.001 - pid_val) / (1.001 - min_pid)),
-            )
+            scaled = 100.0 * ((1.0 - pid_val) / (1.0 - min_pid))
 
             damper_vals[room] = scaled
             target_sum += self.targets[room] * scaled
