@@ -536,7 +536,7 @@ class Actrl(hass.Hass):
         self.on_counter += 1
 
         if (
-            self.get_state("climate.aircon") == "cool"
+            self.get_state("climate.aircon") in ["cool", "heat"]
             and unsigned_compressed_error <= ac_off_threshold
             or (
                 self.off_fan_running_counter > 0
@@ -547,14 +547,11 @@ class Actrl(hass.Hass):
         else:
             self.off_fan_running_counter = 0
 
-        if not self.heat_mode and (
-            self.off_fan_running_counter >= off_fan_running_time
-            or (
-                self.get_state("climate.aircon") == "off"
-                and unsigned_compressed_error < ac_stable_threshold
-            )
+        if (self.off_fan_running_counter >= off_fan_running_time) or (
+            self.get_state("climate.aircon") == "off"
+            and unsigned_compressed_error < ac_stable_threshold
         ):
-            self.log("cool mode and temp too low, turning off altogether")
+            self.log("temp beyond target, turning off altogether")
             self.try_set_mode("off")
             self.off_fan_running_counter = 0
             self.on_counter = 0
@@ -627,12 +624,13 @@ class Actrl(hass.Hass):
             state=damper_val
         )
 
+        cur_deadband = damper_deadband
         # damper won't do much if the fan isn't running
-        cur_deadband = (
-            (2.0 * damper_deadband)
-            if (self.compressor_totally_off and self.heat_mode)
-            else damper_deadband
-        )
+        # cur_deadband = (
+        #    (2.0 * damper_deadband)
+        #    if (self.compressor_totally_off and self.heat_mode)
+        #    else damper_deadband
+        # )
 
         if (
             (damper_val > 99.9 and cur_pos < 100.0)
