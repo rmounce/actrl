@@ -486,7 +486,7 @@ class Actrl(hass.Hass):
 
             if self.get_entity("cover." + room).get_state("current_position") != "0":
                 self.log("Closing damper for disabled room: " + room)
-                self.set_damper_pos(room, 0)
+                self.set_damper_pos(room, 0, 1.0)
 
         min_pid = min(pid_vals.values())
 
@@ -609,7 +609,7 @@ class Actrl(hass.Hass):
             )
         time.sleep(0.1)
 
-    def set_damper_pos(self, room, damper_val, deadband_multiplier):
+    def set_damper_pos(self, room, damper_val, deadband_multiplier=1.0):
         actual_cur_pos = float(
             self.get_entity("cover." + room).get_state("current_position")
         )
