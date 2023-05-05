@@ -555,14 +555,12 @@ class Actrl(hass.Hass):
             self.try_set_mode("off")
             self.off_fan_running_counter = 0
             self.on_counter = 0
+            for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
+                self.set_damper_pos(room, damper_vals[room], 4.0)
             return
-
-        if False:
-            self.log("heat mode and indoor fan is not running, not adjusting dampers")
         else:
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
-                # damper_val = damper_vals[room]
-                self.set_damper_pos(room, damper_vals[room])
+                self.set_damper_pos(room, damper_vals[room], 1.0)
 
         # Unsure if it does anything, send the current feels like immediately before powering on
         if self.get_state("climate.aircon") == "off":
@@ -611,7 +609,7 @@ class Actrl(hass.Hass):
             )
         time.sleep(0.1)
 
-    def set_damper_pos(self, room, damper_val):
+    def set_damper_pos(self, room, damper_val, deadband_multiplier):
         actual_cur_pos = float(
             self.get_entity("cover." + room).get_state("current_position")
         )
@@ -624,7 +622,7 @@ class Actrl(hass.Hass):
             state=damper_val
         )
 
-        cur_deadband = damper_deadband
+        cur_deadband = damper_deadband * deadband_multiplier
         # damper won't do much if the fan isn't running
         # cur_deadband = (
         #    (2.0 * damper_deadband)
