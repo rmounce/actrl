@@ -720,15 +720,14 @@ class Actrl(hass.Hass):
 
         if error < min_power_threshold:
             self.min_power_counter += 1
-            if self.min_power_counter <= min_power_time:
-                # aircon seems to react to edges
-                # so provide as many as possible to quickly reduce power?
-                # may be extra helpful in fahrenheit mode? (seemingly not)
-                return max(
-                    ac_off_threshold + 1, self.prev_unsigned_compressed_error - 1
-                )
-            else:
-                return ac_off_threshold + 2
+            if self.min_power_counter > min_power_time:
+                self.min_power_counter = 0
+                self.prev_unsigned_compressed_error = ac_off_threshold + 4
+
+            # aircon seems to react to edges
+            # so provide as many as possible to quickly reduce power?
+            # may be extra helpful in fahrenheit mode? (seemingly not)
+            return max(ac_off_threshold + 1, self.prev_unsigned_compressed_error - 1)
 
         if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
             self.deadband_integrator.clear()
