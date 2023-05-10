@@ -698,7 +698,7 @@ class Actrl(hass.Hass):
 
         if self.on_counter < soft_delay and error > min_power_threshold:
             print("soft start, on_counter: " + str(self.on_counter))
-            return ac_stable_threshold - 1
+            return self.midea_runtime_quirks(ac_stable_threshold - 1)
 
         if error > faithful_threshold:
             if self.on_counter < (soft_delay + soft_ramp):
@@ -719,15 +719,7 @@ class Actrl(hass.Hass):
             )
 
         if error < min_power_threshold:
-            self.min_power_counter += 1
-            if self.min_power_counter > min_power_time:
-                self.min_power_counter = 0
-                self.prev_unsigned_compressed_error = ac_off_threshold + 4
-
-            # aircon seems to react to edges
-            # so provide as many as possible to quickly reduce power?
-            # may be extra helpful in fahrenheit mode? (seemingly not)
-            return max(ac_off_threshold + 1, self.prev_unsigned_compressed_error - 1)
+            return self.midea_runtime_quirks(ac_off_threshold + 1)
 
         if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
             self.deadband_integrator.clear()
@@ -774,16 +766,23 @@ class Actrl(hass.Hass):
         else:
             self.outer_ramp_rval = rval
 
-        if (self.guesstimated_comp_speed <= 0) and (
-            self.min_power_counter <= min_power_time
-        ):
-            # apparently the 1hr shut-off thing happens here too
-            self.min_power_counter += 1
-            return min(
+        if self.guesstimated_comp_speed <= 0:
+            rval = min(
                 self.prev_unsigned_compressed_error, ac_stable_threshold - 1, rval
             )
+
+        if rval < ac_stable_threshold:
+            self.min_power_counter += 1
+            if self.min_power_counter > min_power_time:
+                self.min_power_counter = 0
+                # 'blip' the feels like temp to reset the AC's internal timer
+                self.prev_unsigned_compressed_error = ac_stable_threshold + 1
+
+            # aircon seems to react to edges
+            # so provide as many as possible to quickly reduce power?
+            # may be extra helpful in fahrenheit mode? (seemingly not)
+            return max(rval, self.prev_unsigned_compressed_error - 1)
         else:
-            self.guesstimated_comp_speed = max(1, self.guesstimated_comp_speed)
             self.min_power_counter = 0
 
         # behaviour only observed in cooling mode
