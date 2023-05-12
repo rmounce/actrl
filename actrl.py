@@ -56,6 +56,9 @@ soft_delay = int(7.5 / interval)
 # then gradually report the actual rval over 5 mins
 soft_ramp = int(7.5 / interval)
 
+# every 90 mins at low power it runs at full speed for about a minute
+purge_delay = int(90 / interval)
+
 # setpoint - it takes about 7.5 (sometimes longer) to bring a/c to min power
 # don't hold it there forever as it'll shut down after 1hr at this temp
 # 30 mins should be safe
@@ -75,7 +78,7 @@ target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_thr
 # let the Midea controller do its thing
 faithful_threshold = 2.0
 desired_on_threshold = 0.0
-min_power_threshold = -0.75
+min_power_threshold = -0.5
 desired_off_threshold = -1.0
 
 # try using FREEDOM UNITS
@@ -669,7 +672,16 @@ class Actrl(hass.Hass):
             time.sleep(0.1)
 
     def compress(self, error, deriv):
-        if error <= desired_off_threshold:
+        # Tighten the deadband with runtime, with the goal of turning off
+        # before the high power 'purge' that occurs after 90 mins of continuous
+        # operation at low speed. This 'purge' often pushes us out of the
+        # deadband anyway, so it's more efficient to just turn off prior.
+        purge_progress = min(1, self.on_counter / purge_delay)
+
+        if error <= (
+            desired_off_threshold * (1 - purge_progress)
+            + min_power_threshold * purge_progress
+        ):
             self.compressor_totally_off = True
 
         if self.compressor_totally_off:
