@@ -311,6 +311,7 @@ class Actrl(hass.Hass):
         self.run_every(self.main, "now", 60.0 * interval)
 
     def main(self, kwargs):
+        self.log("")
         self.log("#### BEGIN CYCLE ####")
         temps = {}
         errors = {}
@@ -676,7 +677,8 @@ class Actrl(hass.Hass):
         # before the high power 'purge' that occurs after 90 mins of continuous
         # operation at low speed. This 'purge' often pushes us out of the
         # deadband anyway, so it's more efficient to just turn off prior.
-        purge_progress = min(1, self.on_counter / purge_delay)
+        # Reset in sync with the purge period. Desync isn't a big deal.
+        purge_progress = (self.on_counter / purge_delay) % 1.0
 
         if error <= (
             desired_off_threshold * (1 - purge_progress)
