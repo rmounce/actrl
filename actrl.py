@@ -678,7 +678,7 @@ class Actrl(hass.Hass):
         # operation at low speed. This 'purge' often pushes us out of the
         # deadband anyway, so it's more efficient to just turn off prior.
         # Reset in sync with the purge period. Desync isn't a big deal.
-        purge_progress = pow((self.on_counter / purge_delay) % 1.0, 3)
+        purge_progress = (self.on_counter / purge_delay) % 1.0
 
         if error <= (
             desired_off_threshold * (1 - purge_progress)
