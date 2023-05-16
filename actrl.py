@@ -614,6 +614,9 @@ class Actrl(hass.Hass):
         time.sleep(0.1)
 
     def set_damper_pos(self, room, damper_val, open_only=False):
+        # i don't know fluid dynamics but it seems nonlinear, lets try squaring!
+        damper_pos = 100.0 * (1.0 - pow(1.0 - (damper_val / 100.0), 2))
+
         actual_cur_pos = float(
             self.get_entity("cover." + room).get_state("current_position")
         )
