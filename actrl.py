@@ -509,7 +509,7 @@ class Actrl(hass.Hass):
         weighted_error = error_sum / weight_sum
         weighted_target = target_sum / weight_sum
 
-        self.temp_deriv.set(weighted_error, weighted_target)
+        self.temp_deriv.set(weighted_error, heat_cool_sign * weighted_target)
         avg_deriv = self.temp_deriv.get()
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
