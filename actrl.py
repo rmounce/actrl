@@ -197,12 +197,16 @@ class MyPID:
                 / self.ki
             )
 
+    # maybe set() should be renamed update()?
+    def set_raw(self, target):
+        current = self.get_raw()
+        delta = current - target
+        self.integral += delta / self.ki
+
     def scale(self, factor):
         current = self.get_raw()
         scaledcurrent = 1.0 - current
-        target = 1.0 - (scaledcurrent * factor)
-        delta = current - target
-        self.integral += delta / self.ki
+        self.set_raw(1.0 - (scaledcurrent * factor))
 
     def get_raw(self):
         return (
@@ -315,6 +319,7 @@ class Actrl(hass.Hass):
         self.log("#### BEGIN CYCLE ####")
         temps = {}
         errors = {}
+        cur_targets = {}
         damper_vals = {}
         pid_vals = {}
         disabled_rooms = []
@@ -340,16 +345,16 @@ class Actrl(hass.Hass):
                         self.get_state("sensor." + room + "_average_temperature")
                     )
 
-                cur_target = float(
+                cur_targets[room] = float(
                     self.get_entity("climate." + room + "_aircon").get_state(
                         "temperature"
                     )
                 )
                 if room in self.targets:
-                    target_delta = cur_target - self.targets[room]
+                    target_delta = cur_targets[room] - self.targets[room]
 
                     if abs(target_delta) <= target_ramp_linear_increment:
-                        self.targets[room] = cur_target
+                        self.targets[room] = cur_targets[room]
                     elif abs(target_delta) <= target_ramp_linear_threshold:
                         self.targets[room] += math.copysign(
                             target_ramp_linear_increment, target_delta
@@ -370,7 +375,7 @@ class Actrl(hass.Hass):
                         )
                 else:
                     self.log("setting target for previously disabled room " + room)
-                    self.targets[room] = cur_target
+                    self.targets[room] = cur_targets[room]
 
                 errors[room] = temps[room] - self.targets[room]
                 if self.get_state("climate." + room + "_aircon") == "heat":
@@ -449,7 +454,18 @@ class Actrl(hass.Hass):
         )
 
         for room, error in errors.items():
-            self.pids[room].set(heat_cool_sign * error, heat_cool_sign * avg_error)
+            if self.pids[room].get_raw() > 1.0 and (
+                heat_cool_sign * (cur_targets[room] - self.targets[room]) < 0
+            ):
+                self.targets[room] = temps[room] - avg_error
+                errors[room] = temps[room] - self.targets[room]
+                self.pids[room].clear()
+                self.pids[room].set(
+                    heat_cool_sign * errors[room], heat_cool_sign * avg_error
+                )
+                self.pids[room].set_raw(1.0)
+            else:
+                self.pids[room].set(heat_cool_sign * error, heat_cool_sign * avg_error)
             pid_vals[room] = self.pids[room].get()
             self.log(
                 f"{room} PID outcome was {pid_vals[room]} {self.pids[room].getinfo()}"
