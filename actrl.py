@@ -457,6 +457,9 @@ class Actrl(hass.Hass):
             if self.pids[room].get_raw() > 1.0 and (
                 heat_cool_sign * (cur_targets[room] - self.targets[room]) < 0
             ):
+                self.log(
+                    f"{room} PID > 1 while ramping, skipping target to weighted_avg"
+                )
                 self.targets[room] = temps[room] - avg_error
                 errors[room] = temps[room] - self.targets[room]
                 self.pids[room].clear()
