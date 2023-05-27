@@ -732,8 +732,12 @@ class Actrl(hass.Hass):
         # goal of the derivative is to proactively reduce/increase compressor power, but not to influence on/off state
         error = error + deriv
 
-        if self.on_counter < soft_delay and error > min_power_threshold:
-            print("soft start, on_counter: " + str(self.on_counter))
+        if error > min_power_threshold and (
+            self.on_counter < soft_delay
+            or self.get_state("input_boolean.ac_min_power") == "on"
+        ):
+            if self.on_counter < soft_delay:
+                print("soft start, on_counter: " + str(self.on_counter))
             return self.midea_runtime_quirks(ac_stable_threshold - 1)
 
         if error > faithful_threshold:
@@ -754,7 +758,7 @@ class Actrl(hass.Hass):
                 * (2 + ac_unit_from_celsius * (error - faithful_threshold))
             )
 
-        if error < min_power_threshold:
+        if error <= min_power_threshold:
             return self.midea_runtime_quirks(ac_off_threshold + 1)
 
         if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
