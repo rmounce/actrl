@@ -56,6 +56,9 @@ soft_delay = int(7.5 / interval)
 # then gradually report the actual rval over 5 mins
 soft_ramp = int(7.5 / interval)
 
+# over 45 mins desired_off_threshold will ramp to min_power_threshold, and reset after 90 min purge delay
+min_power_delay = int(45 / interval)
+
 # every 90 mins at low power it runs at full speed for about a minute
 purge_delay = int(90 / interval)
 
@@ -700,11 +703,12 @@ class Actrl(hass.Hass):
         # operation at low speed. This 'purge' often pushes us out of the
         # deadband anyway, so it's more efficient to just turn off prior.
         # Reset in sync with the purge period. Desync isn't a big deal.
-        purge_progress = (self.on_counter / purge_delay) % 1.0
+        wrapped_on_counter = self.on_counter % purge_delay
+        min_power_progress = min(1.0, wrapped_on_counter / min_power_delay)
 
         if error <= (
-            desired_off_threshold * (1 - purge_progress)
-            + min_power_threshold * purge_progress
+            desired_off_threshold * (1 - min_power_progress)
+            + min_power_threshold * min_power_progress
         ):
             self.compressor_totally_off = True
 
