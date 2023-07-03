@@ -816,9 +816,7 @@ class Actrl(hass.Hass):
             self.outer_ramp_rval = rval
 
         if self.guesstimated_comp_speed <= 0:
-            rval = min(
-                self.prev_unsigned_compressed_error, ac_stable_threshold - 1, rval
-            )
+            rval = min(ac_stable_threshold - 1, rval)
 
         if rval < ac_stable_threshold:
             self.min_power_counter += 1
