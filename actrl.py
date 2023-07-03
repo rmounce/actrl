@@ -70,6 +70,8 @@ min_power_time = int(30 / interval)
 # in cooling mode, how long to keep blowing the fan
 off_fan_running_time = int(2.5 / interval)
 
+# step to within 1.0C of target on large adjustments
+target_ramp_step_threshold = 1.0
 # 20% per minute above threshold
 target_ramp_proportional = 0.2 * interval
 # linear below 0.1C
@@ -368,13 +370,17 @@ class Actrl(hass.Hass):
                             + ", smooth target: "
                             + str(self.targets[room])
                         )
-                    else:
+                    elif abs(target_delta) <= target_ramp_step_threshold:
                         self.targets[room] += target_delta * target_ramp_proportional
                         self.log(
                             "proportionally ramping target room: "
                             + room
                             + ", smooth target: "
                             + str(self.targets[room])
+                        )
+                    else:
+                        self.targets[room] = cur_targets[room] - math.copysign(
+                            target_ramp_step_threshold, target_delta
                         )
                 else:
                     self.log("setting target for previously disabled room " + room)
