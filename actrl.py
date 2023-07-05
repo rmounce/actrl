@@ -832,16 +832,24 @@ class Actrl(hass.Hass):
         else:
             self.min_power_counter = 0
 
-        # behaviour only observed in cooling mode
+        # cooling mode
         # at the setpoint ac will start ramping back power
         # and will continue ramping back at setpoint+1
         # a brief jump up to setpoint+2 is needed to arrest the fall and stabilise output power
         # in heating mode there is no gradual rampdown at all, it drops straight to min power
+        # heating mode
+        # sometimes the same in reverse?
         if (
             (not self.heat_mode)
             and self.prev_unsigned_compressed_error < ac_stable_threshold
             and rval >= ac_stable_threshold
         ):
             return max(rval, ac_stable_threshold + 1)
+        if (
+            self.heat_mode
+            and self.prev_unsigned_compressed_error > ac_stable_threshold
+            and rval <= ac_stable_threshold
+        ):
+            return min(rval, ac_stable_threshold - 1)
 
         return rval
