@@ -727,7 +727,7 @@ class Actrl(hass.Hass):
             if error < desired_on_threshold:
                 # sometimes -2 isn't the true off_threshold?!
                 # shut things down more decisively
-                return ac_off_threshold - 1
+                return self.midea_reset_quirks(ac_off_threshold - 1)
             else:
                 self.compressor_totally_off = False
                 self.temp_deriv.clear()
@@ -736,7 +736,7 @@ class Actrl(hass.Hass):
 
         # "blip" the power to get AC to start
         if self.on_counter < 1:
-            return ac_on_threshold
+            return self.midea_reset_quirks(ac_on_threshold)
 
         # conditions in which to consider the derivative
         # - aircon is currently running
@@ -780,6 +780,12 @@ class Actrl(hass.Hass):
         return self.midea_runtime_quirks(
             ac_stable_threshold + self.deadband_integrator.set(error)
         )
+
+    def midea_reset_quirks(self, rval):
+        self.outer_ramp_count = 0
+        self.outer_ramp_rval = rval
+        self.guesstimated_comp_speed = 0
+        return rval
 
     def midea_runtime_quirks(self, rval):
         rval = round(rval)
