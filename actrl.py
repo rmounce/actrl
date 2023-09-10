@@ -437,11 +437,14 @@ class Actrl(hass.Hass):
             self.turn_off("input_boolean.heat_mode")
         else:
             self.try_set_mode("fan_only")
-            rooms_by_error = sorted(errors, key=errors.get)
-            for i in 1, -1:
+            # Assumption: one of hottest & coldest rooms are active if mode mismatch
+            rooms_by_error = sorted(temps, key=temps.get)
+            for i in -1, 1:
+                self.log(f"Opening room {rooms_by_error[i]}") 
                 self.set_damper_pos(rooms_by_error[i], 100, False)
-                rooms_by_error.pop(1)
+                rooms_by_error.pop(i)
             for room in rooms_by_error:
+                self.log(f"Closing room {room}") 
                 self.set_damper_pos(room, 0, False)
             return
 
