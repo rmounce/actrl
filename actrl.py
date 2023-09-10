@@ -439,7 +439,7 @@ class Actrl(hass.Hass):
             self.try_set_mode("fan_only")
             rooms_by_error = sorted(errors, key=errors.get)
             for i in 1, -1:
-                self.set_damper_pos(rooms_by_error[i], 1, False)
+                self.set_damper_pos(rooms_by_error[i], 100, False)
                 rooms_by_error.pop(1)
             for room in rooms_by_error:
                 self.set_damper_pos(room, 0, False)
