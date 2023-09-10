@@ -460,7 +460,7 @@ class Actrl(hass.Hass):
             for room in rooms_by_error:
                 self.set_damper_pos(room, 0, True)
             return
-        else:
+        elif self.get_state("climate.aircon") == "fan_only":
             self.try_set_mode("off")
             return
 
