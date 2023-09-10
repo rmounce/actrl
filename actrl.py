@@ -434,14 +434,10 @@ class Actrl(hass.Hass):
             )
             return
 
-        heating_demand = 0
-        cooling_demand = 0
+        heating_demand = max([errors[x] for x in cool_rooms])
+        cooling_demand = -min([errors[x] for x in heat_rooms])
 
-        for room in errors:
-            if room in cool_rooms:
-                cooling_demand = max(cooling_demand, errors[room])
-            if room in heat_rooms:
-                heating_demand = max(heating_demand, -errors[room])
+        print(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
 
         if cooling_demand > 0 and heating_demand <= 0:
             self.turn_off("input_boolean.heat_mode")
