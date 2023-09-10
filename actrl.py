@@ -467,9 +467,17 @@ class Actrl(hass.Hass):
         if self.get_state("input_boolean.heat_mode") == "on":
             heat_cool_sign = -1.0
             self.heat_mode = True
+            for room in cool_rooms:
+                disabled_rooms.append(room)
+                self.targets.pop(room)
+                errors.pop(room)                    
         else:
             heat_cool_sign = 1.0
             self.heat_mode = False
+            for room in heat_rooms:
+                disabled_rooms.append(room)
+                self.targets.pop(room)
+                errors.pop(room)   
 
         unweighted_avg_error = sum(errors.values()) / len(errors.values())
 
