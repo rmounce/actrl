@@ -350,11 +350,31 @@ class Actrl(hass.Hass):
                         self.get_state("sensor." + room + "_average_temperature")
                     )
 
-                cur_targets[room] = float(
-                    self.get_entity("climate." + room + "_aircon").get_state(
-                        "temperature"
+                if self.get_state("climate." + room + "_aircon") == "heat_cool":
+                    target_temp_low = self.get_entity(
+                        "climate." + room + "_aircon"
+                    ).get_state("target_temp_low")
+                    target_temp_high = self.get_entity(
+                        "climate." + room + "_aircon"
+                    ).get_state("target_temp_high")
+                    target_temp_midpoint = (target_temp_low + target_temp_high) / 2
+                    if temps[room] < target_temp_midpoint:
+                        cur_targets[room] = target_temp_low
+                        heat_room_count += 1
+                    else:
+                        cur_targets[room] = target_temp_high
+                        cool_room_count += 1
+
+                else:
+                    if self.get_state("climate." + room + "_aircon") == "heat":
+                        heat_room_count += 1
+                    if self.get_state("climate." + room + "_aircon") == "cool":
+                        cool_room_count += 1
+                    cur_targets[room] = float(
+                        self.get_entity("climate." + room + "_aircon").get_state(
+                            "temperature"
+                        )
                     )
-                )
                 if room in self.targets:
                     target_delta = cur_targets[room] - self.targets[room]
 
@@ -387,10 +407,6 @@ class Actrl(hass.Hass):
                     self.targets[room] = cur_targets[room]
 
                 errors[room] = temps[room] - self.targets[room]
-                if self.get_state("climate." + room + "_aircon") == "heat":
-                    heat_room_count += 1
-                if self.get_state("climate." + room + "_aircon") == "cool":
-                    cool_room_count += 1
             else:
                 disabled_rooms.append(room)
                 if room in self.targets:
@@ -419,6 +435,15 @@ class Actrl(hass.Hass):
             self.turn_on("input_boolean.heat_mode")
         elif cool_room_count > 0 and heat_room_count == 0:
             self.turn_off("input_boolean.heat_mode")
+        else:
+            self.try_set_mode("fan_only")
+            rooms_by_error = sorted(errors, key=errors.get)
+            for i in 1, -1:
+                self.set_damper_pos(rooms_by_error[i], 1, False)
+                rooms_by_error.pop(1)
+            for room in rooms_by_error:
+                self.set_damper_pos(room, 0, False)
+            return
 
         if self.get_state("input_boolean.heat_mode") == "on":
             heat_cool_sign = -1.0
@@ -426,6 +451,7 @@ class Actrl(hass.Hass):
         else:
             heat_cool_sign = 1.0
             self.heat_mode = False
+
 
         unweighted_avg_error = sum(errors.values()) / len(errors.values())
 
