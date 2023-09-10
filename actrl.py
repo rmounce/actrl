@@ -330,8 +330,8 @@ class Actrl(hass.Hass):
         disabled_rooms = []
         heat_cool_sign = 1.0
         all_disabled = True
-        heat_rooms = {}
-        cool_rooms = {}
+        heat_rooms = []
+        cool_rooms = []
 
         celsius_setpoint = float(
             self.get_entity("climate.aircon").get_state("temperature")
