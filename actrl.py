@@ -357,10 +357,10 @@ class Actrl(hass.Hass):
                     target_temp_midpoint = (target_temp_low + target_temp_high) / 2
                     if temps[room] < target_temp_midpoint:
                         cur_targets[room] = target_temp_low
-                        heat_rooms += room
+                        heat_rooms.append(room)
                     else:
                         cur_targets[room] = target_temp_high
-                        cool_rooms += room
+                        cool_rooms.append(room)
                     # if temps[room] < target_temp_low + abs(desired_off_threshold):
                     #    cur_targets[room] = target_temp_low
                     #    heat_rooms += room
@@ -370,9 +370,9 @@ class Actrl(hass.Hass):
 
                 else:
                     if self.get_state("climate." + room + "_aircon") == "heat":
-                        heat_rooms += room
+                        heat_rooms.append(room)
                     if self.get_state("climate." + room + "_aircon") == "cool":
-                        cool_rooms += room
+                        cool_rooms.append(room)
                     cur_targets[room] = float(
                         self.get_entity("climate." + room + "_aircon").get_state(
                             "temperature"
