@@ -434,8 +434,8 @@ class Actrl(hass.Hass):
             )
             return
 
-        heating_demand = max([errors[x] for x in cool_rooms])
-        cooling_demand = -min([errors[x] for x in heat_rooms])
+        heating_demand = max([errors[x] for x in cool_rooms], default=0)
+        cooling_demand = -min([errors[x] for x in heat_rooms], default=0)
 
         print(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
 
