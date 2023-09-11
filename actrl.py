@@ -276,7 +276,7 @@ class Actrl(hass.Hass):
     def initialize(self):
         self.log("INITIALISING")
         self.pids = {}
-        self.targets = {}
+        self.targets = {"heat": {}, "cool": {}}
         self.rooms_enabled = {}
         self.damper_pos = {}
         self.temp_deriv = MyDeriv(
@@ -290,7 +290,7 @@ class Actrl(hass.Hass):
         self.outer_ramp_count = 0
         self.outer_ramp_rval = 1
         self.guesstimated_comp_speed = 0
-        self.heat_mode = False
+        self.mode = "off"
 
         if self.get_state("input_boolean.ac_already_on_bypass") == "on":
             self.log("ASSUMING THAT THE AIRCON IS ALREADY RUNNING")
@@ -323,15 +323,11 @@ class Actrl(hass.Hass):
         self.log("")
         self.log("#### BEGIN CYCLE ####")
         temps = {}
-        errors = {}
-        cur_targets = {}
+        errors = {"heat": {}, "cool": {}}
         damper_vals = {}
         pid_vals = {}
-        disabled_rooms = []
         heat_cool_sign = 1.0
-        all_disabled = True
-        heat_rooms = []
-        cool_rooms = []
+        cur_targets = {"heat": {}, "cool": {}}
 
         celsius_setpoint = float(
             self.get_entity("climate.aircon").get_state("temperature")
@@ -344,78 +340,87 @@ class Actrl(hass.Hass):
                 temps[room] = float(
                     self.get_state("sensor." + room + "_average_temperature")
                 )
-            if self.get_state("climate." + room + "_aircon") != "off":
-                all_disabled = False
 
-                if self.get_state("climate." + room + "_aircon") == "heat_cool":
-                    target_temp_low = self.get_entity(
-                        "climate." + room + "_aircon"
-                    ).get_state("target_temp_low")
-                    target_temp_high = self.get_entity(
-                        "climate." + room + "_aircon"
-                    ).get_state("target_temp_high")
-                    target_temp_midpoint = (target_temp_low + target_temp_high) / 2
-                    if temps[room] < target_temp_midpoint:
-                        cur_targets[room] = target_temp_low
-                        heat_rooms.append(room)
+            if self.get_state("climate." + room + "_aircon") == "heat_cool":
+                cur_targets["heat"][room] = self.get_entity(
+                    "climate." + room + "_aircon"
+                ).get_state("target_temp_low")
+                cur_targets["cool"][room] = self.get_entity(
+                    "climate." + room + "_aircon"
+                ).get_state("target_temp_high")
+            elif self.get_state("climate." + room + "_aircon") == "heat":
+                cur_targets["heat"][room] = self.get_entity(
+                    "climate." + room + "_aircon"
+                ).get_state("temperature")
+            elif self.get_state("climate." + room + "_aircon") == "cool":
+                cur_targets["cool"][room] = self.get_entity(
+                    "climate." + room + "_aircon"
+                ).get_state("temperature")
+
+            for mode in ["heat", "cool"]:
+                if room in self.cur_targets[mode]:
+                    if room in self.targets[mode]:
+                        target_delta = (
+                            cur_targets[mode][room] - self.targets[mode][room]
+                        )
+
+                        if abs(target_delta) <= target_ramp_linear_increment:
+                            self.targets[mode][room] = cur_targets[mode][room]
+                        elif abs(target_delta) <= target_ramp_linear_threshold:
+                            self.targets[mode][room] += math.copysign(
+                                target_ramp_linear_increment, target_delta
+                            )
+                            self.log(
+                                "linearly ramping target room: "
+                                + room
+                                + ", smooth target: "
+                                + str(self.targets[mode][room])
+                            )
+                        elif abs(target_delta) <= target_ramp_step_threshold:
+                            self.targets[mode][room] += (
+                                target_delta * target_ramp_proportional
+                            )
+                            self.log(
+                                "proportionally ramping target room: "
+                                + room
+                                + ", smooth target: "
+                                + str(self.targets[mode][room])
+                            )
+                        else:
+                            self.targets[mode][room] = cur_targets[mode][
+                                room
+                            ] - math.copysign(target_ramp_step_threshold, target_delta)
                     else:
-                        cur_targets[room] = target_temp_high
-                        cool_rooms.append(room)
-                    # if temps[room] < target_temp_low + abs(desired_off_threshold):
-                    #    cur_targets[room] = target_temp_low
-                    #    heat_rooms += room
-                    # elif temps[room] > target_temp_high - abs(desired_off_threshold):
-                    #    cur_targets[room] = target_temp_high
-                    #    cool_rooms += room
-
+                        self.log("setting target for previously disabled room " + room)
+                        self.targets[mode][room] = cur_targets[mode][room]
+                    errors[mode][room] = temps[room] - self.targets[mode][room]
                 else:
-                    if self.get_state("climate." + room + "_aircon") == "heat":
-                        heat_rooms.append(room)
-                    if self.get_state("climate." + room + "_aircon") == "cool":
-                        cool_rooms.append(room)
-                    cur_targets[room] = float(
-                        self.get_entity("climate." + room + "_aircon").get_state(
-                            "temperature"
-                        )
-                    )
-                if room in self.targets:
-                    target_delta = cur_targets[room] - self.targets[room]
+                    if room in self.targets[mode]:
+                        self.targets[mode].pop(room)
 
-                    if abs(target_delta) <= target_ramp_linear_increment:
-                        self.targets[room] = cur_targets[room]
-                    elif abs(target_delta) <= target_ramp_linear_threshold:
-                        self.targets[room] += math.copysign(
-                            target_ramp_linear_increment, target_delta
-                        )
-                        self.log(
-                            "linearly ramping target room: "
-                            + room
-                            + ", smooth target: "
-                            + str(self.targets[room])
-                        )
-                    elif abs(target_delta) <= target_ramp_step_threshold:
-                        self.targets[room] += target_delta * target_ramp_proportional
-                        self.log(
-                            "proportionally ramping target room: "
-                            + room
-                            + ", smooth target: "
-                            + str(self.targets[room])
-                        )
-                    else:
-                        self.targets[room] = cur_targets[room] - math.copysign(
-                            target_ramp_step_threshold, target_delta
-                        )
-                else:
-                    self.log("setting target for previously disabled room " + room)
-                    self.targets[room] = cur_targets[room]
+        cooling_demand = max(errors["cool"].values(), default=float("-inf"))
+        heating_demand = -min(errors["heat"].values(), default=float("-inf"))
 
-                errors[room] = temps[room] - self.targets[room]
-            else:
-                disabled_rooms.append(room)
-                if room in self.targets:
-                    self.targets.pop(room)
+        print(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
 
-        if all_disabled:
+        new_mode = None
+
+        if self.get_state("climate.aircon") == "cool" and cooling_demand > (
+            heating_demand + desired_off_threshold
+        ):
+            new_mode = "cool"
+        elif self.get_state("climate.aircon") == "heat" and heating_demand > (
+            cooling_demand + desired_off_threshold
+        ):
+            new_mode = "heat"
+        elif cooling_demand > heating_demand:
+            new_mode = "cool"
+        elif heating_demand > cooling_demand:
+            new_mode = "heat"
+
+        if new_mode is None or (self.mode is not None and (new_mode != self.mode)):
+            self.mode = new_mode
+            # all zones disabled
             for room, pid in self.pids.items():
                 pid.clear()
             self.temp_deriv.clear()
@@ -434,47 +439,23 @@ class Actrl(hass.Hass):
             )
             return
 
-        cooling_demand = max([errors[x] for x in cool_rooms], default=float("-inf"))
-        heating_demand = -min([errors[x] for x in heat_rooms], default=float("-inf"))
+        self.mode = new_mode
 
-        print(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
-
-        if self.get_state("climate.aircon") == "cool" and cooling_demand > (
-            heating_demand + desired_off_threshold
-        ):
-            self.turn_off("input_boolean.heat_mode")
-        elif self.get_state("climate.aircon") == "heat" and heating_demand > (
-            cooling_demand + desired_off_threshold
-        ):
-            self.turn_on("input_boolean.heat_mode")
-        if cooling_demand > heating_demand:
-            self.turn_off("input_boolean.heat_mode")
-        elif heating_demand > cooling_demand:
-            self.turn_on("input_boolean.heat_mode")
+        if self.mode == "heat":
+            heat_cool_sign = -1.0
+        elif self.mode == "cool":
+            heat_cool_sign = 1.0
         else:
-            self.try_set_mode("off")
+            self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
             return
 
-        if self.get_state("input_boolean.heat_mode") == "on":
-            heat_cool_sign = -1.0
-            self.heat_mode = True
-            for room in cool_rooms:
-                disabled_rooms.append(room)
-                self.targets.pop(room)
-                errors.pop(room)
-        else:
-            heat_cool_sign = 1.0
-            self.heat_mode = False
-            for room in heat_rooms:
-                disabled_rooms.append(room)
-                self.targets.pop(room)
-                errors.pop(room)
-
-        unweighted_avg_error = sum(errors.values()) / len(errors.values())
+        unweighted_avg_error = sum(errors[self.mode].values()) / len(
+            errors[self.mode].values()
+        )
 
         pre_avg_weight_sum = 0
         pre_avg_value_sum = 0
-        for room, error in errors.items():
+        for room, error in errors[self.mode].items():
             if not self.rooms_enabled[room]:
                 self.pids[room].clear()
                 # ensure the PID returns a somewhat sane initial proportional
@@ -505,18 +486,20 @@ class Actrl(hass.Hass):
             + str(avg_error)
         )
 
-        for room, error in errors.items():
+        for room, error in errors[self.mode].items():
             if self.pids[room].get_raw() > 1.0 and (
-                heat_cool_sign * (cur_targets[room] - self.targets[room]) < 0
+                heat_cool_sign
+                * (cur_targets[self.mode][room] - self.targets[self.mode][room])
+                < 0
             ):
                 self.log(
                     f"{room} PID > 1 while ramping, skipping target to weighted_avg"
                 )
-                self.targets[room] = temps[room] - avg_error
-                errors[room] = temps[room] - self.targets[room]
+                self.targets[self.mode][room] = temps[room] - avg_error
+                errors[self.mode][room] = temps[room] - self.targets[self.mode][room]
                 self.pids[room].clear()
                 self.pids[room].set(
-                    heat_cool_sign * errors[room], heat_cool_sign * avg_error
+                    heat_cool_sign * errors[self.mode][room], heat_cool_sign * avg_error
                 )
                 self.pids[room].set_raw(1.0)
             else:
@@ -530,7 +513,7 @@ class Actrl(hass.Hass):
             self.log(
                 "SOMETHING BAD HAPPENED, min PID >= 1.0. Resetting PIDs in hope of recovery."
             )
-            for room, error in errors.items():
+            for room, error in errors[self.mode].items():
                 self.pids[room].clear()
                 self.pids[room].set(
                     heat_cool_sign * error, heat_cool_sign * unweighted_avg_error
@@ -549,16 +532,8 @@ class Actrl(hass.Hass):
                 state=pid_vals[room]
             )
 
-        for room in disabled_rooms:
-            if self.rooms_enabled[room]:
-                self.pids[room].clear()
-                self.rooms_enabled[room] = False
-                self.get_entity("input_number." + room + "_pid").set_state(
-                    state=null_state
-                )
-                # a new room has been disabled, reset the deriv history
-                self.temp_deriv.clear()
-
+        # Disabled rooms
+        for room in rooms - cur_targets[self.mode].keys():
             if self.get_entity("cover." + room).get_state("current_position") != "0":
                 self.log("Closing damper for disabled room: " + room)
                 self.set_damper_pos(room, 0, False)
@@ -573,8 +548,8 @@ class Actrl(hass.Hass):
             scaled = 100.0 * ((1.0 - pid_val) / (1.0 - min_pid))
 
             damper_vals[room] = scaled
-            target_sum += self.targets[room] * scaled
-            error_sum += errors[room] * scaled
+            target_sum += self.targets[self.mode][room] * scaled
+            error_sum += errors[self.mode][room] * scaled
             weight_sum += scaled
 
         weighted_error = error_sum / weight_sum
@@ -643,12 +618,7 @@ class Actrl(hass.Hass):
         if self.get_state("climate.aircon") == "off":
             self.set_fake_temp(celsius_setpoint, compressed_error, True)
 
-        if self.heat_mode:
-            self.try_set_mode("heat")
-        elif self.get_state("climate.aircon") == "dry":
-            self.try_set_mode("dry")
-        else:
-            self.try_set_mode("cool")
+        self.try_set_mode(self.mode)
         self.get_entity("input_number.aircon_meta_integral").set_state(
             state=self.deadband_integrator.get()
         )
@@ -706,7 +676,7 @@ class Actrl(hass.Hass):
         # damper won't do much if the fan isn't running
         # cur_deadband = (
         #    (2.0 * damper_deadband)
-        #    if (self.compressor_totally_off and self.heat_mode)
+        #    if (self.compressor_totally_off and self.mode == 'heat')
         #    else damper_deadband
         # )
 
@@ -889,13 +859,13 @@ class Actrl(hass.Hass):
         # heating mode
         # sometimes the same in reverse?
         if (
-            (not self.heat_mode)
+            (self.mode == "cool")
             and self.prev_unsigned_compressed_error < ac_stable_threshold
             and rval >= ac_stable_threshold
         ):
             return max(rval, ac_stable_threshold + 1)
         if (
-            self.heat_mode
+            self.mode == "heat"
             and self.prev_unsigned_compressed_error > ac_stable_threshold
             and rval <= ac_stable_threshold
         ):
