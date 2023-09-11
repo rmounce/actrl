@@ -371,27 +371,23 @@ class Actrl(hass.Hass):
                                 target_ramp_linear_increment, target_delta
                             )
                             self.log(
-                                "linearly ramping target room: "
-                                + room
-                                + ", smooth target: "
-                                + str(self.targets[mode][room])
+                                f"linearly ramping target room: {room}, smooth target: {str(self.targets[mode][room])}"
                             )
                         elif abs(target_delta) <= target_ramp_step_threshold:
                             self.targets[mode][room] += (
                                 target_delta * target_ramp_proportional
                             )
                             self.log(
-                                "proportionally ramping target room: "
-                                + room
-                                + ", smooth target: "
-                                + str(self.targets[mode][room])
+                                f"proportionally ramping target room: {room}, smooth target:{str(self.targets[mode][room])}"
                             )
                         else:
                             self.targets[mode][room] = cur_targets[mode][
                                 room
                             ] - math.copysign(target_ramp_step_threshold, target_delta)
                     else:
-                        self.log("setting target for previously disabled room " + room)
+                        self.log(
+                            f"setting {mode} target for previously disabled room {room}"
+                        )
                         self.targets[mode][room] = cur_targets[mode][room]
                     errors[mode][room] = temps[room] - self.targets[mode][room]
                 else:
@@ -401,7 +397,7 @@ class Actrl(hass.Hass):
         cooling_demand = max(errors["cool"].values(), default=float("-inf"))
         heating_demand = -min(errors["heat"].values(), default=float("-inf"))
 
-        print(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
+        self.log(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
 
         new_mode = None
 
@@ -417,6 +413,8 @@ class Actrl(hass.Hass):
             new_mode = "cool"
         elif heating_demand > cooling_demand:
             new_mode = "heat"
+
+        self.log(f"new_mode {new_mode} (old mode {self.mode})")
 
         if new_mode is None or (self.mode is not None and (new_mode != self.mode)):
             self.mode = new_mode
