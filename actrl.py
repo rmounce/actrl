@@ -434,21 +434,16 @@ class Actrl(hass.Hass):
             )
             return
 
-        cooling_demand = max([errors[x] for x in cool_rooms], default=0)
-        heating_demand = -min([errors[x] for x in heat_rooms], default=0)
+        cooling_demand = max([errors[x] for x in cool_rooms], default=float('-inf'))
+        heating_demand = -min([errors[x] for x in heat_rooms], default=float('-inf'))
 
         print(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
 
-        if cooling_demand > 0 and heating_demand <= 0:
-            self.turn_off("input_boolean.heat_mode")
-        elif heating_demand > 0 and cooling_demand <= 0:
-            self.turn_on("input_boolean.heat_mode")
-        elif (
-            cooling_demand > 0
-            and heating_demand > 0
-            or (
-                self.get_state("climate.aircon") == "fan_only"
-                and (cooling_demand > desired_off_threshold and heating_demand > desired_off_threshold)
+        if (cooling_demand > 0 and heating_demand > 0) or (
+            self.get_state("climate.aircon") == "fan_only"
+            and (
+                cooling_demand > desired_off_threshold
+                and heating_demand > desired_off_threshold
             )
         ):
             self.try_set_mode("fan_only")
@@ -460,7 +455,11 @@ class Actrl(hass.Hass):
             for room in rooms_by_error:
                 self.set_damper_pos(room, 0, True)
             return
-        elif self.get_state("climate.aircon") == "fan_only":
+        elif cooling_demand > heating_demand:
+            self.turn_off("input_boolean.heat_mode")
+        elif heating_demand > cooling_demand:
+            self.turn_on("input_boolean.heat_mode")
+        else:
             self.try_set_mode("off")
             return
 
@@ -470,14 +469,14 @@ class Actrl(hass.Hass):
             for room in cool_rooms:
                 disabled_rooms.append(room)
                 self.targets.pop(room)
-                errors.pop(room)                    
+                errors.pop(room)
         else:
             heat_cool_sign = 1.0
             self.heat_mode = False
             for room in heat_rooms:
                 disabled_rooms.append(room)
                 self.targets.pop(room)
-                errors.pop(room)   
+                errors.pop(room)
 
         unweighted_avg_error = sum(errors.values()) / len(errors.values())
 
