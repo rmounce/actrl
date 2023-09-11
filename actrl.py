@@ -434,28 +434,20 @@ class Actrl(hass.Hass):
             )
             return
 
-        cooling_demand = max([errors[x] for x in cool_rooms], default=float('-inf'))
-        heating_demand = -min([errors[x] for x in heat_rooms], default=float('-inf'))
+        cooling_demand = max([errors[x] for x in cool_rooms], default=float("-inf"))
+        heating_demand = -min([errors[x] for x in heat_rooms], default=float("-inf"))
 
         print(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
 
-        if (cooling_demand > 0 and heating_demand > 0) or (
-            self.get_state("climate.aircon") == "fan_only"
-            and (
-                cooling_demand > desired_off_threshold
-                and heating_demand > desired_off_threshold
-            )
+        if self.get_state("climate.aircon") == "cool" and cooling_demand > (
+            heating_demand + desired_off_threshold
         ):
-            self.try_set_mode("fan_only")
-            # Assumption: one of hottest & coldest rooms are active if modes mismatch
-            rooms_by_error = sorted(temps, key=temps.get)
-            for i in -1, 1:
-                self.set_damper_pos(rooms_by_error[i], 100, True)
-                rooms_by_error.pop(i)
-            for room in rooms_by_error:
-                self.set_damper_pos(room, 0, True)
-            return
-        elif cooling_demand > heating_demand:
+            self.turn_off("input_boolean.heat_mode")
+        elif self.get_state("climate.aircon") == "heat" and heating_demand > (
+            cooling_demand + desired_off_threshold
+        ):
+            self.turn_on("input_boolean.heat_mode")
+        if cooling_demand > heating_demand:
             self.turn_off("input_boolean.heat_mode")
         elif heating_demand > cooling_demand:
             self.turn_on("input_boolean.heat_mode")
