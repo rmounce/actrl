@@ -358,7 +358,7 @@ class Actrl(hass.Hass):
                 ).get_state("temperature")
 
             for mode in ["heat", "cool"]:
-                if room in self.cur_targets[mode]:
+                if room in cur_targets[mode]:
                     if room in self.targets[mode]:
                         target_delta = (
                             cur_targets[mode][room] - self.targets[mode][room]
