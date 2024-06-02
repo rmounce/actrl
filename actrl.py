@@ -725,10 +725,13 @@ class Actrl(hass.Hass):
         wrapped_on_counter = self.on_counter % purge_delay
         min_power_progress = min(1.0, wrapped_on_counter / min_power_delay)
 
-        if error <= (
+        if guesstimated_comp_speed <= 0 and error <= (
             desired_off_threshold * (1 - min_power_progress)
             + min_power_threshold * min_power_progress
         ):
+            self.compressor_totally_off = True
+
+        if guesstimated_comp_speed > 0 and error <= desired_off_threshold:
             self.compressor_totally_off = True
 
         if self.compressor_totally_off:
