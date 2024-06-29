@@ -71,9 +71,9 @@ min_power_time = int(30 / interval)
 off_fan_running_time = int(2.5 / interval)
 
 # step to within 1.0C of target on large adjustments
-target_ramp_step_threshold = 0.1
+target_ramp_step_threshold = 1.0
 # 20% per minute above threshold
-target_ramp_proportional = 0.2 * interval
+target_ramp_proportional = 0.25 * interval
 # linear below 0.1C
 target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
@@ -387,6 +387,7 @@ class Actrl(hass.Hass):
                             self.log(
                                 f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}"
                             )
+                    else:
                         self.log(
                             f"setting {mode} target for previously disabled room {room}"
                         )
