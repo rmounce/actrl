@@ -307,6 +307,8 @@ class Actrl(hass.Hass):
             self.log("ASSUMING THAT THE AIRCON IS ALREADY RUNNING")
             self.compressor_totally_off = False
             self.on_counter = soft_delay + soft_ramp
+            if self.get_state("climate.aircon") in ["heat", "cool"]:
+                self.mode = self.get_state("climate.aircon")
         else:
             self.compressor_totally_off = True
             self.on_counter = 0
