@@ -160,16 +160,27 @@ class MyDeriv:
         error_delta = error - self.prev_error
         target_delta = target - self.prev_target
 
+        # compensate for changes due to target
+        actual_delta = error_delta + target_delta
+
+        # Original comment:
         # avoid conditions where the change in target temp outpaces the change in actual temp
         # wherein the derivative term ends up working against us
         # limit the derivative to zero if it's going in the opposite direction to the temp trend
+
+        # Updated Jul 2024. The logic was bad here such that e.g. the
+        # derivative was clamped to zero for a tiny positive change in the
+        # target temperature and a huge positive change in the actual temp,
+        # so slight adjustments in the target temp due to PID balancing between
+        # rooms would negate the derivative altoghter.
+        # This should still catch the originally problematic case.
         if self.clamp_reverse_deriv and (
-            (target_delta > 0 and target_delta > -error_delta)
-            or (target_delta < 0 and target_delta < -error_delta)
+            (target_delta > actual_delta and actual_delta > 0)
+            or (target_delta < actual_delta and actual_delta < 0)
         ):
             self.wma.set(0)
         else:
-            self.wma.set(error_delta + target_delta)
+            self.wma.set(actual_delta)
         self.prev_error = error
         self.prev_target = target
 
