@@ -695,10 +695,10 @@ class Actrl(hass.Hass):
         #    else damper_deadband
         # )
 
-        if (damper_val > 99.9 and cur_pos < 100.0) or (
+        if (damper_val > 99.9 and actual_cur_pos < 100.0) or (
             (not open_only)
             and (
-                (damper_val < 0.1 and cur_pos > 0.0)
+                (damper_val < 0.1 and actual_cur_pos > 0.0)
                 or (damper_val > (cur_pos + cur_deadband))
                 or (damper_val < (cur_pos - cur_deadband))
             )
