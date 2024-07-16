@@ -83,8 +83,8 @@ target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_thr
 # let the Midea controller do its thing
 faithful_threshold = 2.0
 desired_on_threshold = 0.0
-min_power_threshold = -0.5
-desired_off_threshold = -1.0
+min_power_threshold = -0.75
+desired_off_threshold = -1.5
 
 # try using FREEDOM UNITS
 ac_celsius = True
