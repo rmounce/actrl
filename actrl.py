@@ -71,7 +71,7 @@ min_power_time = int(30 / interval)
 off_fan_running_time = int(2.5 / interval)
 
 # step to within 1.0C of target on large adjustments
-target_ramp_step_threshold = 1.0
+target_ramp_step_threshold = 0.1
 # 20% per minute above threshold
 target_ramp_proportional = 0.25 * interval
 # linear below 0.1C
