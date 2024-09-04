@@ -28,9 +28,15 @@ global_deadband_ki = 0.0125
 step_up_time = 200
 step_up_intervals = step_up_time / (60.0 * interval)
 # shorter as it latches instantly
-# 120s sufficient to step down, but an extra 30 seconds added to make soft start more reliable
+# 120s sufficient in cooling mode to step down?
+# previously an extra 30s was added to make soft start more reliable
 step_down_time = 120
 step_down_intervals = step_down_time / (60.0 * interval)
+
+# seems to be 6 minutes / 360 seconds in heating mode!?!?
+# round up to 390 seconds to be really sure
+heat_step_down_time = 390
+heat_step_down_intervals = heat_step_down_time / (60.0 * interval)
 
 # swing full scale across 2.0C of error
 room_kp = 1.0
@@ -825,7 +831,14 @@ class Actrl(hass.Hass):
             (self.outer_ramp_count > 0 and rval < ac_stable_threshold)
             or (self.outer_ramp_count < 0 and rval > ac_stable_threshold)
             or (self.outer_ramp_count > step_up_intervals)
-            or (self.outer_ramp_count < -step_down_intervals)
+            or (
+                self.outer_ramp_count
+                < -(
+                    heat_step_down_intervals
+                    if self.mode == "heat"
+                    else step_down_intervals
+                )
+            )
         ):
             self.outer_ramp_count = 0
 
