@@ -65,7 +65,10 @@ soft_ramp = int(7.5 / interval)
 # over 45 mins desired_off_threshold will ramp to min_power_threshold, and reset after 90 min purge delay
 min_power_delay = int(45 / interval)
 
-# every 90 mins at low power it runs at full speed for about a minute
+# Every 90 mins at low power it runs at full speed for about a minute.
+# Will be out of sync if we ramp down to min power after running at higher power
+# for a while, not a big deal. Mainly focused on marginal operation where
+# demanded power is slightly below minimum output.
 purge_delay = int(90 / interval)
 
 # setpoint - it takes about 7.5 (sometimes longer) to bring a/c to min power
@@ -89,8 +92,11 @@ target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_thr
 # let the Midea controller do its thing
 faithful_threshold = 2.0
 desired_on_threshold = 0.0
-min_power_threshold = -0.75
+
+# Worst case, turn off if we have overshot massively.
 desired_off_threshold = -1.5
+# After reducing to minimum power and holding for a while, turn off at a tighter threshold
+min_power_threshold = -0.5
 
 # try using FREEDOM UNITS
 ac_celsius = True
@@ -587,6 +593,8 @@ class Actrl(hass.Hass):
         self.log(
             "compressor_totally_off: "
             + str(self.compressor_totally_off)
+            + ", min_power_counter: "
+            + str(self.min_power_counter)
             + ", on_counter: "
             + str(self.on_counter)
             + ", weighted_error: "
@@ -745,7 +753,7 @@ class Actrl(hass.Hass):
         # operation at low speed. This 'purge' often pushes us out of the
         # deadband anyway, so it's more efficient to just turn off prior.
         # Reset in sync with the purge period. Desync isn't a big deal.
-        wrapped_on_counter = self.on_counter % purge_delay
+        wrapped_on_counter = self.min_power_counter % purge_delay
         min_power_progress = min(1.0, wrapped_on_counter / min_power_delay)
 
         if self.guesstimated_comp_speed <= 0 and error <= (
@@ -870,8 +878,7 @@ class Actrl(hass.Hass):
 
         if rval < ac_stable_threshold:
             self.min_power_counter += 1
-            if self.min_power_counter > min_power_time:
-                self.min_power_counter = 0
+            if self.min_power_counter % min_power_time == (min_power_time - 1):
                 # 'blip' the feels like temp to reset the AC's internal timer
                 self.prev_unsigned_compressed_error = ac_stable_threshold + 1
 
