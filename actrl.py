@@ -86,10 +86,10 @@ min_power_time = int(45 / interval)
 # in cooling mode, how long to keep blowing the fan
 off_fan_running_time = int(2.5 / interval)
 
-# step to within 1.0C of target on large adjustments
-target_ramp_step_threshold = 0.2
-# 20% per minute above threshold
-target_ramp_proportional = 0.25 * interval
+# step to within 0.1C of target on large adjustments
+target_ramp_step_threshold = 0.1
+# 50% per minute above threshold
+target_ramp_proportional = 0.5 * interval
 # linear below 0.1C
 target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
@@ -219,17 +219,10 @@ class MyPID:
         self.deriv.clear()
         self.last_target = 0.0
         self.integral = 0.0
-        self.prev_target = None
 
     def set(self, error, target):
-        # print(" error " + str(error) + " target " + str(target))
+        #print(" error " + str(error) + " target " + str(target))
         val = error - target
-
-        # Apply proportional kick for setpoint changes to counter integral windup
-        if self.last_target is not None:
-            self.integral += self.kp * (self.last_target - target) / self.ki
-        self.last_target = target
-
         self.last_val = val
         self.integral += val
         self.deriv.set(error, target)
@@ -528,7 +521,13 @@ class Actrl(hass.Hass):
         )
 
         for room, error in errors[self.mode].items():
-            if self.pids[room].get_raw() > 1.0 and (
+            # DISABLED
+            # The idea here was to avoid a zone suddenly going wide open after
+            # a large setpoint adjustment, but the newer strategy is to avoid
+            # large adjustments by the scheduler and otherwise respect their
+            # immediate intent if someone starts the override timer.
+            # DISABLED
+            if False and self.pids[room].get_raw() > 1.0 and (
                 heat_cool_sign
                 * (cur_targets[self.mode][room] - self.targets[self.mode][room])
                 < 0
