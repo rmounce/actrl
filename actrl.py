@@ -424,7 +424,7 @@ class Actrl(hass.Hass):
                         self.targets[mode].pop(room)
 
         cooling_demand = max(errors["cool"].values(), default=float("-inf"))
-        heating_demand = -min(errors["heat"].values(), default=float("-inf"))
+        heating_demand = -min(errors["heat"].values(), default=float("inf"))
 
         self.log(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
 
