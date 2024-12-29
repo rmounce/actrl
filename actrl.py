@@ -57,10 +57,17 @@ damper_round = 5
 # soft start to avoid overshoot
 # start at min power and gradually report the actual rval
 # 5 min delay at min power
+# 7.5 min to be safe
 # covers a defrost cycle
 soft_delay = int(7.5 / interval)
-# then gradually report the actual rval over 5 mins
-soft_ramp = int(7.5 / interval)
+# then gradually report the actual rval over 2.5 mins
+soft_ramp = int(2.5 / interval)
+
+# wait for 5 minutes of soft start before dropping to absolute minimum power
+minimum_temp_intervals = int(5 / interval)
+
+# Saturate after 15 power increments (note: a guess / slight over-estimate, the number of increments hasn't been measured)
+compressor_power_increments = 15
 
 # over 45 mins desired_off_threshold will ramp to min_power_threshold, and reset after 90 min purge delay
 min_power_delay = int(45 / interval)
@@ -73,8 +80,8 @@ purge_delay = int(90 / interval)
 
 # setpoint - it takes about 7.5 (sometimes longer) to bring a/c to min power
 # don't hold it there forever as it'll shut down after 1hr at this temp
-# 30 mins should be safe
-min_power_time = int(30 / interval)
+# 45 mins should be safe
+min_power_time = int(45 / interval)
 
 # in cooling mode, how long to keep blowing the fan
 off_fan_running_time = int(2.5 / interval)
@@ -210,12 +217,19 @@ class MyPID:
 
     def clear(self):
         self.deriv.clear()
-        self.last_val = 0.0
+        self.last_target = 0.0
         self.integral = 0.0
+        self.prev_target = None
 
     def set(self, error, target):
         # print(" error " + str(error) + " target " + str(target))
         val = error - target
+
+        # Apply proportional kick for setpoint changes to counter integral windup
+        if self.last_target is not None:
+            self.integral += self.kp * (self.last_target - target) / self.ki
+        self.last_target = target
+
         self.last_val = val
         self.integral += val
         self.deriv.set(error, target)
@@ -593,6 +607,8 @@ class Actrl(hass.Hass):
         self.log(
             "compressor_totally_off: "
             + str(self.compressor_totally_off)
+            + ", guesstimated_comp_speed: "
+            + str(self.guesstimated_comp_speed)
             + ", min_power_counter: "
             + str(self.min_power_counter)
             + ", on_counter: "
@@ -818,7 +834,7 @@ class Actrl(hass.Hass):
         if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_stable_threshold + 1)
-        elif self.prev_unsigned_compressed_error < ac_stable_threshold - 1:
+        elif self.prev_unsigned_compressed_error < ac_stable_threshold - 2:
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_stable_threshold - 1)
 
@@ -856,13 +872,22 @@ class Actrl(hass.Hass):
         ):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = 1
-            self.guesstimated_comp_speed = max(2, self.guesstimated_comp_speed + 1)
+            # Saturate after 15 power increments (note: a guess / slight over-estimate, the number of increments hasn't been measured)
+            self.guesstimated_comp_speed = min(
+                compressor_power_increments + 2,
+                max(2, self.guesstimated_comp_speed + 1),
+            )
         elif (rval < ac_stable_threshold and rval < self.outer_ramp_rval) or (
             rval == self.outer_ramp_rval == ac_stable_threshold - 1
         ):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = -1
-            self.guesstimated_comp_speed = max(0, self.guesstimated_comp_speed - 1)
+            if rval < (ac_stable_threshold - 2):
+                self.guesstimated_comp_speed = -minimum_temp_intervals
+            else:
+                self.guesstimated_comp_speed = max(
+                    -minimum_temp_intervals, self.guesstimated_comp_speed - 1
+                )
 
         if self.outer_ramp_count > 0:
             self.outer_ramp_count += 1
@@ -873,8 +898,16 @@ class Actrl(hass.Hass):
         else:
             self.outer_ramp_rval = rval
 
+        # Saturated, just keep demanding a compressor speed increase
+        if self.guesstimated_comp_speed >= compressor_power_increments + 2:
+            rval = max(ac_stable_threshold + 1, rval)
+
         if self.guesstimated_comp_speed <= 0:
             rval = min(ac_stable_threshold - 1, rval)
+
+        # After 5 minutes worth of consecutive decrements assume that we want the absolute minimum power
+        if self.guesstimated_comp_speed <= -minimum_temp_intervals:
+            rval = min(ac_off_threshold + 1, rval)
 
         if rval < ac_stable_threshold:
             self.min_power_counter += 1
