@@ -38,7 +38,11 @@ step_down_intervals = step_down_time / (60.0 * interval)
 heat_step_down_time = 390
 heat_step_down_intervals = heat_step_down_time / (60.0 * interval)
 
+
 # swing full scale across 2.0C of error
+normalised_damper_range = 2.0
+
+# leave this as 1 so that all PID values are in degrees celsius
 room_kp = 1.0
 
 # per second
@@ -208,53 +212,31 @@ class MyDeriv:
 
 
 class MyPID:
-    def __init__(self, kp, ki, kd, window, clamp_high):
+    def __init__(self, kp, ki, kd, window):
         self.kp = kp
         self.ki = ki
         self.deriv = MyDeriv(window=window, factor=kd, clamp_reverse_deriv=False)
-        self.clamp_high = clamp_high
         self.clear()
 
     def clear(self):
+        """Reset controller state."""
         self.deriv.clear()
-        self.last_target = 0.0
-        self.integral = 0.0
+        self.p_term = 0.0
+        self.i_term = 0.0
 
-    def set(self, error, target):
-        #print(" error " + str(error) + " target " + str(target))
-        val = error - target
-        self.last_val = val
-        self.integral += val
-        self.deriv.set(error, target)
-        if self.get_raw() > self.clamp_high:
-            self.integral = (
-                -(self.clamp_high + self.deriv.get() + (self.last_val * self.kp))
-                / self.ki
-            )
+    def update(self, error, setpoint):
+        """Update PID computation with new error and setpoint values."""
+        self.p_term = error * self.kp
+        self.i_term += error * self.ki
+        self.deriv.set(error, setpoint)
 
-    # maybe set() should be renamed update()?
-    def set_raw(self, target):
-        current = self.get_raw()
-        delta = current - target
-        self.integral += delta / self.ki
+    def get_output(self):
+        """Get raw PID output."""
+        return self.p_term + self.i_term + self.deriv.get()
 
-    def scale(self, factor):
-        current = self.get_raw()
-        scaledcurrent = 1.0 - current
-        self.set_raw(1.0 - (scaledcurrent * factor))
-
-    def get_raw(self):
-        return (
-            (-self.last_val * self.kp)
-            + (-self.integral * self.ki)
-            + (-self.deriv.get())
-        )
-
-    def get(self):
-        return min(self.get_raw(), 1.0)
-
-    def getinfo(self):
-        return f"P: {-self.last_val * self.kp} I: {-self.integral * self.ki} D: {-self.deriv.get()}"
+    def set_integral(self, value):
+        """Directly set the integral term."""
+        self.i_term = value
 
 
 class DeadbandIntegrator:
@@ -343,7 +325,6 @@ class Actrl(hass.Hass):
                 ki=(room_ki * 60.0 * interval),
                 kd=room_deriv_factor / interval,
                 window=int(room_deriv_window / interval),
-                clamp_high=1.2,
             )
             self.rooms_enabled[room] = False
             self.damper_pos[room] = float(
@@ -397,7 +378,7 @@ class Actrl(hass.Hass):
                             cur_targets[mode][room] - self.targets[mode][room]
                         )
 
-                        #self.log(f"about to ramp target room: {room}, target_delta: {target_delta}, smooth_target: {self.targets[mode][room]}, ultimate target: {cur_targets[mode][room]}")
+                        # self.log(f"about to ramp target room: {room}, target_delta: {target_delta}, smooth_target: {self.targets[mode][room]}, ultimate target: {cur_targets[mode][room]}")
 
                         if abs(target_delta) <= target_ramp_linear_increment:
                             self.targets[mode][room] = cur_targets[mode][room]
@@ -486,93 +467,103 @@ class Actrl(hass.Hass):
             self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
             return
 
-        unweighted_avg_error = sum(errors[self.mode].values()) / len(
-            errors[self.mode].values()
-        )
-
-        pre_avg_weight_sum = 0
-        pre_avg_value_sum = 0
+        # Calculate raw PID outputs
+        pid_outputs = {}
         for room, error in errors[self.mode].items():
             if not self.rooms_enabled[room]:
                 self.pids[room].clear()
-                # ensure the PID returns a somewhat sane initial proportional
-                # value for weighting
-                self.pids[room].set(
-                    heat_cool_sign * error, heat_cool_sign * unweighted_avg_error
-                )
-
                 self.rooms_enabled[room] = True
-                # a new room has been enabled, reset the deriv history
+                # Consider whether these still need to be reset after a new room is enabled
                 self.temp_deriv.clear()
                 self.deadband_integrator.clear()
-                # and return half-way through soft-start
                 self.on_counter = min(self.on_counter, soft_delay)
 
-            weight = 1.0 - self.pids[room].get()
-            self.log(
-                "room: " + room + ", error: " + str(error) + ", weight: " + str(weight)
+            self.pids[room].update(
+                heat_cool_sign * error, heat_cool_sign * self.targets[mode][room]
             )
-            pre_avg_weight_sum += weight
-            pre_avg_value_sum += weight * error
+            pid_outputs[room] = self.pids[room].get_output()
+            # self.log(f"{room} raw PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})")
 
-        avg_error = pre_avg_value_sum / pre_avg_weight_sum
-        self.log(
-            "naive average: "
-            + str(unweighted_avg_error)
-            + ", weighted average: "
-            + str(avg_error)
-        )
+        # Find maximum PID output
+        max_output = max(pid_outputs.values())
 
-        for room, error in errors[self.mode].items():
-            # DISABLED
-            # The idea here was to avoid a zone suddenly going wide open after
-            # a large setpoint adjustment, but the newer strategy is to avoid
-            # large adjustments by the scheduler and otherwise respect their
-            # immediate intent if someone starts the override timer.
-            # DISABLED
-            if False and self.pids[room].get_raw() > 1.0 and (
-                heat_cool_sign
-                * (cur_targets[self.mode][room] - self.targets[self.mode][room])
-                < 0
-            ):
-                self.log(
-                    f"{room} PID > 1 while ramping, skipping target to weighted_avg"
-                )
-                self.targets[self.mode][room] = temps[room] - avg_error
-                errors[self.mode][room] = temps[room] - self.targets[self.mode][room]
-                self.pids[room].clear()
-                self.pids[room].set(
-                    heat_cool_sign * errors[self.mode][room], heat_cool_sign * avg_error
-                )
-                self.pids[room].set_raw(1.0)
-            else:
-                self.pids[room].set(heat_cool_sign * error, heat_cool_sign * avg_error)
-            pid_vals[room] = self.pids[room].get()
+        # Shift all outputs so maximum is 2.0
+        offset = normalised_damper_range - max_output
+        shifted_outputs = {
+            room: output + offset for room, output in pid_outputs.items()
+        }
+
+        if len(shifted_outputs) > 1:
+            # The integral term should only be in play while zones have "control authority"
+            # If there is no way to give a zone any more or less airflow, clamp its integral to avoid wind-up/down
+
+            # Handle case where all zones except one are above 0. Clamp the positive zone to avoid integral wind-up
+            positive_zones = [
+                zone for zone, output in shifted_outputs.items() if output >= 0
+            ]
+            if len(positive_zones) == 1:
+                positive_zone = positive_zones[0]
+                self.log("Single positive zone: " + positive_zone)
+                if self.pids[positive_zone].i_term > 0:
+                    next_highest = max(
+                        v
+                        for zone, v in shifted_outputs.items()
+                        if zone != positive_zone
+                    )
+                    if next_highest < 0:
+                        self.log("Next highest zone is below 0")
+                        # If the integral term is greater than the margin by which the next highest zone is below 0
+                        # then the integral term is keeping the next highest zone on the cusp of being closed.
+                        if self.pids[positive_zone].i_term > -next_highest:
+                            self.log("Adjusting integral")
+                            self.pids[positive_zone].set_integral(
+                                self.pids[positive_zone].i_term + next_highest
+                            )
+                        # Otherwise, the next highest zone would be closed anyway. Reset any positive wind-up.
+                        else:
+                            self.log("Resetting integral")
+                            self.pids[positive_zone].set_integral(0)
+
+                        # Recalculate outputs and shifting
+                        pid_outputs[positive_zone] = self.pids[
+                            positive_zone
+                        ].get_output()
+                        max_output = max(pid_outputs.values())
+                        offset = normalised_damper_range - max_output
+                        shifted_outputs = {
+                            room: output + offset
+                            for room, output in pid_outputs.items()
+                        }
+
+            # Clamp negative integral wind-down
+            for room, output in shifted_outputs.items():
+                if output < 0:
+                    self.log("Negative room: " + room)
+                    # Only adjust if integral term is negative (to avoid wind-down)
+                    if self.pids[room].i_term < 0:
+                        # self.log("Negative integral: " + str(self.pids[room].i_term))
+                        # If the integral is more negative than output then the
+                        # integral is keeping the zone on the cusp of being closed.
+                        if self.pids[room].i_term < output:
+                            # self.log("Adjusting integral")
+                            self.pids[room].set_integral(
+                                self.pids[room].i_term - output
+                            )
+                        # Otherwise, the zone would be closed anyway. Reset any negative wind-down.
+                        else:
+                            # self.log("Resetting integral")
+                            self.pids[room].set_integral(0)
+                    shifted_outputs[room] = 0
+        else:
+            # Only one room enabled, prevent any integral from accumulating
+            room = list(shifted_outputs.keys())[0]
+            self.pids[room].set_integral(0)
+
+        # Update input number entities
+        for room, output in pid_outputs.items():
+            self.get_entity(f"input_number.{room}_pid").set_state(state=output)
             self.log(
-                f"{room} PID outcome was {pid_vals[room]} {self.pids[room].getinfo()}"
-            )
-
-        if min(pid_vals.values()) >= 1.0:
-            self.log(
-                "SOMETHING BAD HAPPENED, min PID >= 1.0. Resetting PIDs in hope of recovery."
-            )
-            for room, error in errors[self.mode].items():
-                self.pids[room].clear()
-                self.pids[room].set(
-                    heat_cool_sign * error, heat_cool_sign * unweighted_avg_error
-                )
-                pid_vals[room] = self.pids[room].get()
-
-        unscaled_min_pid = min(pid_vals.values())
-        unscaled_max_pid = max(pid_vals.values())
-
-        scalefactor = 2.0 / ((1.0 - unscaled_min_pid) + (1.0 - unscaled_max_pid))
-        self.log("scaling all PIDs by: " + str(scalefactor))
-        for room, pid_val in pid_vals.items():
-            self.pids[room].scale(scalefactor)
-            pid_vals[room] = self.pids[room].get()
-            self.get_entity("input_number." + room + "_pid").set_state(
-                state=pid_vals[room]
+                f"{room} adjusted PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
             )
 
         # Disabled rooms
@@ -581,24 +572,23 @@ class Actrl(hass.Hass):
                 self.log("Closing damper for disabled room: " + room)
                 self.set_damper_pos(room, 0, False)
 
-        min_pid = min(pid_vals.values())
-
         error_sum = 0.0
         target_sum = 0.0
         weight_sum = 0.0
 
-        for room, pid_val in pid_vals.items():
-            scaled = 100.0 * ((1.0 - pid_val) / (1.0 - min_pid))
+        for room, shifted_output in shifted_outputs.items():
+            error_sum += shifted_output * errors[self.mode][room]
+            target_sum += shifted_output * self.targets[self.mode][room]
+            weight_sum += shifted_output
 
-            damper_vals[room] = scaled
-            target_sum += self.targets[self.mode][room] * scaled
-            error_sum += errors[self.mode][room] * scaled
-            weight_sum += scaled
+            damper_vals[room] = shifted_output * 100.0 / normalised_damper_range
 
         weighted_error = error_sum / weight_sum
         weighted_target = target_sum / weight_sum
 
-        self.temp_deriv.set(weighted_error, heat_cool_sign * weighted_target)
+        self.temp_deriv.set(
+            heat_cool_sign * weighted_error, heat_cool_sign * weighted_target
+        )
         avg_deriv = self.temp_deriv.get()
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
@@ -623,7 +613,7 @@ class Actrl(hass.Hass):
         self.log("avg_deriv: " + str(avg_deriv))
 
         unsigned_compressed_error = self.compress(
-            weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign
+            weighted_error * heat_cool_sign, avg_deriv
         )
         self.prev_unsigned_compressed_error = unsigned_compressed_error
 
