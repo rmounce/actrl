@@ -88,8 +88,8 @@ off_fan_running_time = int(2.5 / interval)
 
 # step to within 0.1C of target on large adjustments
 target_ramp_step_threshold = 0.1
-# 50% per minute above threshold
-target_ramp_proportional = 0.5 * interval
+# 100% per minute above threshold
+target_ramp_proportional = 1.0 * interval
 # linear below 0.1C
 target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
@@ -397,28 +397,31 @@ class Actrl(hass.Hass):
                             cur_targets[mode][room] - self.targets[mode][room]
                         )
 
+                        #self.log(f"about to ramp target room: {room}, target_delta: {target_delta}, smooth_target: {self.targets[mode][room]}, ultimate target: {cur_targets[mode][room]}")
+
                         if abs(target_delta) <= target_ramp_linear_increment:
                             self.targets[mode][room] = cur_targets[mode][room]
-                        elif abs(target_delta) <= target_ramp_linear_threshold:
+                        # Floating point fun!
+                        elif abs(target_delta) <= (target_ramp_linear_threshold + 1e-9):
                             self.targets[mode][room] += math.copysign(
                                 target_ramp_linear_increment, target_delta
                             )
                             self.log(
-                                f"linearly ramping target room: {room}, smooth target: {str(self.targets[mode][room])}"
+                                f"linearly ramping target room: {room}, smooth target: {str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
                             )
-                        elif abs(target_delta) <= target_ramp_step_threshold:
+                        elif abs(target_delta) <= (target_ramp_step_threshold + 1e-9):
                             self.targets[mode][room] += (
                                 target_delta * target_ramp_proportional
                             )
                             self.log(
-                                f"proportionally ramping target room: {room}, smooth target:{str(self.targets[mode][room])}"
+                                f"proportionally ramping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
                             )
                         else:
                             self.targets[mode][room] = cur_targets[mode][
                                 room
                             ] - math.copysign(target_ramp_step_threshold, target_delta)
                             self.log(
-                                f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}"
+                                f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
                             )
                     else:
                         self.log(
