@@ -577,7 +577,7 @@ class Actrl(hass.Hass):
         )
 
         unsigned_compressed_error = self.compress(
-            weighted_error * heat_cool_sign, avg_deriv
+            weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign
         )
         self.prev_unsigned_compressed_error = unsigned_compressed_error
 
