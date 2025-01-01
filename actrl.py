@@ -169,10 +169,9 @@ class MyWMA:
 
 # ignores steps due to changed target
 class MyDeriv:
-    def __init__(self, window, factor, clamp_reverse_deriv=False):
+    def __init__(self, window, factor):
         self.wma = MyWMA(window=window)
         self.factor = factor
-        self.clamp_reverse_deriv = clamp_reverse_deriv
         self.clear()
 
     def clear(self):
@@ -192,24 +191,7 @@ class MyDeriv:
         # compensate for changes due to target
         actual_delta = error_delta + target_delta
 
-        # Original comment:
-        # avoid conditions where the change in target temp outpaces the change in actual temp
-        # wherein the derivative term ends up working against us
-        # limit the derivative to zero if it's going in the opposite direction to the temp trend
-
-        # Updated Jul 2024. The logic was bad here such that e.g. the
-        # derivative was clamped to zero for a tiny positive change in the
-        # target temperature and a huge positive change in the actual temp,
-        # so slight adjustments in the target temp due to PID balancing between
-        # rooms would negate the derivative altoghter.
-        # This should still catch the originally problematic case.
-        if self.clamp_reverse_deriv and (
-            (target_delta > actual_delta and actual_delta > 0)
-            or (target_delta < actual_delta and actual_delta < 0)
-        ):
-            self.wma.set(0)
-        else:
-            self.wma.set(actual_delta)
+        self.wma.set(actual_delta)
         self.prev_error = error
         self.prev_target = target
 
@@ -221,7 +203,7 @@ class MyPID:
     def __init__(self, kp, ki, kd, window):
         self.kp = kp
         self.ki = ki
-        self.deriv = MyDeriv(window=window, factor=kd, clamp_reverse_deriv=False)
+        self.deriv = MyDeriv(window=window, factor=kd)
         self.clear()
 
     def clear(self):
@@ -298,14 +280,10 @@ class Actrl(hass.Hass):
     def initialize(self):
         self.log("INITIALISING")
         self.pids = {}
+        self.temp_derivs = {}
         self.targets = {"heat": {}, "cool": {}}
         self.rooms_enabled = {}
         self.damper_pos = {}
-        self.temp_deriv = MyDeriv(
-            window=int(global_temp_deriv_window / interval),
-            factor=global_temp_deriv_factor / interval,
-            clamp_reverse_deriv=True,
-        )
         self.prev_unsigned_compressed_error = 0
         self.min_power_counter = 0
         self.off_fan_running_counter = 0
@@ -336,6 +314,10 @@ class Actrl(hass.Hass):
                 kd=room_deriv_factor / interval,
                 window=int(room_deriv_window / interval),
             )
+            self.temp_derivs[room] = MyDeriv(
+                window=int(global_temp_deriv_window / interval),
+                factor=global_temp_deriv_factor / interval,
+            )
             self.rooms_enabled[room] = False
             self.damper_pos[room] = float(
                 self.get_entity("cover." + room).get_state("current_position")
@@ -346,6 +328,7 @@ class Actrl(hass.Hass):
     def main(self, kwargs):
         self.log("")
         self.log("#### BEGIN CYCLE ####")
+        prev_temps = {}
         temps = {}
         errors = {"heat": {}, "cool": {}}
         damper_vals = {}
@@ -364,6 +347,8 @@ class Actrl(hass.Hass):
                 temps[room] = float(
                     self.get_state("sensor." + room + "_average_temperature")
                 )
+
+            self.temp_derivs[room].set(temps[room], 0)
 
             if self.get_state("climate." + room + "_aircon") == "heat_cool":
                 cur_targets["heat"][room] = self.get_entity(
@@ -424,6 +409,10 @@ class Actrl(hass.Hass):
                     if room in self.targets[mode]:
                         self.targets[mode].pop(room)
 
+        # First run, no previous temps
+        if not prev_temps:
+            prev_temps = temps
+
         cooling_demand = max(errors["cool"].values(), default=float("-inf"))
         heating_demand = -min(errors["heat"].values(), default=float("inf"))
 
@@ -451,7 +440,6 @@ class Actrl(hass.Hass):
             # all zones disabled
             for room, pid in self.pids.items():
                 pid.clear()
-            self.temp_deriv.clear()
             self.compressor_totally_off = True
             self.on_counter = 0
             self.deadband_integrator.clear()
@@ -483,10 +471,6 @@ class Actrl(hass.Hass):
             if not self.rooms_enabled[room]:
                 self.pids[room].clear()
                 self.rooms_enabled[room] = True
-                # Consider whether these still need to be reset after a new room is enabled
-                self.temp_deriv.clear()
-                self.deadband_integrator.clear()
-                self.on_counter = min(self.on_counter, soft_delay)
 
             self.pids[room].update(
                 heat_cool_sign * error, heat_cool_sign * self.targets[mode][room]
@@ -536,11 +520,11 @@ class Actrl(hass.Hass):
                 # If the integral is more negative than output then the
                 # integral is keeping the zone on the cusp of being closed.
                 if self.pids[room].i_term < difference_beyond_allowable:
-                    #self.log("Adjusting very negative integral for room: " + room)
+                    # self.log("Adjusting very negative integral for room: " + room)
                     self.pids[room].adjust_integral(-difference_beyond_allowable)
                 # Otherwise, the zone would be closed anyway. Reset any negative wind-down.
                 else:
-                    #self.log("Resetting negative integral for room: " + room)
+                    # self.log("Resetting negative integral for room: " + room)
                     self.pids[room].set_integral(0)
 
                 output = self.pids[room].get_output()
@@ -557,25 +541,20 @@ class Actrl(hass.Hass):
                 self.log("Closing damper for disabled room: " + room)
                 self.set_damper_pos(room, 0, False)
 
+        deriv_sum = 0
         error_sum = 0.0
-        target_sum = 0.0
         weight_sum = 0.0
 
         for room, output in pid_outputs.items():
             clamped_output = max(0, output)
+            deriv_sum += clamped_output * self.temp_derivs[room].get()
             error_sum += clamped_output * errors[self.mode][room]
-            target_sum += clamped_output * self.targets[self.mode][room]
             weight_sum += clamped_output
 
             damper_vals[room] = 100.0 * (clamped_output / normalised_damper_range)
 
+        avg_deriv = deriv_sum / weight_sum
         weighted_error = error_sum / weight_sum
-        weighted_target = target_sum / weight_sum
-
-        self.temp_deriv.set(
-            heat_cool_sign * weighted_error, heat_cool_sign * weighted_target
-        )
-        avg_deriv = self.temp_deriv.get()
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
             state=weighted_error
@@ -593,10 +572,9 @@ class Actrl(hass.Hass):
             + str(self.on_counter)
             + ", weighted_error: "
             + str(weighted_error)
-            + ", weighted_target: "
-            + str(weighted_target)
+            + ", avg_deriv: "
+            + str(avg_deriv)
         )
-        self.log("avg_deriv: " + str(avg_deriv))
 
         unsigned_compressed_error = self.compress(
             weighted_error * heat_cool_sign, avg_deriv
