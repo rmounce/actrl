@@ -49,6 +49,12 @@ room_kp = 1.0
 room_ki = 0.001
 # a 0.1 deg error will accumulate 0.1 in ~15 minutes
 
+# Allow a small negative integral to accumulate to keep an over-satisfied room's
+# PID output below 0 to avoid noise pushing it back up into "control authority".
+# In the old PID implementation this value was effectively -0.2 (clamp_high=1.2)
+# This won't prevent a PID from going lower than this value by P & D terms, only I.
+room_pid_minimum = -0.1
+
 # kd considers the last 10 minutes
 room_deriv_window = 10.0
 # looking 2 minutes into the future
@@ -237,6 +243,10 @@ class MyPID:
     def set_integral(self, value):
         """Directly set the integral term."""
         self.i_term = value
+
+    def adjust_integral(self, adjustment):
+        """Apply an adjustment to the integral term."""
+        self.i_term += adjustment
 
 
 class DeadbandIntegrator:
@@ -484,87 +494,62 @@ class Actrl(hass.Hass):
             pid_outputs[room] = self.pids[room].get_output()
             # self.log(f"{room} raw PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})")
 
-        # Find maximum PID output
+        if len(pid_outputs) > 1:
+            # Prevent the highest zone from "running away" by adjusting its
+            # integral term such it is within 2.1C (difference_between_top_two - allowable_difference)
+            # of the next highest zone.
+
+            # 2D array, sorted high to low
+            sorted_pid_outputs = sorted(
+                pid_outputs.items(), key=lambda item: item[1], reverse=True
+            )
+            difference_between_top_two = (
+                sorted_pid_outputs[0][1] - sorted_pid_outputs[1][1]
+            )
+            allowable_difference = normalised_damper_range - room_pid_minimum
+            difference_beyond_allowable = (
+                difference_between_top_two - allowable_difference
+            )
+            if difference_beyond_allowable > 0:
+                top_zone = sorted_pid_outputs[0][0]
+
+                # If the integral term is greater than the margin by which the next highest zone is below 0
+                # then the integral term is keeping the next highest zone on the cusp of being closed.
+                if self.pids[top_zone].i_term > difference_beyond_allowable:
+                    self.log("Adjusting top integral")
+                    self.pids[top_zone].adjust_integral(-difference_beyond_allowable)
+                    pid_outputs[top_zone] = self.pids[top_zone].get_output()
+
+        # Adjust all PIDs' integral terms relative to normalised_damper_range
         max_output = max(pid_outputs.values())
-
-        # Shift all outputs so maximum is 2.0
         offset = normalised_damper_range - max_output
-        shifted_outputs = {
-            room: output + offset for room, output in pid_outputs.items()
-        }
 
-        if len(shifted_outputs) > 1:
-            # The integral term should only be in play while zones have "control authority"
-            # If there is no way to give a zone any more or less airflow, clamp its integral to avoid wind-up/down
+        for room in pid_outputs:
+            self.pids[room].adjust_integral(offset)
+            # Recalculate outputs after integral adjustment
+            output = self.pids[room].get_output()
 
-            # Handle case where all zones except one are above 0. Clamp the positive zone to avoid integral wind-up
-            positive_zones = [
-                zone for zone, output in shifted_outputs.items() if output >= 0
-            ]
-            if len(positive_zones) == 1:
-                positive_zone = positive_zones[0]
-                self.log("Single positive zone: " + positive_zone)
-                if self.pids[positive_zone].i_term > 0:
-                    next_highest = max(
-                        v
-                        for zone, v in shifted_outputs.items()
-                        if zone != positive_zone
-                    )
-                    if next_highest < 0:
-                        self.log("Next highest zone is below 0")
-                        # If the integral term is greater than the margin by which the next highest zone is below 0
-                        # then the integral term is keeping the next highest zone on the cusp of being closed.
-                        if self.pids[positive_zone].i_term > -next_highest:
-                            self.log("Adjusting integral")
-                            self.pids[positive_zone].set_integral(
-                                self.pids[positive_zone].i_term + next_highest
-                            )
-                        # Otherwise, the next highest zone would be closed anyway. Reset any positive wind-up.
-                        else:
-                            self.log("Resetting integral")
-                            self.pids[positive_zone].set_integral(0)
+            allowable_difference = room_pid_minimum
+            difference_beyond_allowable = output - allowable_difference
+            # Only adjust if integral term is negative (the goal here is to avoid wind-down accumulating)
+            if difference_beyond_allowable < 0 and self.pids[room].i_term < 0:
+                # If the integral is more negative than output then the
+                # integral is keeping the zone on the cusp of being closed.
+                if self.pids[room].i_term < difference_beyond_allowable:
+                    #self.log("Adjusting very negative integral for room: " + room)
+                    self.pids[room].adjust_integral(-difference_beyond_allowable)
+                # Otherwise, the zone would be closed anyway. Reset any negative wind-down.
+                else:
+                    #self.log("Resetting negative integral for room: " + room)
+                    self.pids[room].set_integral(0)
 
-                        # Recalculate outputs and shifting
-                        pid_outputs[positive_zone] = self.pids[
-                            positive_zone
-                        ].get_output()
-                        max_output = max(pid_outputs.values())
-                        offset = normalised_damper_range - max_output
-                        shifted_outputs = {
-                            room: output + offset
-                            for room, output in pid_outputs.items()
-                        }
+                output = self.pids[room].get_output()
 
-            # Clamp negative integral wind-down
-            for room, output in shifted_outputs.items():
-                if output < 0:
-                    self.log("Negative room: " + room)
-                    # Only adjust if integral term is negative (to avoid wind-down)
-                    if self.pids[room].i_term < 0:
-                        # self.log("Negative integral: " + str(self.pids[room].i_term))
-                        # If the integral is more negative than output then the
-                        # integral is keeping the zone on the cusp of being closed.
-                        if self.pids[room].i_term < output:
-                            # self.log("Adjusting integral")
-                            self.pids[room].set_integral(
-                                self.pids[room].i_term - output
-                            )
-                        # Otherwise, the zone would be closed anyway. Reset any negative wind-down.
-                        else:
-                            # self.log("Resetting integral")
-                            self.pids[room].set_integral(0)
-                    shifted_outputs[room] = 0
-        else:
-            # Only one room enabled, prevent any integral from accumulating
-            room = list(shifted_outputs.keys())[0]
-            self.pids[room].set_integral(0)
-
-        # Update input number entities
-        for room, output in pid_outputs.items():
             self.get_entity(f"input_number.{room}_pid").set_state(state=output)
             self.log(
-                f"{room} adjusted PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
+                f"{room} adjusted PID output: {output} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
             )
+            pid_outputs[room] = output
 
         # Disabled rooms
         for room in rooms - cur_targets[self.mode].keys():
@@ -576,12 +561,13 @@ class Actrl(hass.Hass):
         target_sum = 0.0
         weight_sum = 0.0
 
-        for room, shifted_output in shifted_outputs.items():
-            error_sum += shifted_output * errors[self.mode][room]
-            target_sum += shifted_output * self.targets[self.mode][room]
-            weight_sum += shifted_output
+        for room, output in pid_outputs.items():
+            clamped_output = max(0, output)
+            error_sum += clamped_output * errors[self.mode][room]
+            target_sum += clamped_output * self.targets[self.mode][room]
+            weight_sum += clamped_output
 
-            damper_vals[room] = shifted_output * 100.0 / normalised_damper_range
+            damper_vals[room] = 100.0 * (clamped_output / normalised_damper_range)
 
         weighted_error = error_sum / weight_sum
         weighted_target = target_sum / weight_sum
