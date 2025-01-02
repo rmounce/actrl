@@ -38,6 +38,10 @@ step_down_intervals = step_down_time / (60.0 * interval)
 heat_step_down_time = 390
 heat_step_down_intervals = heat_step_down_time / (60.0 * interval)
 
+# If the top 100% zone has its door closed, open at least 50% in a second zone
+# sqrt stuff going on due to damper value scaling
+# approx 1.29
+min_airflow_with_closed_door = 2 - math.sqrt(2) / 2
 
 # swing full scale across 2.0C of error
 normalised_damper_range = 2.0
@@ -507,14 +511,32 @@ class Actrl(hass.Hass):
         # Adjust all PIDs' integral terms relative to normalised_damper_range
         max_output = max(pid_outputs.values())
         offset = normalised_damper_range - max_output
-
         for room in pid_outputs:
             self.pids[room].adjust_integral(offset)
-            # Recalculate outputs after integral adjustment
-            output = self.pids[room].get_output()
+            pid_outputs[room] = self.pids[room].get_output()
 
+        # Handle closed door case for top zone
+        if len(pid_outputs) > 1:
+            top_zone = sorted_pid_outputs[0][0]
+            if not self.get_door_state(top_zone):
+                # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
+                min_sum = min_airflow_with_closed_door * normalised_damper_range
+
+                while True:
+                    positive_outputs = {
+                        room: max(0, output) for room, output in pid_outputs.items()
+                    }
+                    if sum(positive_outputs.values()) >= min_sum:
+                        break
+
+                    for room in pid_outputs:
+                        if room != top_zone:
+                            self.pids[room].adjust_integral(0.001)
+                            pid_outputs[room] = self.pids[room].get_output()
+
+        for room in pid_outputs:
             allowable_difference = room_pid_minimum
-            difference_beyond_allowable = output - allowable_difference
+            difference_beyond_allowable = pid_outputs[room] - allowable_difference
             # Only adjust if integral term is negative (the goal here is to avoid wind-down accumulating)
             if difference_beyond_allowable < 0 and self.pids[room].i_term < 0:
                 # If the integral is more negative than output then the
@@ -527,13 +549,14 @@ class Actrl(hass.Hass):
                     # self.log("Resetting negative integral for room: " + room)
                     self.pids[room].set_integral(0)
 
-                output = self.pids[room].get_output()
+                pid_outputs[room] = self.pids[room].get_output()
 
-            self.get_entity(f"input_number.{room}_pid").set_state(state=output)
-            self.log(
-                f"{room} adjusted PID output: {output} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
+            self.get_entity(f"input_number.{room}_pid").set_state(
+                state=pid_outputs[room]
             )
-            pid_outputs[room] = output
+            self.log(
+                f"{room} adjusted PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
+            )
 
         # Disabled rooms
         for room in rooms - cur_targets[self.mode].keys():
@@ -747,7 +770,6 @@ class Actrl(hass.Hass):
                 return self.midea_reset_quirks(ac_off_threshold - 1)
             else:
                 self.compressor_totally_off = False
-                self.temp_deriv.clear()
                 self.deadband_integrator.clear()
                 print(f"starting compressor {ac_on_threshold}")
 
@@ -899,3 +921,9 @@ class Actrl(hass.Hass):
             return min(rval, ac_stable_threshold - 1)
 
         return rval
+
+    def get_door_state(self, room):
+        """Check if a room's door is open."""
+        entity_id = f"binary_sensor.{room}_door"
+        state = self.get_state(entity_id)
+        return True if state is None else state == "on"
