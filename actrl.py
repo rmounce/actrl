@@ -461,10 +461,14 @@ class Actrl(hass.Hass):
 
         self.mode = new_mode
 
+        demand = None
+
         if self.mode == "heat":
             heat_cool_sign = -1.0
+            error = heat_cool_sign * heating_demand
         elif self.mode == "cool":
             heat_cool_sign = 1.0
+            demand = heat_cool_sign * cooling_demand
         else:
             self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
             return
@@ -577,7 +581,10 @@ class Actrl(hass.Hass):
             damper_vals[room] = 100.0 * (clamped_output / normalised_damper_range)
 
         avg_deriv = deriv_sum / weight_sum
-        weighted_error = error_sum / weight_sum
+
+        # Use the state of the zone with the highest demand rather than weighted demand 
+        #weighted_error = error_sum / weight_sum
+        weighted_error = demand
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
             state=weighted_error
