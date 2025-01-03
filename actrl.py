@@ -18,7 +18,12 @@ room_airflow = {
 # If the top zone is 100% open, open at least 50% in a second zone
 # this is approx 1.29 rather than 1.5 due to exponential damper scaling
 # approx 1.29
-min_airflow = 2 - math.sqrt(2) / 2
+#min_airflow = 2 - math.sqrt(2) / 2
+
+# With only 2 bedrooms this may result in one being 100% open and another being 1-(1-0.5)^2 = 75% open.
+# If bedroom has demand and living (2x airflow) next in line, bedroom 100% and living 1-(1-0.25)^2 = 43.75%
+# If living has demand, this won't come into play as living airflow alone counts as 2
+min_airflow = 1.5
 
 # in minutes
 interval = 10.0 / 60.0  # 10 seconds
@@ -825,6 +830,7 @@ class Actrl(hass.Hass):
             )
 
         if error <= min_power_threshold:
+            self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_off_threshold + 1)
 
         if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
@@ -878,7 +884,7 @@ class Actrl(hass.Hass):
         ):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = -1
-            if rval < (ac_stable_threshold - 2):
+            if rval < (ac_stable_threshold - 1):
                 self.guesstimated_comp_speed = -minimum_temp_intervals
             else:
                 self.guesstimated_comp_speed = max(
