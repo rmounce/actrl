@@ -7,6 +7,18 @@ from collections import deque
 import time
 
 rooms = ["bed_1", "bed_2", "bed_3", "kitchen", "study"]
+# Kitchen has 2 ducts, min airflow isn't an issue there
+room_airflow = {
+    "bed_1": 1.0,
+    "bed_2": 1.0,
+    "bed_3": 1.0,
+    "kitchen": 2.0,
+    "study": 1.0,
+}
+# If the top zone is 100% open, open at least 50% in a second zone
+# this is approx 1.29 rather than 1.5 due to exponential damper scaling
+# approx 1.29
+min_airflow = 2 - math.sqrt(2) / 2
 
 # in minutes
 interval = 10.0 / 60.0  # 10 seconds
@@ -38,10 +50,6 @@ step_down_intervals = step_down_time / (60.0 * interval)
 heat_step_down_time = 390
 heat_step_down_intervals = heat_step_down_time / (60.0 * interval)
 
-# If the top 100% zone has its door closed, open at least 50% in a second zone
-# sqrt stuff going on due to damper value scaling
-# approx 1.29
-min_airflow_with_closed_door = 2 - math.sqrt(2) / 2
 
 # swing full scale across 2.0C of error
 normalised_damper_range = 2.0
@@ -519,16 +527,19 @@ class Actrl(hass.Hass):
             self.pids[room].adjust_integral(offset)
             pid_outputs[room] = self.pids[room].get_output()
 
-        # Handle closed door case for top zone
+        # Ensure minimum airflow
         if len(pid_outputs) > 1:
             top_zone = sorted_pid_outputs[0][0]
-            if not self.get_door_state(top_zone):
+            # Handle closed door case for top zone
+            #if not self.get_door_state(top_zone):
+            # Try applying these rules unconditionally...
+            if True:
                 # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
-                min_sum = min_airflow_with_closed_door * normalised_damper_range
+                min_sum = min_airflow * normalised_damper_range
 
                 while True:
                     positive_outputs = {
-                        room: max(0, output) for room, output in pid_outputs.items()
+                        room: max(0, output * room_airflow[room]) for room, output in pid_outputs.items()
                     }
                     if sum(positive_outputs.values()) >= min_sum:
                         break
