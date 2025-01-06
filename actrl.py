@@ -478,7 +478,7 @@ class Actrl(hass.Hass):
 
         if self.mode == "heat":
             heat_cool_sign = -1.0
-            error = heat_cool_sign * heating_demand
+            demand = heat_cool_sign * heating_demand
         elif self.mode == "cool":
             heat_cool_sign = 1.0
             demand = heat_cool_sign * cooling_demand
