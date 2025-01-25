@@ -494,39 +494,46 @@ class Actrl(hass.Hass):
             demand = heat_cool_sign * heating_demand
 
             # Limit offset to prevent switching to cooling
-            max_offset = max(0, (heating_demand - cooling_demand)/2)
+            max_offset = max(0, (heating_demand - cooling_demand))
         elif self.mode == "cool":
             heat_cool_sign = 1.0
             demand = heat_cool_sign * cooling_demand
 
             # Limit offset to prevent switching to heating
-            max_offset = max(0, (cooling_demand - heating_demand)/2)
+            max_offset = max(0, (cooling_demand - heating_demand))
         else:
             self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
             return
 
-        # Flip sign so that positive values represent surplus
-        grid_surplus = -float(self.get_state("sensor.power_grid_percentile"))
+        if self.get_state("input_boolean.ac_use_grid_surplus") == "on":
+            # Ensure the offset doesn't push demand + offset beyond 1.0
+            max_allowed_offset = max(0, 1.0 - demand)
+            max_offset = min(max_offset, max_allowed_offset)
 
-        if grid_surplus > grid_surplus_upper_threshold:
-            self.grid_surplus_integral += grid_surplus_ki * (
-                grid_surplus - grid_surplus_upper_threshold
-            )
-        elif grid_surplus < grid_surplus_lower_threshold:
-            self.grid_surplus_integral += grid_surplus_ki * (
-                grid_surplus - grid_surplus_lower_threshold
-            )
+            # Flip sign so that positive values represent surplus
+            grid_surplus = -float(self.get_state("sensor.power_grid_percentile"))
 
-        # Cap surplus
-        self.grid_surplus_integral = min(
-            max_offset, max(0.0, self.grid_surplus_integral)
-        )
+            if grid_surplus > grid_surplus_upper_threshold:
+                self.grid_surplus_integral += grid_surplus_ki * (
+                    grid_surplus - grid_surplus_upper_threshold
+                )
+            elif grid_surplus < grid_surplus_lower_threshold:
+                self.grid_surplus_integral += grid_surplus_ki * (
+                    grid_surplus - grid_surplus_lower_threshold
+                )
+
+            # Cap surplus
+            self.grid_surplus_integral = min(
+                max_offset, max(0.0, self.grid_surplus_integral)
+            )
+            demand += self.grid_surplus_integral
+            self.log(
+                f"grid_surplus: {grid_surplus}, max_offset: {max_offset}, grid_surplus_integral: {self.grid_surplus_integral}, adjusted_demand: {demand}"
+            )
+        else:
+            self.grid_surplus_integral = 0
         self.get_entity("input_number.grid_surplus_integral").set_state(
             state=self.grid_surplus_integral
-        )
-        demand += self.grid_surplus_integral
-        self.log(
-            f"grid_surplus: {grid_surplus}, max_offset: {max_offset}, grid_surplus_integral: {self.grid_surplus_integral}, adjusted_demand: {demand}"
         )
 
         # Calculate raw PID outputs
