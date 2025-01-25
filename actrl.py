@@ -18,7 +18,7 @@ room_airflow = {
 # If the top zone is 100% open, open at least 50% in a second zone
 # this is approx 1.29 rather than 1.5 due to exponential damper scaling
 # approx 1.29
-#min_airflow = 2 - math.sqrt(2) / 2
+# min_airflow = 2 - math.sqrt(2) / 2
 
 # With only 2 bedrooms this may result in one being 100% open and another being 1-(1-0.5)^2 = 75% open.
 # If bedroom has demand and living (2x airflow) next in line, bedroom 100% and living 1-(1-0.25)^2 = 43.75%
@@ -134,6 +134,14 @@ min_power_threshold = -0.5
 
 # try using FREEDOM UNITS
 ac_celsius = True
+
+# 750W hysteresis to ensure stability when the AC starts up
+grid_surplus_upper_threshold = 1500
+grid_surplus_lower_threshold = 750
+
+# per interval
+# 1.0C = 1000W for 10 minutes
+grid_surplus_ki = interval / (1000 * 10)
 
 # Midea constants depending on temp units
 if ac_celsius:
@@ -307,6 +315,7 @@ class Actrl(hass.Hass):
         self.outer_ramp_count = 0
         self.outer_ramp_rval = 1
         self.guesstimated_comp_speed = 0
+        self.grid_surplus_integral = 0
         if self.get_state("climate.aircon") in ["heat", "cool"]:
             self.mode = self.get_state("climate.aircon")
         else:
@@ -437,6 +446,8 @@ class Actrl(hass.Hass):
 
         new_mode = None
 
+        # desired_off_threshold is negative, -1.5
+        # If system is actively cooling, remain in cooling unless heating demand exceeds it by 1.5C
         if self.get_state("climate.aircon") == "cool" and cooling_demand > (
             heating_demand + desired_off_threshold
         ):
@@ -474,17 +485,49 @@ class Actrl(hass.Hass):
 
         self.mode = new_mode
 
+        # Determine demand and calculate maximum allowable offset
         demand = None
+        max_offset = 0
 
         if self.mode == "heat":
             heat_cool_sign = -1.0
             demand = heat_cool_sign * heating_demand
+
+            # Limit offset to prevent switching to cooling
+            max_offset = max(0, (heating_demand - cooling_demand)/2)
         elif self.mode == "cool":
             heat_cool_sign = 1.0
             demand = heat_cool_sign * cooling_demand
+
+            # Limit offset to prevent switching to heating
+            max_offset = max(0, (cooling_demand - heating_demand)/2)
         else:
             self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
             return
+
+        # Flip sign so that positive values represent surplus
+        grid_surplus = -float(self.get_state("sensor.power_grid_percentile"))
+
+        if grid_surplus > grid_surplus_upper_threshold:
+            self.grid_surplus_integral += grid_surplus_ki * (
+                grid_surplus - grid_surplus_upper_threshold
+            )
+        elif grid_surplus < grid_surplus_lower_threshold:
+            self.grid_surplus_integral += grid_surplus_ki * (
+                grid_surplus - grid_surplus_lower_threshold
+            )
+
+        # Cap surplus
+        self.grid_surplus_integral = min(
+            max_offset, max(0.0, self.grid_surplus_integral)
+        )
+        self.get_entity("input_number.grid_surplus_integral").set_state(
+            state=self.grid_surplus_integral
+        )
+        demand += self.grid_surplus_integral
+        self.log(
+            f"grid_surplus: {grid_surplus}, max_offset: {max_offset}, grid_surplus_integral: {self.grid_surplus_integral}, adjusted_demand: {demand}"
+        )
 
         # Calculate raw PID outputs
         pid_outputs = {}
@@ -536,7 +579,7 @@ class Actrl(hass.Hass):
         if len(pid_outputs) > 1:
             top_zone = sorted_pid_outputs[0][0]
             # Handle closed door case for top zone
-            #if not self.get_door_state(top_zone):
+            # if not self.get_door_state(top_zone):
             # Try applying these rules unconditionally...
             if True:
                 # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
@@ -544,7 +587,8 @@ class Actrl(hass.Hass):
 
                 while True:
                     positive_outputs = {
-                        room: max(0, output * room_airflow[room]) for room, output in pid_outputs.items()
+                        room: max(0, output * room_airflow[room])
+                        for room, output in pid_outputs.items()
                     }
                     if sum(positive_outputs.values()) >= min_sum:
                         break
@@ -598,8 +642,8 @@ class Actrl(hass.Hass):
 
         avg_deriv = deriv_sum / weight_sum
 
-        # Use the state of the zone with the highest demand rather than weighted demand 
-        #weighted_error = error_sum / weight_sum
+        # Use the state of the zone with the highest demand rather than weighted demand
+        # weighted_error = error_sum / weight_sum
         weighted_error = demand
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
@@ -705,7 +749,8 @@ class Actrl(hass.Hass):
 
     def set_damper_pos(self, room, damper_val, open_only=False):
         # i don't know fluid dynamics but it seems nonlinear, lets try squaring!
-        damper_val = 100.0 * (1.0 - pow(1.0 - (damper_val / 100.0), 2))
+        # damper_val = 100.0 * (1.0 - pow(1.0 - (damper_val / 100.0), 2))
+        # actually let's just stick with linear
 
         actual_cur_pos = float(
             self.get_entity("cover." + room).get_state("current_position")

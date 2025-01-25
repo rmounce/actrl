@@ -20,6 +20,7 @@ class Statctrl(hass.Hass):
         entities_to_monitor.add(f"timer.{self.room}_timed_active")
         entities_to_monitor.add(f"input_boolean.{self.room}_scheduled_heat")
         entities_to_monitor.add(f"input_boolean.{self.room}_scheduled_cool")
+        entities_to_monitor.add(f"binary_sensor.{self.room}_window")
 
         for state in self.states:
             entities_to_monitor.add(f"input_number.{self.room}_setpoint_{state}_high")
@@ -48,6 +49,8 @@ class Statctrl(hass.Hass):
         self.update_setpoint(mode)
 
     def get_current_state(self, mode):
+        if self.get_state(f"binary_sensor.{self.room}_window") == "on":
+            return "window_open"
         if self.timer_active(f"timer.{self.room}_timed_turbo"):
             return "turbo"
         elif (
@@ -61,13 +64,21 @@ class Statctrl(hass.Hass):
         return self.get_state(timer_entity) == "active"
 
     def get_setpoints(self, mode):
-        suffix = "low" if mode == "heat" else "high"
-        return {
+        # Too lazy to create helpers for "window_open" setpoints
+        if mode == "heat":
+            suffix = "low"
+            window_open_offset = -2.0
+        else:
+            suffix = "high"
+            window_open_offset = 2.0
+        setpoints = {
             state: float(
                 self.get_state(f"input_number.{self.room}_setpoint_{state}_{suffix}")
             )
             for state in self.states
         }
+        setpoints["window_open"] = setpoints["inactive"] + window_open_offset
+        return setpoints
 
     def get_current_setpoint(self, mode):
         climate_entity = f"climate.{self.room}_aircon"
