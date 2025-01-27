@@ -336,34 +336,11 @@ class Actrl(hass.Hass):
         self.log("#### BEGIN CYCLE ####")
         temps = self._get_current_temperatures()
         cur_targets = self._get_current_targets()
-        errors = {"heat": {}, "cool": {}}
+        errors = self._calculate_room_errors(temps, cur_targets)
 
         celsius_setpoint = float(
             self.get_entity("climate.aircon").get_state("temperature")
         )
-
-        for room in rooms:
-            self.temp_derivs[room].set(temps[room], 0)
-
-            if room in cur_targets["heat"]:
-                if room in self.targets["heat"]:
-                    self._update_room_target(room, "heat", cur_targets)
-                else:
-                    self.log(f"setting heat target for previously disabled room {room}")
-                    self.targets["heat"][room] = cur_targets["heat"][room]
-                errors["heat"][room] = temps[room] - self.targets["heat"][room]
-            elif room in self.targets["heat"]:
-                self.targets["heat"].pop(room)
-
-            if room in cur_targets["cool"]:
-                if room in self.targets["cool"]:
-                    self._update_room_target(room, "cool", cur_targets)
-                else:
-                    self.log(f"setting cool target for previously disabled room {room}")
-                    self.targets["cool"][room] = cur_targets["cool"][room]
-                errors["cool"][room] = temps[room] - self.targets["cool"][room]
-            elif room in self.targets["cool"]:
-                self.targets["cool"].pop(room)
 
         cooling_demand = max(errors["cool"].values(), default=float("-inf"))
         heating_demand = -min(errors["heat"].values(), default=float("inf"))
@@ -629,6 +606,35 @@ class Actrl(hass.Hass):
             self.log(
                 f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
             )
+
+    def _calculate_room_errors(self, temps, cur_targets):
+        """Calculate temperature errors for each room based on current temperatures and targets."""
+        errors = {"heat": {}, "cool": {}}
+
+        for room in rooms:
+            self.temp_derivs[room].set(temps[room], 0)
+
+            if room in cur_targets["heat"]:
+                if room in self.targets["heat"]:
+                    self._update_room_target(room, "heat", cur_targets)
+                else:
+                    self.log(f"setting heat target for previously disabled room {room}")
+                    self.targets["heat"][room] = cur_targets["heat"][room]
+                errors["heat"][room] = temps[room] - self.targets["heat"][room]
+            elif room in self.targets["heat"]:
+                self.targets["heat"].pop(room)
+
+            if room in cur_targets["cool"]:
+                if room in self.targets["cool"]:
+                    self._update_room_target(room, "cool", cur_targets)
+                else:
+                    self.log(f"setting cool target for previously disabled room {room}")
+                    self.targets["cool"][room] = cur_targets["cool"][room]
+                errors["cool"][room] = temps[room] - self.targets["cool"][room]
+            elif room in self.targets["cool"]:
+                self.targets["cool"].pop(room)
+
+        return errors
 
     def _determine_new_mode(self, cooling_demand, heating_demand):
         if self.get_state("climate.aircon") == "cool" and cooling_demand > (
