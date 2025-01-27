@@ -1,5 +1,4 @@
-import hassapi as hass
-import datetime
+import hassapi as hass  # type: ignore
 import math
 
 # from simple_pid import PID
@@ -134,9 +133,6 @@ min_power_threshold = -1.0
 # Worst case, turn off if we have overshot massively.
 immediate_off_threshold = -2.0
 
-# try using FREEDOM UNITS
-ac_celsius = True
-
 # 750W hysteresis to ensure stability when the AC starts up
 grid_surplus_upper_threshold = 1500
 grid_surplus_lower_threshold = 750
@@ -145,19 +141,11 @@ grid_surplus_lower_threshold = 750
 # 1.0C = 1000W for 10 minutes
 grid_surplus_ki = interval / (1000 * 10)
 
-# Midea constants depending on temp units
-if ac_celsius:
-    ac_unit_from_celsius = 1.0
-    ac_on_threshold = 1
-    ac_stable_threshold = 1
-    ac_off_threshold = -2
-else:
-    # Fahrenheit
-    ac_unit_from_celsius = 1.8
-    # https://github.com/esphome/feature-requests/issues/1627#issuecomment-1365639966
-    ac_on_threshold = 3
-    ac_stable_threshold = 2
-    ac_off_threshold = -3
+# Offsets for celsius
+ac_unit_from_celsius = 1.0
+ac_on_threshold = 1
+ac_stable_threshold = 1
+ac_off_threshold = -2
 
 null_state = "unknown"
 
@@ -360,7 +348,6 @@ class Actrl(hass.Hass):
         temps = {}
         errors = {"heat": {}, "cool": {}}
         damper_vals = {}
-        pid_vals = {}
         heat_cool_sign = 1.0
         cur_targets = {"heat": {}, "cool": {}}
 
@@ -608,25 +595,21 @@ class Actrl(hass.Hass):
         # Ensure minimum airflow
         if len(pid_outputs) > 1:
             top_zone = sorted_pid_outputs[0][0]
-            # Handle closed door case for top zone
-            # if not self.get_door_state(top_zone):
-            # Try applying these rules unconditionally...
-            if True:
-                # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
-                min_sum = min_airflow * normalised_damper_range
+            # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
+            min_sum = min_airflow * normalised_damper_range
 
-                while True:
-                    positive_outputs = {
-                        room: max(0, output * room_airflow[room])
-                        for room, output in pid_outputs.items()
-                    }
-                    if sum(positive_outputs.values()) >= min_sum:
-                        break
+            while True:
+                positive_outputs = {
+                    room: max(0, output * room_airflow[room])
+                    for room, output in pid_outputs.items()
+                }
+                if sum(positive_outputs.values()) >= min_sum:
+                    break
 
-                    for room in pid_outputs:
-                        if room != top_zone:
-                            self.pids[room].adjust_integral(0.001)
-                            pid_outputs[room] = self.pids[room].get_output()
+                for room in pid_outputs:
+                    if room != top_zone:
+                        self.pids[room].adjust_integral(0.001)
+                        pid_outputs[room] = self.pids[room].get_output()
 
         for room in pid_outputs:
             allowable_difference = room_pid_minimum
@@ -742,30 +725,17 @@ class Actrl(hass.Hass):
         )
         if not transmit:
             return
-        if ac_celsius:
-            # Power on, FM update, mode auto, Fan auto, setpoint 25C?, room temp
-            self.call_service(
-                "esphome/infrared_send_raw_command",
-                command=[
-                    0xA4,
-                    0x82,
-                    0x48,
-                    0x7F,
-                    (int)(celsius_setpoint + compressed_error + 1),
-                ],
-            )
-        else:
-            # Power On, FM Update, Mode Auto, Fan Auto, Setpoint 68F, Room temp
-            self.call_service(
-                "esphome/infrared_send_raw_command",
-                command=[
-                    0xA4,
-                    0x82,
-                    0x66,
-                    0x7F,
-                    (int)((1.8 * celsius_setpoint + 32) + compressed_error - 31),
-                ],
-            )
+        # Power on, FM update, mode auto, Fan auto, setpoint 25C?, room temp
+        self.call_service(
+            "esphome/infrared_send_raw_command",
+            command=[
+                0xA4,
+                0x82,
+                0x48,
+                0x7F,
+                (int)(celsius_setpoint + compressed_error + 1),
+            ],
+        )
         time.sleep(0.1)
 
     def set_damper_pos(self, room, damper_val, open_only=False):
@@ -1011,9 +981,3 @@ class Actrl(hass.Hass):
             return min(rval, ac_stable_threshold - 1)
 
         return rval
-
-    def get_door_state(self, room):
-        """Check if a room's door is open."""
-        entity_id = f"binary_sensor.{room}_door"
-        state = self.get_state(entity_id)
-        return True if state is None else state == "on"
