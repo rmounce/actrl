@@ -334,93 +334,36 @@ class Actrl(hass.Hass):
     def main(self, kwargs):
         self.log("")
         self.log("#### BEGIN CYCLE ####")
-        temps = {}
+        temps = self._get_current_temperatures()
+        cur_targets = self._get_current_targets()
         errors = {"heat": {}, "cool": {}}
-        damper_vals = {}
-        heat_cool_sign = 1.0
-        cur_targets = {"heat": {}, "cool": {}}
 
         celsius_setpoint = float(
             self.get_entity("climate.aircon").get_state("temperature")
         )
 
         for room in rooms:
-            if self.get_state("input_boolean.ac_use_feels_like") == "on":
-                feels_like_value = self.get_state("sensor." + room + "_feels_like")
-                if feels_like_value is not None:
-                    temps[room] = float(feels_like_value)
-                else:
-                    self.log(
-                        f"'sensor.{room}_feels_like' is None. Falling back to 'sensor.{room}_average_temperature'."
-                    )
-                    temps[room] = float(
-                        self.get_state("sensor." + room + "_average_temperature")
-                    )
-            else:
-                temps[room] = float(
-                    self.get_state("sensor." + room + "_average_temperature")
-                )
-
             self.temp_derivs[room].set(temps[room], 0)
 
-            if self.get_state("climate." + room + "_aircon") == "heat_cool":
-                cur_targets["heat"][room] = self.get_entity(
-                    "climate." + room + "_aircon"
-                ).get_state("target_temp_low")
-                cur_targets["cool"][room] = self.get_entity(
-                    "climate." + room + "_aircon"
-                ).get_state("target_temp_high")
-            elif self.get_state("climate." + room + "_aircon") == "heat":
-                cur_targets["heat"][room] = self.get_entity(
-                    "climate." + room + "_aircon"
-                ).get_state("temperature")
-            elif self.get_state("climate." + room + "_aircon") == "cool":
-                cur_targets["cool"][room] = self.get_entity(
-                    "climate." + room + "_aircon"
-                ).get_state("temperature")
-
-            for mode in ["heat", "cool"]:
-                if room in cur_targets[mode]:
-                    if room in self.targets[mode]:
-                        target_delta = (
-                            cur_targets[mode][room] - self.targets[mode][room]
-                        )
-
-                        # self.log(f"about to ramp target room: {room}, target_delta: {target_delta}, smooth_target: {self.targets[mode][room]}, ultimate target: {cur_targets[mode][room]}")
-
-                        if abs(target_delta) <= target_ramp_linear_increment:
-                            self.targets[mode][room] = cur_targets[mode][room]
-                        # Floating point fun!
-                        elif abs(target_delta) <= (target_ramp_linear_threshold + 1e-9):
-                            self.targets[mode][room] += math.copysign(
-                                target_ramp_linear_increment, target_delta
-                            )
-                            self.log(
-                                f"linearly ramping target room: {room}, smooth target: {str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
-                            )
-                        elif abs(target_delta) <= (target_ramp_step_threshold + 1e-9):
-                            self.targets[mode][room] += (
-                                target_delta * target_ramp_proportional
-                            )
-                            self.log(
-                                f"proportionally ramping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
-                            )
-                        else:
-                            self.targets[mode][room] = cur_targets[mode][
-                                room
-                            ] - math.copysign(target_ramp_step_threshold, target_delta)
-                            self.log(
-                                f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
-                            )
-                    else:
-                        self.log(
-                            f"setting {mode} target for previously disabled room {room}"
-                        )
-                        self.targets[mode][room] = cur_targets[mode][room]
-                    errors[mode][room] = temps[room] - self.targets[mode][room]
+            if room in cur_targets["heat"]:
+                if room in self.targets["heat"]:
+                    self._update_room_target(room, "heat", cur_targets)
                 else:
-                    if room in self.targets[mode]:
-                        self.targets[mode].pop(room)
+                    self.log(f"setting heat target for previously disabled room {room}")
+                    self.targets["heat"][room] = cur_targets["heat"][room]
+                errors["heat"][room] = temps[room] - self.targets["heat"][room]
+            elif room in self.targets["heat"]:
+                self.targets["heat"].pop(room)
+
+            if room in cur_targets["cool"]:
+                if room in self.targets["cool"]:
+                    self._update_room_target(room, "cool", cur_targets)
+                else:
+                    self.log(f"setting cool target for previously disabled room {room}")
+                    self.targets["cool"][room] = cur_targets["cool"][room]
+                errors["cool"][room] = temps[room] - self.targets["cool"][room]
+            elif room in self.targets["cool"]:
+                self.targets["cool"].pop(room)
 
         cooling_demand = max(errors["cool"].values(), default=float("-inf"))
         heating_demand = -min(errors["heat"].values(), default=float("inf"))
@@ -629,6 +572,8 @@ class Actrl(hass.Hass):
         error_sum = 0.0
         weight_sum = 0.0
 
+        damper_vals = {}
+
         for room, output in pid_outputs.items():
             clamped_output = max(0, output)
             deriv_sum += clamped_output * self.temp_derivs[room].get()
@@ -702,6 +647,66 @@ class Actrl(hass.Hass):
             state=self.deadband_integrator.get()
         )
         self.set_fake_temp(celsius_setpoint, compressed_error, True)
+
+    def _get_current_temperatures(self):
+        temps = {}
+        for room in rooms:
+            if self.get_state("input_boolean.ac_use_feels_like") == "on":
+                feels_like_value = self.get_state("sensor." + room + "_feels_like")
+                if feels_like_value is not None:
+                    temps[room] = float(feels_like_value)
+                else:
+                    self.log(
+                        f"'sensor.{room}_feels_like' is None. Falling back to 'sensor.{room}_average_temperature'."
+                    )
+                    temps[room] = float(
+                        self.get_state("sensor." + room + "_average_temperature")
+                    )
+            else:
+                temps[room] = float(
+                    self.get_state("sensor." + room + "_average_temperature")
+                )
+        return temps
+
+    def _get_current_targets(self):
+        cur_targets = {"heat": {}, "cool": {}}
+        for room in rooms:
+            climate_state = self.get_state("climate." + room + "_aircon")
+            climate_entity = self.get_entity("climate." + room + "_aircon")
+
+            if climate_state == "heat_cool":
+                cur_targets["heat"][room] = climate_entity.get_state("target_temp_low")
+                cur_targets["cool"][room] = climate_entity.get_state("target_temp_high")
+            elif climate_state == "heat":
+                cur_targets["heat"][room] = climate_entity.get_state("temperature")
+            elif climate_state == "cool":
+                cur_targets["cool"][room] = climate_entity.get_state("temperature")
+        return cur_targets
+
+    def _update_room_target(self, room, mode, cur_targets):
+        target_delta = cur_targets[mode][room] - self.targets[mode][room]
+
+        if abs(target_delta) <= target_ramp_linear_increment:
+            self.targets[mode][room] = cur_targets[mode][room]
+        elif abs(target_delta) <= (target_ramp_linear_threshold + 1e-9):
+            self.targets[mode][room] += math.copysign(
+                target_ramp_linear_increment, target_delta
+            )
+            self.log(
+                f"linearly ramping target room: {room}, smooth target: {str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
+            )
+        elif abs(target_delta) <= (target_ramp_step_threshold + 1e-9):
+            self.targets[mode][room] += target_delta * target_ramp_proportional
+            self.log(
+                f"proportionally ramping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
+            )
+        else:
+            self.targets[mode][room] = cur_targets[mode][room] - math.copysign(
+                target_ramp_step_threshold, target_delta
+            )
+            self.log(
+                f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
+            )
 
     def set_fake_temp(self, celsius_setpoint, compressed_error, transmit=True):
         self.get_entity("input_number.fake_temperature").set_state(
@@ -834,9 +839,7 @@ class Actrl(hass.Hass):
                 ramp_progress = 1
 
             return self.midea_runtime_quirks(
-                ac_stable_threshold
-                + ramp_progress
-                * (2 + error - faithful_threshold)
+                ac_stable_threshold + ramp_progress * (2 + error - faithful_threshold)
             )
 
         if error <= min_power_threshold:
