@@ -380,62 +380,17 @@ class Actrl(hass.Hass):
 
         self.mode = new_mode
 
-        # Determine demand and calculate maximum allowable offset
-        demand = None
-        max_offset = 0
-
-        if self.mode == "heat":
-            heat_cool_sign = -1.0
-            demand = heat_cool_sign * heating_demand
-
-            # if cooling demand exceeds heating demand in heating mode, we have overshot!
-            # leave a 1.5C buffer to prevent overshooting into cooling mode
-            surplus_overshoot = max(
-                0, cooling_demand - heating_demand - (immediate_off_threshold / 2)
-            )
-        elif self.mode == "cool":
-            heat_cool_sign = 1.0
-            demand = heat_cool_sign * cooling_demand
-
-            # if heating demand exceeds cooling demand in cooling mode, we have overshot!
-            # leave a 1.5C buffer to prevent overshooting into heating mode
-            surplus_overshoot = max(
-                0, heating_demand - cooling_demand - (immediate_off_threshold / 2)
-            )
-        else:
-            self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
+        demand, heat_cool_sign, surplus_overshoot = self._calculate_base_demand(
+            heating_demand, cooling_demand
+        )
+        if demand is None:
             return
 
         if self.get_state("input_boolean.ac_use_grid_surplus") == "on":
-            # Ensure the offset doesn't push demand + offset beyond 1.0
-            max_offset = max(0, 1.0 - demand)
-
-            # Flip sign so that positive values represent surplus
-            grid_surplus = -float(
-                self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
-            )
-
-            if grid_surplus > grid_surplus_upper_threshold:
-                self.grid_surplus_integral += grid_surplus_ki * (
-                    grid_surplus - grid_surplus_upper_threshold
-                )
-            elif grid_surplus < grid_surplus_lower_threshold:
-                self.grid_surplus_integral += grid_surplus_ki * (
-                    grid_surplus - grid_surplus_lower_threshold
-                )
-
-            # Cap surplus
-            self.grid_surplus_integral = min(
-                max_offset, max(0.0, self.grid_surplus_integral)
-            )
-            demand += self.grid_surplus_integral
-            # If current mode demand is less than the other mode, subtract the difference
-            demand -= surplus_overshoot
-            self.log(
-                f"grid_surplus: {grid_surplus:.3f}, max_offset: {max_offset:.3f}, surplus_overshoot: {surplus_overshoot:.3f}, grid_surplus_integral: {self.grid_surplus_integral:.3f}, adjusted_demand: {demand:.3f}"
-            )
+            demand = self._handle_grid_surplus(demand, surplus_overshoot)
         else:
             self.grid_surplus_integral = 0
+
         self.get_entity("input_number.grid_surplus_integral").set_state(
             state=self.grid_surplus_integral
         )
@@ -711,6 +666,55 @@ class Actrl(hass.Hass):
         )
         self.get_entity("input_number.aircon_avg_deriv").set_state(state=null_state)
         self.get_entity("input_number.aircon_meta_integral").set_state(state=null_state)
+
+    def _calculate_base_demand(self, heating_demand, cooling_demand):
+        if self.mode == "heat":
+            heat_cool_sign = -1.0
+            demand = heat_cool_sign * heating_demand
+            surplus_overshoot = max(
+                0, cooling_demand - heating_demand - (immediate_off_threshold / 2)
+            )
+        elif self.mode == "cool":
+            heat_cool_sign = 1.0
+            demand = heat_cool_sign * cooling_demand
+            surplus_overshoot = max(
+                0, heating_demand - cooling_demand - (immediate_off_threshold / 2)
+            )
+        else:
+            self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
+            return None, None, None
+
+        return demand, heat_cool_sign, surplus_overshoot
+
+    def _handle_grid_surplus(self, demand, surplus_overshoot):
+        max_offset = max(0, 1.0 - demand)
+
+        grid_surplus = -float(
+            self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
+        )
+
+        if grid_surplus > grid_surplus_upper_threshold:
+            self.grid_surplus_integral += grid_surplus_ki * (
+                grid_surplus - grid_surplus_upper_threshold
+            )
+        elif grid_surplus < grid_surplus_lower_threshold:
+            self.grid_surplus_integral += grid_surplus_ki * (
+                grid_surplus - grid_surplus_lower_threshold
+            )
+
+        self.grid_surplus_integral = min(
+            max_offset, max(0.0, self.grid_surplus_integral)
+        )
+        demand += self.grid_surplus_integral
+        demand -= surplus_overshoot
+
+        self.log(
+            f"grid_surplus: {grid_surplus:.3f}, max_offset: {max_offset:.3f}, "
+            f"surplus_overshoot: {surplus_overshoot:.3f}, "
+            f"grid_surplus_integral: {self.grid_surplus_integral:.3f}, "
+            f"adjusted_demand: {demand:.3f}"
+        )
+        return demand
 
     def set_fake_temp(self, celsius_setpoint, compressed_error, transmit=True):
         self.get_entity("input_number.fake_temperature").set_state(
