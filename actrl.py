@@ -372,43 +372,10 @@ class Actrl(hass.Hass):
             f"heating_demand: {heating_demand:.3f}, cooling_demand: {cooling_demand:.3f}"
         )
 
-        new_mode = None
-
-        # immediate_off_threshold is negative, -2.0
-        # If system is actively cooling, remain in cooling unless heating demand exceeds it by 2.0C
-        if self.get_state("climate.aircon") == "cool" and cooling_demand > (
-            heating_demand + immediate_off_threshold
-        ):
-            new_mode = "cool"
-        elif self.get_state("climate.aircon") == "heat" and heating_demand > (
-            cooling_demand + immediate_off_threshold
-        ):
-            new_mode = "heat"
-        elif cooling_demand > heating_demand:
-            new_mode = "cool"
-        elif heating_demand > cooling_demand:
-            new_mode = "heat"
-
+        new_mode = self._determine_new_mode(cooling_demand, heating_demand)
         self.log(f"new_mode {new_mode} (old mode {self.mode})")
 
-        if new_mode is None or (self.mode is not None and (new_mode != self.mode)):
-            self.mode = new_mode
-            # all zones disabled
-            for room, pid in self.pids.items():
-                pid.clear()
-            self.compressor_totally_off = True
-            self.on_counter = 0
-            self.deadband_integrator.clear()
-            if self.get_state("climate.aircon") != "fan_only":
-                self.try_set_mode("off")
-            self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
-            self.get_entity("input_number.aircon_weighted_error").set_state(
-                state=null_state
-            )
-            self.get_entity("input_number.aircon_avg_deriv").set_state(state=null_state)
-            self.get_entity("input_number.aircon_meta_integral").set_state(
-                state=null_state
-            )
+        if self._handle_mode_change(new_mode, celsius_setpoint):
             return
 
         self.mode = new_mode
@@ -707,6 +674,43 @@ class Actrl(hass.Hass):
             self.log(
                 f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
             )
+
+    def _determine_new_mode(self, cooling_demand, heating_demand):
+        if self.get_state("climate.aircon") == "cool" and cooling_demand > (
+            heating_demand + immediate_off_threshold
+        ):
+            return "cool"
+        elif self.get_state("climate.aircon") == "heat" and heating_demand > (
+            cooling_demand + immediate_off_threshold
+        ):
+            return "heat"
+        elif cooling_demand > heating_demand:
+            return "cool"
+        elif heating_demand > cooling_demand:
+            return "heat"
+        return None
+
+    def _handle_mode_change(self, new_mode, celsius_setpoint):
+        if new_mode is None or (self.mode is not None and (new_mode != self.mode)):
+            self.mode = new_mode
+            for room, pid in self.pids.items():
+                pid.clear()
+            self.compressor_totally_off = True
+            self.on_counter = 0
+            self.deadband_integrator.clear()
+            if self.get_state("climate.aircon") != "fan_only":
+                self.try_set_mode("off")
+            self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
+            self._reset_metrics()
+            return True
+        return False
+
+    def _reset_metrics(self):
+        self.get_entity("input_number.aircon_weighted_error").set_state(
+            state=null_state
+        )
+        self.get_entity("input_number.aircon_avg_deriv").set_state(state=null_state)
+        self.get_entity("input_number.aircon_meta_integral").set_state(state=null_state)
 
     def set_fake_temp(self, celsius_setpoint, compressed_error, transmit=True):
         self.get_entity("input_number.fake_temperature").set_state(
