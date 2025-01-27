@@ -96,7 +96,7 @@ minimum_temp_intervals = int(5 / interval)
 # Saturate after 15 power increments (note: a guess / slight over-estimate, the number of increments hasn't been measured)
 compressor_power_increments = 15
 
-# over 45 mins desired_off_threshold will ramp to min_power_threshold, and reset after 90 min purge delay
+# over 45 mins immediate_off_threshold will ramp to eventual_off_threshold, and reset after 90 min purge delay
 min_power_delay = int(45 / interval)
 
 # Every 90 mins at low power it runs at full speed for about a minute.
@@ -127,10 +127,12 @@ target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_thr
 faithful_threshold = 2.0
 desired_on_threshold = 0.0
 
-# Worst case, turn off if we have overshot massively.
-desired_off_threshold = -1.5
 # After reducing to minimum power and holding for a while, turn off at a tighter threshold
-min_power_threshold = -0.5
+eventual_off_threshold = -0.5
+# Give up on incremental control and cut to minimum power to avoid overshooting
+min_power_threshold = -1.0
+# Worst case, turn off if we have overshot massively.
+immediate_off_threshold = -2.0
 
 # try using FREEDOM UNITS
 ac_celsius = True
@@ -368,7 +370,16 @@ class Actrl(hass.Hass):
 
         for room in rooms:
             if self.get_state("input_boolean.ac_use_feels_like") == "on":
-                temps[room] = float(self.get_state("sensor." + room + "_feels_like"))
+                feels_like_value = self.get_state("sensor." + room + "_feels_like")
+                if feels_like_value is not None:
+                    temps[room] = float(feels_like_value)
+                else:
+                    self.log(
+                        f"'sensor.{room}_feels_like' is None. Falling back to 'sensor.{room}_average_temperature'."
+                    )
+                    temps[room] = float(
+                        self.get_state("sensor." + room + "_average_temperature")
+                    )
             else:
                 temps[room] = float(
                     self.get_state("sensor." + room + "_average_temperature")
@@ -442,18 +453,20 @@ class Actrl(hass.Hass):
         cooling_demand = max(errors["cool"].values(), default=float("-inf"))
         heating_demand = -min(errors["heat"].values(), default=float("inf"))
 
-        self.log(f"heating_demand: {heating_demand}, cooling_demand: {cooling_demand}")
+        self.log(
+            f"heating_demand: {heating_demand:.3f}, cooling_demand: {cooling_demand:.3f}"
+        )
 
         new_mode = None
 
-        # desired_off_threshold is negative, -1.5
-        # If system is actively cooling, remain in cooling unless heating demand exceeds it by 1.5C
+        # immediate_off_threshold is negative, -2.0
+        # If system is actively cooling, remain in cooling unless heating demand exceeds it by 2.0C
         if self.get_state("climate.aircon") == "cool" and cooling_demand > (
-            heating_demand + desired_off_threshold
+            heating_demand + immediate_off_threshold
         ):
             new_mode = "cool"
         elif self.get_state("climate.aircon") == "heat" and heating_demand > (
-            cooling_demand + desired_off_threshold
+            cooling_demand + immediate_off_threshold
         ):
             new_mode = "heat"
         elif cooling_demand > heating_demand:
@@ -493,25 +506,33 @@ class Actrl(hass.Hass):
             heat_cool_sign = -1.0
             demand = heat_cool_sign * heating_demand
 
-            # Limit offset to prevent switching to cooling
-            max_offset = max(0, (heating_demand - cooling_demand))
+            # if cooling demand exceeds heating demand in heating mode, we have overshot!
+            # leave a 1.5C buffer to prevent overshooting into cooling mode
+            surplus_overshoot = max(
+                0, cooling_demand - heating_demand - (immediate_off_threshold / 2)
+            )
         elif self.mode == "cool":
             heat_cool_sign = 1.0
             demand = heat_cool_sign * cooling_demand
 
-            # Limit offset to prevent switching to heating
-            max_offset = max(0, (cooling_demand - heating_demand))
+            # if heating demand exceeds cooling demand in cooling mode, we have overshot!
+            # leave a 1.5C buffer to prevent overshooting into heating mode
+            surplus_overshoot = max(
+                0, heating_demand - cooling_demand - (immediate_off_threshold / 2)
+            )
         else:
             self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
             return
 
         if self.get_state("input_boolean.ac_use_grid_surplus") == "on":
             # Ensure the offset doesn't push demand + offset beyond 1.0
-            max_allowed_offset = max(0, 1.0 - demand)
-            max_offset = min(max_offset, max_allowed_offset)
+            max_offset = max(0, 1.0 - demand)
 
             # Flip sign so that positive values represent surplus
-            grid_surplus = -float(self.get_state("sensor.power_grid_percentile"))
+            # grid_surplus = -float(self.get_state("sensor.power_grid_percentile"))
+            grid_surplus = -float(
+                self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
+            )
 
             if grid_surplus > grid_surplus_upper_threshold:
                 self.grid_surplus_integral += grid_surplus_ki * (
@@ -527,8 +548,10 @@ class Actrl(hass.Hass):
                 max_offset, max(0.0, self.grid_surplus_integral)
             )
             demand += self.grid_surplus_integral
+            # If current mode demand is less than the other mode, subtract the difference
+            demand -= surplus_overshoot
             self.log(
-                f"grid_surplus: {grid_surplus}, max_offset: {max_offset}, grid_surplus_integral: {self.grid_surplus_integral}, adjusted_demand: {demand}"
+                f"grid_surplus: {grid_surplus:.3f}, max_offset: {max_offset:.3f}, surplus_overshoot: {surplus_overshoot:.3f}, grid_surplus_integral: {self.grid_surplus_integral:.3f}, adjusted_demand: {demand:.3f}"
             )
         else:
             self.grid_surplus_integral = 0
@@ -626,7 +649,7 @@ class Actrl(hass.Hass):
                 state=pid_outputs[room]
             )
             self.log(
-                f"{room} adjusted PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
+                f"{room} adjusted PID output: {pid_outputs[room]:.3f} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
             )
 
         # Disabled rooms
@@ -659,18 +682,9 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_avg_deriv").set_state(state=avg_deriv)
 
         self.log(
-            "compressor_totally_off: "
-            + str(self.compressor_totally_off)
-            + ", guesstimated_comp_speed: "
-            + str(self.guesstimated_comp_speed)
-            + ", min_power_counter: "
-            + str(self.min_power_counter)
-            + ", on_counter: "
-            + str(self.on_counter)
-            + ", weighted_error: "
-            + str(weighted_error)
-            + ", avg_deriv: "
-            + str(avg_deriv)
+            f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, "
+            f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}, "
+            f"weighted_error: {weighted_error:.3f}, avg_deriv: {avg_deriv:.3f}"
         )
 
         unsigned_compressed_error = self.compress(
@@ -766,7 +780,7 @@ class Actrl(hass.Hass):
             self.damper_pos[room] = actual_cur_pos
         cur_pos = self.damper_pos[room]
 
-        damper_log = f"{room} damper scaled: {damper_val}, cur_pos: {cur_pos}, actual_cur_pos: {actual_cur_pos}"
+        damper_log = f"{room} damper scaled: {damper_val:.3f}, cur_pos: {cur_pos}, actual_cur_pos: {actual_cur_pos}"
         self.get_entity("input_number." + room + "_damper_target").set_state(
             state=damper_val
         )
@@ -827,12 +841,12 @@ class Actrl(hass.Hass):
         min_power_progress = min(1.0, wrapped_on_counter / min_power_delay)
 
         if self.guesstimated_comp_speed <= 0 and error <= (
-            desired_off_threshold * (1 - min_power_progress)
-            + min_power_threshold * min_power_progress
+            immediate_off_threshold * (1 - min_power_progress)
+            + eventual_off_threshold * min_power_progress
         ):
             self.compressor_totally_off = True
 
-        if self.guesstimated_comp_speed > 0 and error <= desired_off_threshold:
+        if self.guesstimated_comp_speed > 0 and error <= immediate_off_threshold:
             self.compressor_totally_off = True
 
         if self.compressor_totally_off:
