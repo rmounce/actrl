@@ -538,7 +538,7 @@ class Actrl(hass.Hass):
                 self.rooms_enabled[room] = True
 
             self.pids[room].update(
-                heat_cool_sign * error, heat_cool_sign * self.targets[mode][room]
+                heat_cool_sign * error, heat_cool_sign * self.targets[self.mode][room]
             )
             pid_outputs[room] = self.pids[room].get_output()
             # self.log(f"{room} raw PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})")
