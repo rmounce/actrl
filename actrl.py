@@ -5,8 +5,12 @@ import math
 from collections import deque
 import time
 
-rooms = ["bed_1", "bed_2", "bed_3", "kitchen", "study"]
+# If the top zone is 100% open, open at least 50% in a second zone
+# If kitchen has demand, this won't come into play as living airflow alone counts as 2
+min_airflow = 1.5
+
 # Kitchen has 2 ducts, min airflow isn't an issue there
+# The rest of the rooms are comparable in size
 room_airflow = {
     "bed_1": 1.0,
     "bed_2": 1.0,
@@ -14,15 +18,8 @@ room_airflow = {
     "kitchen": 2.0,
     "study": 1.0,
 }
-# If the top zone is 100% open, open at least 50% in a second zone
-# this is approx 1.29 rather than 1.5 due to exponential damper scaling
-# approx 1.29
-# min_airflow = 2 - math.sqrt(2) / 2
 
-# With only 2 bedrooms this may result in one being 100% open and another being 1-(1-0.5)^2 = 75% open.
-# If bedroom has demand and living (2x airflow) next in line, bedroom 100% and living 1-(1-0.25)^2 = 43.75%
-# If living has demand, this won't come into play as living airflow alone counts as 2
-min_airflow = 1.5
+rooms = list(room_airflow.keys())
 
 # in minutes
 interval = 10.0 / 60.0  # 10 seconds
@@ -78,6 +75,7 @@ room_deriv_factor = 2.0
 
 # percent
 damper_deadband = 7.5
+# match the zone10e step size
 damper_round = 5
 
 # soft start to avoid overshoot
@@ -142,7 +140,6 @@ grid_surplus_lower_threshold = 750
 grid_surplus_ki = interval / (1000 * 10)
 
 # Offsets for celsius
-ac_unit_from_celsius = 1.0
 ac_on_threshold = 1
 ac_stable_threshold = 1
 ac_off_threshold = -2
@@ -270,17 +267,10 @@ class DeadbandIntegrator:
 
         if self.integral > 1:
             self.integral = min(1, self.integral - 2)
-            # self.increment_count = max(1, self.increment_count)
             rval = 1
         elif self.integral < -1:
             self.integral = max(-1, self.integral + 2)
-            # self.increment_count = min(-1, self.increment_count)
             rval = -1
-
-        # self.increment_count += rval
-        # lazy heuristic to avoid overshoot due to time delay
-        # if self.increment_count == 3:
-        #    rval = 0
 
         print(
             f"input: {error}, integral: {self.integral}, increment_count: {self.increment_count} rval: {rval}"
@@ -344,7 +334,6 @@ class Actrl(hass.Hass):
     def main(self, kwargs):
         self.log("")
         self.log("#### BEGIN CYCLE ####")
-        prev_temps = {}
         temps = {}
         errors = {"heat": {}, "cool": {}}
         damper_vals = {}
@@ -433,10 +422,6 @@ class Actrl(hass.Hass):
                     if room in self.targets[mode]:
                         self.targets[mode].pop(room)
 
-        # First run, no previous temps
-        if not prev_temps:
-            prev_temps = temps
-
         cooling_demand = max(errors["cool"].values(), default=float("-inf"))
         heating_demand = -min(errors["heat"].values(), default=float("inf"))
 
@@ -516,7 +501,6 @@ class Actrl(hass.Hass):
             max_offset = max(0, 1.0 - demand)
 
             # Flip sign so that positive values represent surplus
-            # grid_surplus = -float(self.get_state("sensor.power_grid_percentile"))
             grid_surplus = -float(
                 self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
             )
@@ -739,10 +723,6 @@ class Actrl(hass.Hass):
         time.sleep(0.1)
 
     def set_damper_pos(self, room, damper_val, open_only=False):
-        # i don't know fluid dynamics but it seems nonlinear, lets try squaring!
-        # damper_val = 100.0 * (1.0 - pow(1.0 - (damper_val / 100.0), 2))
-        # actually let's just stick with linear
-
         actual_cur_pos = float(
             self.get_entity("cover." + room).get_state("current_position")
         )
@@ -756,12 +736,6 @@ class Actrl(hass.Hass):
         )
 
         cur_deadband = damper_deadband
-        # damper won't do much if the fan isn't running
-        # cur_deadband = (
-        #    (2.0 * damper_deadband)
-        #    if (self.compressor_totally_off and self.mode == 'heat')
-        #    else damper_deadband
-        # )
 
         if (damper_val > 99.9 and actual_cur_pos < 100.0) or (
             (not open_only)
@@ -862,7 +836,7 @@ class Actrl(hass.Hass):
             return self.midea_runtime_quirks(
                 ac_stable_threshold
                 + ramp_progress
-                * (2 + ac_unit_from_celsius * (error - faithful_threshold))
+                * (2 + error - faithful_threshold)
             )
 
         if error <= min_power_threshold:
