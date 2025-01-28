@@ -139,6 +139,9 @@ grid_surplus_lower_threshold = 750
 # 1.0C = 1000W for 10 minutes
 grid_surplus_ki = interval / (1000 * 10)
 
+# Don't wind-up more than 1.0C
+grid_surplus_max_offset = 1.0
+
 # Offsets for celsius
 ac_on_threshold = 1
 ac_stable_threshold = 1
@@ -588,13 +591,13 @@ class Actrl(hass.Hass):
             heat_cool_sign = -1.0
             demand = heat_cool_sign * heating_demand
             surplus_overshoot = max(
-                0, cooling_demand - heating_demand - (immediate_off_threshold / 2)
+                0, grid_surplus_max_offset + cooling_demand - heating_demand
             )
         elif self.mode == "cool":
             heat_cool_sign = 1.0
             demand = heat_cool_sign * cooling_demand
             surplus_overshoot = max(
-                0, heating_demand - cooling_demand - (immediate_off_threshold / 2)
+                0, grid_surplus_max_offset + heating_demand - cooling_demand
             )
         else:
             self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
@@ -603,7 +606,7 @@ class Actrl(hass.Hass):
         return demand, heat_cool_sign, surplus_overshoot
 
     def _handle_grid_surplus(self, demand, surplus_overshoot):
-        max_offset = max(0, 1.0 - demand)
+        max_offset = max(0, grid_surplus_max_offset - surplus_overshoot - demand)
 
         grid_surplus = -float(
             self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
@@ -622,7 +625,6 @@ class Actrl(hass.Hass):
             max_offset, max(0.0, self.grid_surplus_integral)
         )
         demand += self.grid_surplus_integral
-        demand -= surplus_overshoot
 
         self.log(
             f"grid_surplus: {grid_surplus:.3f}, max_offset: {max_offset:.3f}, "
