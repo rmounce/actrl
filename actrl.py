@@ -591,13 +591,13 @@ class Actrl(hass.Hass):
             heat_cool_sign = -1.0
             demand = heat_cool_sign * heating_demand
             surplus_overshoot = max(
-                0, grid_surplus_max_offset + cooling_demand - heating_demand
+                0, grid_surplus_max_offset + (cooling_demand - heating_demand) / 2
             )
         elif self.mode == "cool":
             heat_cool_sign = 1.0
             demand = heat_cool_sign * cooling_demand
             surplus_overshoot = max(
-                0, grid_surplus_max_offset + heating_demand - cooling_demand
+                0, grid_surplus_max_offset + (heating_demand - cooling_demand) / 2
             )
         else:
             self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
