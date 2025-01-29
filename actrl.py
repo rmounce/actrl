@@ -398,7 +398,7 @@ class Actrl(hass.Hass):
 
         # Use the state of the zone with the highest demand rather than weighted demand
         # weighted_error = error_sum / weight_sum
-        weighted_error = demand
+        weighted_error = heat_cool_sign * demand
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
             state=weighted_error
@@ -589,13 +589,13 @@ class Actrl(hass.Hass):
     def _calculate_base_demand(self, heating_demand, cooling_demand):
         if self.mode == "heat":
             heat_cool_sign = -1.0
-            demand = heat_cool_sign * heating_demand
+            demand = heating_demand
             surplus_overshoot = max(
                 0, grid_surplus_max_offset + (cooling_demand - heating_demand) / 2
             )
         elif self.mode == "cool":
             heat_cool_sign = 1.0
-            demand = heat_cool_sign * cooling_demand
+            demand = cooling_demand
             surplus_overshoot = max(
                 0, grid_surplus_max_offset + (heating_demand - cooling_demand) / 2
             )
