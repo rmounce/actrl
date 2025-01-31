@@ -553,31 +553,42 @@ class Actrl(hass.Hass):
 
             # room in auto mode with both heat/cool targets; handle grid surplus
             if room in self.targets["heat"] and room in self.targets["cool"]:
-                # TODO: handle grid_surplus_min_cooling / grid_surplus_max_heating
-                max_offset = (
+                # examples for a room with setpoints of 19 and 25 C
+                # (25 - 19 + (-1.5)) / 2 = 2.75
+                midpoint_offset = (
                     self.targets["cool"][room]
                     - self.targets["heat"][room]
                     + immediate_off_threshold
                 ) / 2
-                if max_offset <= 0:
+                # 25 - 21 = 4
+                cool_offset = self.targets["cool"][room] - grid_surplus_min_cooling
+                # 21 - 19 = 2
+                heat_offset = grid_surplus_max_heating - self.targets["heat"][room]
+
+                max_mode_offset = {}
+                max_mode_offset["cool"] = min(midpoint_offset, cool_offset)
+                max_mode_offset["heat"] = min(midpoint_offset, heat_offset)
+
+                self.log(
+                    f"Adjusting {room} offset within limits of heat: {heat_offset:.3f}, midpoint: {midpoint_offset:.3f}, cool: {cool_offset:.3f}"
+                )
+
+                if midpoint_offset <= 0:
                     self.log(
                         f"WARNING: heat/cool targets for room {room} are within {immediate_off_threshold} C of each other"
                     )
                 else:
-                    grid_surplus_overshoot = max(
-                        0, self.grid_surplus_integral - max_offset
-                    )
-                    min_grid_surplus_overshoot = min(
-                        min_grid_surplus_overshoot, grid_surplus_overshoot
-                    )
-
                     for mode in errors.keys():
-                        errors[mode][room] += min(
-                            max_offset, self.grid_surplus_integral
+                        grid_surplus_overshoot = max(
+                            0, self.grid_surplus_integral - max_mode_offset[mode]
                         )
-                    self.log(
-                        f"Adjusted {room} by min of {self.grid_surplus_integral}, {max_offset}"
-                    )
+                        min_grid_surplus_overshoot = min(
+                            min_grid_surplus_overshoot, grid_surplus_overshoot
+                        )
+
+                        errors[mode][room] += min(
+                            max_mode_offset[mode], self.grid_surplus_integral
+                        )
 
         if min_grid_surplus_overshoot < float("inf"):
             self.grid_surplus_integral -= min_grid_surplus_overshoot
