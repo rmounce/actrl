@@ -342,9 +342,7 @@ class Actrl(hass.Hass):
 
         self._add_grid_surplus()
 
-        errors, cooling_demand, heating_demand = self._calculate_demand(
-            temps, cur_targets
-        )
+        errors, cooling_demand, heating_demand = self._calculate_demand(temps)
 
         self.get_entity("input_number.grid_surplus_integral").set_state(
             state=self.grid_surplus_integral
@@ -561,7 +559,7 @@ class Actrl(hass.Hass):
                     )
                 else:
                     grid_surplus_overshoot = max(
-                        0, self.self.grid_surplus_integral - max_offset
+                        0, self.grid_surplus_integral - max_offset
                     )
                     min_grid_surplus_overshoot = min(
                         min_grid_surplus_overshoot, grid_surplus_overshoot
@@ -569,16 +567,16 @@ class Actrl(hass.Hass):
 
                     for mode in errors.keys():
                         errors[mode][room] += min(
-                            max_offset, self.self.grid_surplus_integral
+                            max_offset, self.grid_surplus_integral
                         )
 
         if min_grid_surplus_overshoot < float("inf"):
-            self.self.grid_surplus_integral -= min_grid_surplus_overshoot
+            self.grid_surplus_integral -= min_grid_surplus_overshoot
 
         return errors
 
-    def _calculate_demand(self, temps, cur_targets):
-        errors = self._calculate_room_errors(temps, cur_targets)
+    def _calculate_demand(self, temps):
+        errors = self._calculate_room_errors(temps)
         cooling_demand = max(errors["cool"].values(), default=float("-inf"))
         heating_demand = max(errors["heat"].values(), default=float("-inf"))
 
@@ -588,7 +586,7 @@ class Actrl(hass.Hass):
         if demand_beyond_grid_surplus_max_offset > 0:
             self.grid_surplus_integral -= demand_beyond_grid_surplus_max_offset
             self.grid_surplus_integral = max(0, self.grid_surplus_integral)
-            errors = self._calculate_room_errors(temps, cur_targets)
+            errors = self._calculate_room_errors(temps)
             cooling_demand = max(errors["cool"].values(), default=float("-inf"))
             heating_demand = max(errors["heat"].values(), default=float("-inf"))
         return errors, cooling_demand, heating_demand
