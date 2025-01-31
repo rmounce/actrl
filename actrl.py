@@ -127,9 +127,9 @@ desired_on_threshold = 0.0
 # After reducing to minimum power and holding for a while, turn off at a tighter threshold
 eventual_off_threshold = -0.5
 # Give up on incremental control and cut to minimum power to avoid overshooting
-min_power_threshold = -1.0
+min_power_threshold = -0.75
 # Worst case, turn off if we have overshot massively.
-immediate_off_threshold = -2.0
+immediate_off_threshold = -1.5
 
 # 750W hysteresis to ensure stability when the AC starts up
 grid_surplus_upper_threshold = 1500
@@ -148,6 +148,8 @@ ac_stable_threshold = 1
 ac_off_threshold = -2
 
 null_state = "unknown"
+
+mode_sign = {"cool": 1.0, "heat": -1.0}
 
 
 class MyWMA:
@@ -336,43 +338,34 @@ class Actrl(hass.Hass):
         self.log("#### BEGIN CYCLE ####")
         temps = self._get_current_temperatures()
         cur_targets = self._get_current_targets()
-        errors = self._calculate_room_errors(temps, cur_targets)
+        self._update_room_targets(temps, cur_targets)
 
-        celsius_setpoint = float(
-            self.get_entity("climate.aircon").get_state("temperature")
+        self._add_grid_surplus()
+
+        errors, cooling_demand, heating_demand = self._calculate_demand(
+            temps, cur_targets
         )
 
-        cooling_demand = max(errors["cool"].values(), default=float("-inf"))
-        heating_demand = -min(errors["heat"].values(), default=float("inf"))
-
+        self.get_entity("input_number.grid_surplus_integral").set_state(
+            state=self.grid_surplus_integral
+        )
         self.log(
             f"heating_demand: {heating_demand:.3f}, cooling_demand: {cooling_demand:.3f}"
         )
 
-        new_mode = self._determine_new_mode(cooling_demand, heating_demand)
+        new_mode, demand = self._determine_new_mode(cooling_demand, heating_demand)
         self.log(f"new_mode {new_mode} (old mode {self.mode})")
+
+        celsius_setpoint = float(
+            self.get_entity("climate.aircon").get_state("temperature")
+        )
 
         if self._handle_mode_change(new_mode, celsius_setpoint):
             return
 
         self.mode = new_mode
 
-        demand, heat_cool_sign, surplus_overshoot = self._calculate_base_demand(
-            heating_demand, cooling_demand
-        )
-        if demand is None:
-            return
-
-        if self.get_state("input_boolean.ac_use_grid_surplus") == "on":
-            demand = self._handle_grid_surplus(demand, surplus_overshoot)
-        else:
-            self.grid_surplus_integral = 0
-
-        self.get_entity("input_number.grid_surplus_integral").set_state(
-            state=self.grid_surplus_integral
-        )
-
-        pid_outputs = self._calculate_pid_outputs(errors, heat_cool_sign)
+        pid_outputs = self._calculate_pid_outputs(errors)
 
         # Disabled rooms
         for room in rooms - cur_targets[self.mode].keys():
@@ -398,7 +391,7 @@ class Actrl(hass.Hass):
 
         # Use the state of the zone with the highest demand rather than weighted demand
         # weighted_error = error_sum / weight_sum
-        weighted_error = heat_cool_sign * demand
+        weighted_error = mode_sign[self.mode] * demand
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
             state=weighted_error
@@ -412,11 +405,11 @@ class Actrl(hass.Hass):
         )
 
         unsigned_compressed_error = self.compress(
-            weighted_error * heat_cool_sign, avg_deriv * heat_cool_sign
+            weighted_error * mode_sign[self.mode], avg_deriv * mode_sign[self.mode]
         )
         self.prev_unsigned_compressed_error = unsigned_compressed_error
 
-        compressed_error = heat_cool_sign * unsigned_compressed_error
+        compressed_error = mode_sign[self.mode] * unsigned_compressed_error
         self.log("compressed_error: " + str(compressed_error))
 
         self.on_counter += 1
@@ -520,10 +513,7 @@ class Actrl(hass.Hass):
                 f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
             )
 
-    def _calculate_room_errors(self, temps, cur_targets):
-        """Calculate temperature errors for each room based on current temperatures and targets."""
-        errors = {"heat": {}, "cool": {}}
-
+    def _update_room_targets(self, temps, cur_targets):
         for room in rooms:
             self.temp_derivs[room].set(temps[room], 0)
 
@@ -533,7 +523,6 @@ class Actrl(hass.Hass):
                 else:
                     self.log(f"setting heat target for previously disabled room {room}")
                     self.targets["heat"][room] = cur_targets["heat"][room]
-                errors["heat"][room] = temps[room] - self.targets["heat"][room]
             elif room in self.targets["heat"]:
                 self.targets["heat"].pop(room)
 
@@ -543,25 +532,80 @@ class Actrl(hass.Hass):
                 else:
                     self.log(f"setting cool target for previously disabled room {room}")
                     self.targets["cool"][room] = cur_targets["cool"][room]
-                errors["cool"][room] = temps[room] - self.targets["cool"][room]
             elif room in self.targets["cool"]:
                 self.targets["cool"].pop(room)
 
+    def _calculate_room_errors(self, temps):
+        errors = {"heat": {}, "cool": {}}
+        # if every zone and mode overshoots, the integral should saturate to prevent wind-up
+        min_grid_surplus_overshoot = float("inf")
+
+        for room in rooms:
+            # default
+            for mode in errors.keys():
+                if room in self.targets[mode]:
+                    errors[mode][room] = mode_sign[mode] * (
+                        temps[room] - self.targets[mode][room]
+                    )
+
+            # room in auto mode with both heat/cool targets; handle grid surplus
+            if room in self.targets["heat"] and room in self.targets["cool"]:
+                max_offset = (
+                    self.targets["cool"][room]
+                    - self.targets["heat"][room]
+                    - immediate_off_threshold
+                ) / 2
+                if max_offset <= 0:
+                    self.log(
+                        f"WARNING: heat/cool targets for room {room} are within {immediate_off_threshold} C of each other"
+                    )
+                else:
+                    grid_surplus_overshoot = max(
+                        0, self.self.grid_surplus_integral - max_offset
+                    )
+                    min_grid_surplus_overshoot = min(
+                        min_grid_surplus_overshoot, grid_surplus_overshoot
+                    )
+
+                    for mode in errors.keys():
+                        errors[mode][room] += min(
+                            max_offset, self.self.grid_surplus_integral
+                        )
+
+        if min_grid_surplus_overshoot < float("inf"):
+            self.self.grid_surplus_integral -= min_grid_surplus_overshoot
+
         return errors
+
+    def _calculate_demand(self, temps, cur_targets):
+        errors = self._calculate_room_errors(temps, cur_targets)
+        cooling_demand = max(errors["cool"].values(), default=float("-inf"))
+        heating_demand = max(errors["heat"].values(), default=float("-inf"))
+
+        demand_beyond_grid_surplus_max_offset = (
+            max(cooling_demand, heating_demand) - grid_surplus_max_offset
+        )
+        if demand_beyond_grid_surplus_max_offset > 0:
+            self.grid_surplus_integral -= demand_beyond_grid_surplus_max_offset
+            self.grid_surplus_integral = max(0, self.grid_surplus_integral)
+            errors = self._calculate_room_errors(temps, cur_targets)
+            cooling_demand = max(errors["cool"].values(), default=float("-inf"))
+            heating_demand = max(errors["heat"].values(), default=float("-inf"))
+        return errors, cooling_demand, heating_demand
 
     def _determine_new_mode(self, cooling_demand, heating_demand):
         if self.get_state("climate.aircon") == "cool" and cooling_demand > (
             heating_demand + immediate_off_threshold
         ):
-            return "cool"
+            return "cool", cooling_demand
         elif self.get_state("climate.aircon") == "heat" and heating_demand > (
             cooling_demand + immediate_off_threshold
         ):
-            return "heat"
+            return "heat", heating_demand
         elif cooling_demand > heating_demand:
-            return "cool"
+            return "cool", cooling_demand
         elif heating_demand > cooling_demand:
-            return "heat"
+            return "heat", heating_demand
         return None
 
     def _handle_mode_change(self, new_mode, celsius_setpoint):
@@ -586,27 +630,10 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_avg_deriv").set_state(state=null_state)
         self.get_entity("input_number.aircon_meta_integral").set_state(state=null_state)
 
-    def _calculate_base_demand(self, heating_demand, cooling_demand):
-        if self.mode == "heat":
-            heat_cool_sign = -1.0
-            demand = heating_demand
-            surplus_overshoot = max(
-                0, grid_surplus_max_offset + (cooling_demand - heating_demand) / 2
-            )
-        elif self.mode == "cool":
-            heat_cool_sign = 1.0
-            demand = cooling_demand
-            surplus_overshoot = max(
-                0, grid_surplus_max_offset + (heating_demand - cooling_demand) / 2
-            )
-        else:
-            self.log(f"SOMETHING BAD HAPPENED, invalid mode: {self.mode}")
-            return None, None, None
-
-        return demand, heat_cool_sign, surplus_overshoot
-
-    def _handle_grid_surplus(self, demand, surplus_overshoot):
-        max_offset = max(0, grid_surplus_max_offset - surplus_overshoot - demand)
+    def _add_grid_surplus(self):
+        if self.get_state("input_boolean.ac_use_grid_surplus") != "on":
+            self.grid_surplus_integral = 0
+            return
 
         grid_surplus = -float(
             self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
@@ -621,20 +648,9 @@ class Actrl(hass.Hass):
                 grid_surplus - grid_surplus_lower_threshold
             )
 
-        self.grid_surplus_integral = min(
-            max_offset, max(0.0, self.grid_surplus_integral)
-        )
-        demand += self.grid_surplus_integral
+        self.grid_surplus_integral = max(0.0, self.grid_surplus_integral)
 
-        self.log(
-            f"grid_surplus: {grid_surplus:.3f}, max_offset: {max_offset:.3f}, "
-            f"surplus_overshoot: {surplus_overshoot:.3f}, "
-            f"grid_surplus_integral: {self.grid_surplus_integral:.3f}, "
-            f"adjusted_demand: {demand:.3f}"
-        )
-        return demand
-
-    def _calculate_pid_outputs(self, errors, heat_cool_sign):
+    def _calculate_pid_outputs(self, errors):
         # Calculate raw PID outputs
         pid_outputs = {}
         for room, error in errors[self.mode].items():
@@ -643,7 +659,8 @@ class Actrl(hass.Hass):
                 self.rooms_enabled[room] = True
 
             self.pids[room].update(
-                heat_cool_sign * error, heat_cool_sign * self.targets[self.mode][room]
+                error,
+                mode_sign[self.mode] * self.targets[self.mode][room],
             )
             pid_outputs[room] = self.pids[room].get_output()
             # self.log(f"{room} raw PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})")
