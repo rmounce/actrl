@@ -142,6 +142,11 @@ grid_surplus_ki = interval / (1000 * 10)
 # Don't wind-up more than 1.0C
 grid_surplus_max_offset = 1.0
 
+# set some boundaries before things get too weird
+# e.g. during night mode the midpoint of (16+24)/2 = 20, a bit too chilly
+grid_surplus_min_cooling = 21
+grid_surplus_max_heating = 21
+
 # Offsets for celsius
 ac_on_threshold = 1
 ac_stable_threshold = 1
@@ -548,10 +553,11 @@ class Actrl(hass.Hass):
 
             # room in auto mode with both heat/cool targets; handle grid surplus
             if room in self.targets["heat"] and room in self.targets["cool"]:
+                # TODO: handle grid_surplus_min_cooling / grid_surplus_max_heating
                 max_offset = (
                     self.targets["cool"][room]
                     - self.targets["heat"][room]
-                    - immediate_off_threshold
+                    + immediate_off_threshold
                 ) / 2
                 if max_offset <= 0:
                     self.log(
@@ -569,6 +575,9 @@ class Actrl(hass.Hass):
                         errors[mode][room] += min(
                             max_offset, self.grid_surplus_integral
                         )
+                    self.log(
+                        f"Adjusted {room} by min of {self.grid_surplus_integral}, {max_offset}"
+                    )
 
         if min_grid_surplus_overshoot < float("inf"):
             self.grid_surplus_integral -= min_grid_surplus_overshoot
@@ -636,6 +645,8 @@ class Actrl(hass.Hass):
         grid_surplus = -float(
             self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
         )
+        # 10kW solar 24/7, yeah that'd be nice
+        # grid_surplus = 10000.0
 
         if grid_surplus > grid_surplus_upper_threshold:
             self.grid_surplus_integral += grid_surplus_ki * (
