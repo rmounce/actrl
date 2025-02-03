@@ -878,6 +878,7 @@ class Actrl(hass.Hass):
         if error > min_power_threshold and (self.on_counter < soft_delay):
             if self.on_counter < soft_delay:
                 print("soft start, on_counter: " + str(self.on_counter))
+            self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_stable_threshold - 1)
 
         if error > faithful_threshold:
@@ -892,6 +893,7 @@ class Actrl(hass.Hass):
             else:
                 ramp_progress = 1
 
+            self.deadband_integrator.clear()
             return self.midea_runtime_quirks(
                 ac_stable_threshold + ramp_progress * (2 + error - faithful_threshold)
             )
