@@ -905,6 +905,7 @@ class Actrl(hass.Hass):
         if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_stable_threshold + 1)
+        # sometimes ac_stable_threshold - 2 is necessary to hold min temp, see minimum_temp_intervals
         elif self.prev_unsigned_compressed_error < ac_stable_threshold - 2:
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_stable_threshold - 1)
@@ -922,6 +923,7 @@ class Actrl(hass.Hass):
     def midea_runtime_quirks(self, rval):
         rval = round(rval)
 
+        # reset once the temp step has been held for long enough
         if (
             (self.outer_ramp_count > 0 and rval < ac_stable_threshold)
             or (self.outer_ramp_count < 0 and rval > ac_stable_threshold)
@@ -973,6 +975,7 @@ class Actrl(hass.Hass):
         if self.guesstimated_comp_speed >= compressor_power_increments + 2:
             rval = max(ac_stable_threshold + 1, rval)
 
+        # Saturated, just keep demanding a compressor speed decrease
         if self.guesstimated_comp_speed <= 0:
             rval = min(ac_stable_threshold - 1, rval)
 
@@ -983,12 +986,12 @@ class Actrl(hass.Hass):
         if rval < ac_stable_threshold:
             self.min_power_counter += 1
             if self.min_power_counter % min_power_time == (min_power_time - 1):
-                # 'blip' the feels like temp to reset the AC's internal timer
+                # 'blip' the feels like temp to reset the AC's internal timer 
+                # and prevent the system from shutting down completely
                 self.prev_unsigned_compressed_error = ac_stable_threshold + 1
 
             # aircon seems to react to edges
             # so provide as many as possible to quickly reduce power?
-            # may be extra helpful in fahrenheit mode? (seemingly not)
             return max(rval, self.prev_unsigned_compressed_error - 1)
         else:
             self.min_power_counter = 0
