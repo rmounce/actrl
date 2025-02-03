@@ -902,14 +902,6 @@ class Actrl(hass.Hass):
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_off_threshold + 1)
 
-        if self.prev_unsigned_compressed_error > ac_stable_threshold + 1:
-            self.deadband_integrator.clear()
-            return self.midea_runtime_quirks(ac_stable_threshold + 1)
-        # sometimes ac_stable_threshold - 2 is necessary to hold min temp, see minimum_temp_intervals
-        elif self.prev_unsigned_compressed_error < ac_stable_threshold - 2:
-            self.deadband_integrator.clear()
-            return self.midea_runtime_quirks(ac_stable_threshold - 1)
-
         return self.midea_runtime_quirks(
             ac_stable_threshold + self.deadband_integrator.set(error)
         )
@@ -922,6 +914,22 @@ class Actrl(hass.Hass):
 
     def midea_runtime_quirks(self, rval):
         rval = round(rval)
+
+        # Bypass the stepping behaviour for extreme errors above faithful_threshold
+        # in favor of simple hysteresis
+        if rval > ac_stable_threshold + 1:
+            # Assume that there is demand for max power
+            self.guesstimated_comp_speed = compressor_power_increments + 2
+            # Reset any ramp count
+            self.outer_ramp_count = 0
+            # Honestly can't remember if this is needed... copied from below for safety
+            self.outer_ramp_rval = rval
+
+            # Simple hysteresis
+            if self.prev_unsigned_compressed_error > rval:
+                return rval + 1
+            else:
+                return rval
 
         # reset once the temp step has been held for long enough
         if (
@@ -973,7 +981,7 @@ class Actrl(hass.Hass):
 
         # Saturated, just keep demanding a compressor speed increase
         if self.guesstimated_comp_speed >= compressor_power_increments + 2:
-            rval = max(ac_stable_threshold + 1, rval)
+            rval = max(ac_stable_threshold + 2, rval)
 
         # Saturated, just keep demanding a compressor speed decrease
         if self.guesstimated_comp_speed <= 0:
