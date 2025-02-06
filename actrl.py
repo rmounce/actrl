@@ -90,8 +90,11 @@ soft_ramp = int(2.5 / interval)
 # wait for 5 minutes of soft start before dropping to absolute minimum power
 minimum_temp_intervals = int(5 / interval)
 
-# Saturate after 15 power increments (note: a guess / slight over-estimate, the number of increments hasn't been measured)
+# Saturate after 15 power increments (slight over-estimate, appears to be closer to 13)
 compressor_power_increments = 15
+
+# Additional safety margin when switching between stepping up / down
+compressor_power_safety_margin = 2
 
 # over 45 mins immediate_off_threshold will ramp to eventual_off_threshold, and reset after 90 min purge delay
 min_power_delay = int(45 / interval)
@@ -918,8 +921,10 @@ class Actrl(hass.Hass):
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
         if rval > ac_stable_threshold + 1:
-            # Assume that there is demand for max power
-            self.guesstimated_comp_speed = compressor_power_increments + 2
+            # Assume that there is demand for max power (plus lower and upper safety margin)
+            self.guesstimated_comp_speed = (
+                compressor_power_increments + compressor_power_safety_margin
+            )
             # Reset any ramp count
             self.outer_ramp_count = 0
             # Honestly can't remember if this is needed... copied from below for safety
@@ -955,8 +960,8 @@ class Actrl(hass.Hass):
             self.outer_ramp_count = 1
             # Saturate after 15 power increments (note: slight over-estimate for safety margin, the number of increments appears to be 13)
             self.guesstimated_comp_speed = min(
-                compressor_power_increments + 2,
-                max(2, self.guesstimated_comp_speed + 1),
+                compressor_power_increments,
+                max(compressor_power_safety_margin, self.guesstimated_comp_speed + 1),
             )
         elif (rval < ac_stable_threshold and rval < self.outer_ramp_rval) or (
             rval == self.outer_ramp_rval == ac_stable_threshold - 1
@@ -968,7 +973,10 @@ class Actrl(hass.Hass):
             else:
                 self.guesstimated_comp_speed = max(
                     -minimum_temp_intervals,
-                    min(compressor_power_increments, self.guesstimated_comp_speed - 1),
+                    min(
+                        compressor_power_increments + compressor_power_safety_margin,
+                        self.guesstimated_comp_speed - 1,
+                    ),
                 )
 
         if self.outer_ramp_count > 0:
@@ -981,7 +989,10 @@ class Actrl(hass.Hass):
             self.outer_ramp_rval = rval
 
         # Saturated, just keep demanding a compressor speed increase
-        if self.guesstimated_comp_speed >= compressor_power_increments + 2:
+        if (
+            self.guesstimated_comp_speed
+            >= compressor_power_increments + compressor_power_safety_margin
+        ):
             rval = max(ac_stable_threshold + 2, rval)
 
         # Saturated, just keep demanding a compressor speed decrease
