@@ -308,7 +308,9 @@ class Actrl(hass.Hass):
         self.outer_ramp_count = 0
         self.outer_ramp_rval = 1
         self.guesstimated_comp_speed = 0
-        self.grid_surplus_integral = 0
+        self.grid_surplus_integral = float(
+            self.get_state("input_number.grid_surplus_integral")
+        )
         if self.get_state("climate.aircon") in ["heat", "cool"]:
             self.mode = self.get_state("climate.aircon")
             self.log("ASSUMING THAT THE AIRCON IS ALREADY RUNNING")
