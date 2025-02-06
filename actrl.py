@@ -953,7 +953,7 @@ class Actrl(hass.Hass):
         ):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = 1
-            # Saturate after 15 power increments (note: a guess / slight over-estimate, the number of increments hasn't been measured)
+            # Saturate after 15 power increments (note: slight over-estimate for safety margin, the number of increments appears to be 13)
             self.guesstimated_comp_speed = min(
                 compressor_power_increments + 2,
                 max(2, self.guesstimated_comp_speed + 1),
@@ -967,7 +967,8 @@ class Actrl(hass.Hass):
                 self.guesstimated_comp_speed = -minimum_temp_intervals
             else:
                 self.guesstimated_comp_speed = max(
-                    -minimum_temp_intervals, self.guesstimated_comp_speed - 1
+                    -minimum_temp_intervals,
+                    min(compressor_power_increments, self.guesstimated_comp_speed - 1),
                 )
 
         if self.outer_ramp_count > 0:
@@ -994,7 +995,7 @@ class Actrl(hass.Hass):
         if rval < ac_stable_threshold:
             self.min_power_counter += 1
             if self.min_power_counter % min_power_time == (min_power_time - 1):
-                # 'blip' the feels like temp to reset the AC's internal timer 
+                # 'blip' the feels like temp to reset the AC's internal timer
                 # and prevent the system from shutting down completely
                 self.prev_unsigned_compressed_error = ac_stable_threshold + 1
 
