@@ -90,11 +90,11 @@ soft_ramp = int(2.5 / interval)
 # wait for 5 minutes of soft start before dropping to absolute minimum power
 minimum_temp_intervals = int(5 / interval)
 
-# Saturate after 15 power increments (slight over-estimate, appears to be closer to 13)
-compressor_power_increments = 15
+# Saturate after 14 power increments (slight over-estimate, appears to be closer to 13)
+compressor_power_increments = 14
 
 # Additional safety margin when switching between stepping up / down
-compressor_power_safety_margin = 2
+compressor_power_safety_margin = 3
 
 # over 45 mins immediate_off_threshold will ramp to eventual_off_threshold, and reset after 90 min purge delay
 min_power_delay = int(45 / interval)
