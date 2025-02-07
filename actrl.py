@@ -962,7 +962,7 @@ class Actrl(hass.Hass):
             self.outer_ramp_count = 1
             # Saturate after 15 power increments (note: slight over-estimate for safety margin, the number of increments appears to be 13)
             self.guesstimated_comp_speed = min(
-                compressor_power_increments,
+                compressor_power_increments + compressor_power_safety_margin,
                 max(compressor_power_safety_margin, self.guesstimated_comp_speed + 1),
             )
         elif (rval < ac_stable_threshold and rval < self.outer_ramp_rval) or (
@@ -976,7 +976,7 @@ class Actrl(hass.Hass):
                 self.guesstimated_comp_speed = max(
                     -minimum_temp_intervals,
                     min(
-                        compressor_power_increments + compressor_power_safety_margin,
+                        compressor_power_increments,
                         self.guesstimated_comp_speed - 1,
                     ),
                 )
