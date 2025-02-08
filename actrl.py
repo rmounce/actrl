@@ -432,8 +432,7 @@ class Actrl(hass.Hass):
 
         self.log(
             f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, "
-            f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}, "
-            f"weighted_error: {weighted_error:.3f}, avg_deriv: {avg_deriv:.3f}"
+            f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}"
         )
 
         unsigned_compressed_error = self.compress(
@@ -442,7 +441,9 @@ class Actrl(hass.Hass):
         self.prev_unsigned_compressed_error = unsigned_compressed_error
 
         compressed_error = mode_sign[self.mode] * unsigned_compressed_error
-        self.log("compressed_error: " + str(compressed_error))
+        self.log(
+            f"weighted_error: {weighted_error:.3f}, avg_deriv: {avg_deriv:.3f}, compressed_error: {compressed_error}"
+        )
 
         self.on_counter += 1
         if self.get_state("input_boolean.ac_min_power") == "on":
