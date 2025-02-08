@@ -7,7 +7,7 @@ import time
 
 # If the top zone is 100% open, open at least 50% in a second zone
 # If kitchen has demand, this won't come into play as living airflow alone counts as 2
-min_airflow = 1.5
+min_airflow = 2.0 - 1e-9
 
 # Kitchen has 2 ducts, min airflow isn't an issue there
 # The rest of the rooms are comparable in size
@@ -143,8 +143,9 @@ grid_surplus_lower_threshold = 750
 grid_surplus_ki = interval / (1000 * 10)
 
 # per interval
-# 0.1C per minute
-grid_surplus_open_window_rate = 0.1 * interval
+# 0.2C per minute
+# double the rate of statctrl.py, otherwise they cancel each other until the target is reached
+grid_surplus_open_window_rate = 0.2 * interval
 
 # Don't wind-up more than 1.0C
 grid_surplus_max_offset = 1.0
@@ -771,7 +772,7 @@ class Actrl(hass.Hass):
 
                 for room in pid_outputs:
                     if room != top_zone:
-                        self.pids[room].adjust_integral(0.001)
+                        self.pids[room].adjust_integral(0.0001)
                         pid_outputs[room] = self.pids[room].get_output()
 
         for room in pid_outputs:
