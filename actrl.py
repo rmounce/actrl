@@ -142,6 +142,10 @@ grid_surplus_lower_threshold = 750
 # 1.0C = 1000W for 10 minutes
 grid_surplus_ki = interval / (1000 * 10)
 
+# per interval
+# 0.1C per minute
+grid_surplus_open_window_rate = 0.1 * interval
+
 # Don't wind-up more than 1.0C
 grid_surplus_max_offset = 1.0
 
@@ -294,6 +298,24 @@ class DeadbandIntegrator:
         return self.integral
 
 
+class WindowStateHandler:
+    def __init__(self, accumulation_rate=grid_surplus_open_window_rate):
+        self.window_offsets = {}
+        self.accumulation_rate = accumulation_rate
+
+    def update(self, room, window_open):
+        if room not in self.window_offsets:
+            self.window_offsets[room] = 0
+
+        if window_open:
+            self.window_offsets[room] += self.accumulation_rate
+        else:
+            self.window_offsets[room] = 0
+
+    def get_offset(self, room):
+        return self.window_offsets.get(room, 0)
+
+
 class Actrl(hass.Hass):
     def initialize(self):
         self.log("INITIALISING")
@@ -324,6 +346,7 @@ class Actrl(hass.Hass):
         self.deadband_integrator = DeadbandIntegrator(
             ki=(global_deadband_ki * 60.0 * interval),
         )
+        self.window_handler = WindowStateHandler()
 
         for room in rooms:
             self.pids[room] = MyPID(
@@ -479,6 +502,9 @@ class Actrl(hass.Hass):
                 temps[room] = float(
                     self.get_state("sensor." + room + "_average_temperature")
                 )
+            self.window_handler.update(
+                room, self.get_state(f"binary_sensor.{room}_window") == "on"
+            )
         return temps
 
     def _get_current_targets(self):
@@ -573,9 +599,10 @@ class Actrl(hass.Hass):
                 max_mode_offset = {}
                 max_mode_offset["cool"] = min(midpoint_offset, cool_offset)
                 max_mode_offset["heat"] = min(midpoint_offset, heat_offset)
+                open_window_offset = self.window_handler.get_offset(room)
 
                 self.log(
-                    f"Adjusting {room} offset within limits of heat: {heat_offset:.3f}, midpoint: {midpoint_offset:.3f}, cool: {cool_offset:.3f}"
+                    f"Adjusting {room} offset within limits of heat: {heat_offset:.3f}, midpoint: {midpoint_offset:.3f}, cool: {cool_offset:.3f}, window: {open_window_offset:.3f}"
                 )
 
                 if midpoint_offset <= 0:
@@ -584,16 +611,21 @@ class Actrl(hass.Hass):
                     )
                 else:
                     for mode in errors.keys():
+                        window_limited_offset = max(
+                            0,
+                            min(
+                                max_mode_offset[mode],
+                                self.grid_surplus_integral,
+                            )
+                            - open_window_offset,
+                        )
                         grid_surplus_overshoot = max(
-                            0, self.grid_surplus_integral - max_mode_offset[mode]
+                            0, self.grid_surplus_integral - window_limited_offset
                         )
                         min_grid_surplus_overshoot = min(
                             min_grid_surplus_overshoot, grid_surplus_overshoot
                         )
-
-                        errors[mode][room] += min(
-                            max_mode_offset[mode], self.grid_surplus_integral
-                        )
+                        errors[mode][room] += window_limited_offset
 
         if min_grid_surplus_overshoot < float("inf"):
             self.grid_surplus_integral -= min_grid_surplus_overshoot
