@@ -651,9 +651,7 @@ class Actrl(hass.Hass):
         return errors, cooling_demand, heating_demand
 
     def _determine_new_mode(self, cooling_demand, heating_demand):
-        if self.get_state("climate.aircon") == "fan_only":
-            return None
-        elif self.get_state("climate.aircon") == "cool" and cooling_demand > (
+        if self.get_state("climate.aircon") == "cool" and cooling_demand > (
             heating_demand + immediate_off_threshold
         ):
             return "cool", cooling_demand
