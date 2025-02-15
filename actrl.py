@@ -368,6 +368,9 @@ class Actrl(hass.Hass):
         self.run_every(self.main, "now", 60.0 * interval)
 
     def main(self, kwargs):
+        if self.get_state("input_boolean.ac_manual_mode") == "on":
+            self.log("Manual mode, skipping")
+            return
         self.log("")
         self.log("#### BEGIN CYCLE ####")
         temps = self._get_current_temperatures()
