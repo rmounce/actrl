@@ -627,7 +627,11 @@ class Actrl(hass.Hass):
                         min_grid_surplus_overshoot = min(
                             min_grid_surplus_overshoot, grid_surplus_overshoot
                         )
-                        errors[mode][room] += window_limited_offset
+                        if (
+                            self.get_state(f"input_boolean.ac_use_grid_surplus_{mode}")
+                            == "on"
+                        ):
+                            errors[mode][room] += window_limited_offset
 
         if min_grid_surplus_overshoot < float("inf"):
             self.grid_surplus_integral -= min_grid_surplus_overshoot
@@ -688,10 +692,6 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_meta_integral").set_state(state=null_state)
 
     def _add_grid_surplus(self):
-        if self.get_state("input_boolean.ac_use_grid_surplus") != "on":
-            self.grid_surplus_integral = 0
-            return
-
         grid_surplus = -float(
             self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
         )
