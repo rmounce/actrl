@@ -484,6 +484,7 @@ class Actrl(hass.Hass):
             self.set_fake_temp(celsius_setpoint, compressed_error, True)
 
         self.try_set_mode(self.mode)
+        self.try_set_fan_mode(self._determine_fan_mode())
         self.get_entity("input_number.aircon_meta_integral").set_state(
             state=self.deadband_integrator.get()
         )
@@ -864,7 +865,10 @@ class Actrl(hass.Hass):
         else:
             self.log(damper_log + " within deadband")
 
-    def try_set_mode(self, mode):
+    def try_set_mode(
+        self,
+        mode,
+    ):
         if self.get_state("climate.aircon") != mode:
             self.call_service(
                 "climate/set_hvac_mode", entity_id="climate.aircon", hvac_mode=mode
@@ -873,6 +877,44 @@ class Actrl(hass.Hass):
             time.sleep(0.1)
             self.call_service(
                 "climate/set_hvac_mode", entity_id="climate.aircon", hvac_mode=mode
+            )
+            time.sleep(0.1)
+
+    def _determine_fan_mode(self):
+        current_fan_mode = self.get_entity("climate.aircon").get_state("fan_mode")
+
+        low_to_medium = compressor_power_safety_margin
+        medium_to_low = 0
+
+        medium_to_high = compressor_power_increments
+        high_to_medium = compressor_power_increments - compressor_power_safety_margin
+
+        # Determine fan speed with hysteresis
+        if self.guesstimated_comp_speed >= medium_to_high:
+            return "high"
+        elif self.guesstimated_comp_speed <= medium_to_low:
+            return "low"
+        elif (
+            current_fan_mode == "high"
+            and self.guesstimated_comp_speed >= high_to_medium
+        ):
+            return "high"
+        elif (
+            current_fan_mode == "low" and self.guesstimated_comp_speed <= low_to_medium
+        ):
+            return "low"
+        else:
+            return "medium"
+
+    def try_set_fan_mode(self, fan_mode):
+        if self.get_entity("climate.aircon").get_state("fan_mode") != fan_mode:
+            self.call_service(
+                "climate/set_fan_mode", entity_id="climate.aircon", fan_mode=fan_mode
+            )
+            # workaround to retransmit IR code
+            time.sleep(0.1)
+            self.call_service(
+                "climate/set_fan_mode", entity_id="climate.aircon", fan_mode=fan_mode
             )
             time.sleep(0.1)
 
