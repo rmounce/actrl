@@ -5,10 +5,6 @@ import math
 from collections import deque
 import time
 
-# If the top zone is 100% open, open at least 50% in a second zone
-# If kitchen has demand, this won't come into play as living airflow alone counts as 2
-min_airflow = 2.0 - 1e-9
-
 # Kitchen has 2 ducts, min airflow isn't an issue there
 # The rest of the rooms are comparable in size
 room_airflow = {
@@ -762,6 +758,18 @@ class Actrl(hass.Hass):
             pid_outputs[room] = self.pids[room].get_output()
 
         # Ensure minimum airflow
+        # Min compressor speed ~= 0.9999
+        # Max compressor speed ~= 1.9999
+        # If kitchen has demand, this won't come into play as living airflow alone counts as 2
+        min_airflow = (
+            1.0
+            - 1e-9
+            + max(
+                0.0,
+                min(self.guesstimated_comp_speed / compressor_power_increments, 1.0),
+            )
+        )
+
         # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
         min_sum = min_airflow * normalised_damper_range
 
