@@ -765,9 +765,14 @@ class Actrl(hass.Hass):
         # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
         min_sum = min_airflow * normalised_damper_range
 
+        adjusted_room_airflow = {
+            room: airflow * (0.25 if not self.get_door_state(room) else 1.0)
+            for room, airflow in room_airflow.items()
+        }
+
         while True:
             positive_outputs = {
-                room: max(0, output * room_airflow[room])
+                room: max(0, output * adjusted_room_airflow[room])
                 for room, output in pid_outputs.items()
             }
             if sum(positive_outputs.values()) >= min_sum:
@@ -806,6 +811,11 @@ class Actrl(hass.Hass):
                 f"{room} adjusted PID output: {pid_outputs[room]:.3f} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
             )
         return pid_outputs
+
+    def get_door_state(self, room):
+        entity_id = f"binary_sensor.{room}_door"
+        state = self.get_state(entity_id)
+        return True if state is None else state == "on"
 
     def set_fake_temp(self, celsius_setpoint, compressed_error, transmit=True):
         self.get_entity("input_number.fake_temperature").set_state(
