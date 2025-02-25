@@ -762,23 +762,25 @@ class Actrl(hass.Hass):
             pid_outputs[room] = self.pids[room].get_output()
 
         # Ensure minimum airflow
-        if len(pid_outputs) > 1:
-            top_zone = sorted_pid_outputs[0][0]
-            # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
-            min_sum = min_airflow * normalised_damper_range
+        # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
+        min_sum = min_airflow * normalised_damper_range
 
-            while True:
-                positive_outputs = {
-                    room: max(0, output * room_airflow[room])
-                    for room, output in pid_outputs.items()
-                }
-                if sum(positive_outputs.values()) >= min_sum:
-                    break
-
-                for room in pid_outputs:
-                    if room != top_zone:
-                        self.pids[room].adjust_integral(0.0001)
-                        pid_outputs[room] = self.pids[room].get_output()
+        while True:
+            positive_outputs = {
+                room: max(0, output * room_airflow[room])
+                for room, output in pid_outputs.items()
+            }
+            if sum(positive_outputs.values()) >= min_sum:
+                break
+            no_integral_adjusted = True
+            for room in pid_outputs:
+                if pid_outputs[room] < normalised_damper_range:
+                    no_integral_adjusted = False
+                    self.pids[room].adjust_integral(0.0001)
+                    pid_outputs[room] = self.pids[room].get_output()
+            if no_integral_adjusted:
+                # Too few zones enabled to satisfy minimum airflow.. not much we can do
+                break
 
         for room in pid_outputs:
             allowable_difference = room_pid_minimum
