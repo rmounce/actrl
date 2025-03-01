@@ -758,15 +758,19 @@ class Actrl(hass.Hass):
             pid_outputs[room] = self.pids[room].get_output()
 
         # Ensure minimum airflow
+        # SP2:
         # Min compressor speed ~= 0.9999
         # Max compressor speed ~= 1.9999
         # If kitchen has demand, this won't come into play as living airflow alone counts as 2
+        # SP3, offset by another 1.0
+        # SP4, offset by another 1.0
+        # Currently set to SP3 2.0 to 2.5
         min_airflow = (
-            1.0
+            2.0
             - 1e-9
             + max(
                 0.0,
-                min(self.guesstimated_comp_speed / compressor_power_increments, 1.0),
+                min(self.guesstimated_comp_speed / compressor_power_increments, 0.5),
             )
         )
 
