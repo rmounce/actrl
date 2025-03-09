@@ -434,13 +434,6 @@ class Actrl(hass.Hass):
             state=weighted_error
         )
         self.get_entity("input_number.aircon_avg_deriv").set_state(state=avg_deriv)
-        self.get_entity("input_number.aircon_comp_speed").set_state(
-            state=self.guesstimated_comp_speed
-        )
-        self.log(
-            f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, "
-            f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}, consecutive_step_count: {self.consecutive_step_count}"
-        )
 
         unsigned_compressed_error = self.compress(
             weighted_error * mode_sign[self.mode], avg_deriv * mode_sign[self.mode]
@@ -455,6 +448,14 @@ class Actrl(hass.Hass):
         self.on_counter += 1
         if self.get_state("input_boolean.ac_min_power") == "on":
             self.on_counter = min(self.on_counter, soft_delay - 1)
+
+        self.get_entity("input_number.aircon_comp_speed").set_state(
+            state=self.guesstimated_comp_speed
+        )
+        self.log(
+            f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, "
+            f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}, consecutive_step_count: {self.consecutive_step_count}"
+        )
 
         if (
             self.get_state("climate.aircon") in ["cool", "heat"]
