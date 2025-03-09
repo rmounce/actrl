@@ -130,9 +130,12 @@ min_power_threshold = -0.75
 # Worst case, turn off if we have overshot massively.
 immediate_off_threshold = -1.5
 
-# 750W hysteresis to ensure stability when the AC starts up
-grid_surplus_upper_threshold = 1500
+# Target 750W surplus power before ramping down
 grid_surplus_lower_threshold = 750
+# extra 750W buffer when the system is fully off
+grid_surplus_off_buffer = 750
+# smaller 250W buffer when the system is running
+grid_surplus_on_buffer = 250
 
 # per interval
 # 1.0C = 1000W for 10 minutes
@@ -698,6 +701,12 @@ class Actrl(hass.Hass):
         # 10kW solar 24/7, yeah that'd be nice
         # grid_surplus = 10000.0
 
+        grid_surplus_upper_threshold = grid_surplus_lower_threshold + (
+            grid_surplus_off_buffer
+            if self.compressor_totally_off
+            else grid_surplus_on_buffer
+        )
+
         if grid_surplus > grid_surplus_upper_threshold:
             self.grid_surplus_integral += grid_surplus_ki * (
                 grid_surplus - grid_surplus_upper_threshold
@@ -768,9 +777,10 @@ class Actrl(hass.Hass):
         min_airflow = (
             2.0
             - 1e-9
-            + max(
+            + 0.5
+            * max(
                 0.0,
-                min(self.guesstimated_comp_speed / compressor_power_increments, 0.5),
+                min(self.guesstimated_comp_speed / compressor_power_increments, 1.0),
             )
         )
 
