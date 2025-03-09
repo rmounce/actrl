@@ -1043,17 +1043,16 @@ class Actrl(hass.Hass):
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
         # Or if there are many consecutive steps up
-        if rval > ac_stable_threshold + 1 or self.consecutive_step_count > 3:
+        if rval > ac_stable_threshold + 1:
             # Assume that there is demand for max power (plus lower and upper safety margin)
             self.guesstimated_comp_speed = (
                 compressor_power_increments + compressor_power_safety_margin
             )
             # Reset any ramp count
             self.outer_ramp_count = 0
+            self.consecutive_step_count = 0
             # Honestly can't remember if this is needed... copied from below for safety
             self.outer_ramp_rval = rval
-
-            self.consecutive_step_count = 0
 
             # Simple hysteresis
             if self.prev_unsigned_compressed_error > rval:
@@ -1106,6 +1105,12 @@ class Actrl(hass.Hass):
                         self.guesstimated_comp_speed - 1,
                     ),
                 )
+
+        if self.consecutive_step_count > 3:
+            # Assume that there is demand for max power (plus lower and upper safety margin)
+            self.guesstimated_comp_speed = (
+                compressor_power_increments + compressor_power_safety_margin
+            )
 
         if self.outer_ramp_count > 0:
             self.outer_ramp_count += 1
