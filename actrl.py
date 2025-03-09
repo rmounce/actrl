@@ -329,7 +329,10 @@ class Actrl(hass.Hass):
         self.off_fan_running_counter = 0
         self.outer_ramp_count = 0
         self.outer_ramp_rval = 1
-        self.guesstimated_comp_speed = 0
+        self.consecutive_step_count = 0
+        self.guesstimated_comp_speed = int(
+            float(self.get_state("input_number.aircon_comp_speed"))
+        )
         self.grid_surplus_integral = float(
             self.get_state("input_number.grid_surplus_integral")
         )
@@ -430,11 +433,14 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_weighted_error").set_state(
             state=weighted_error
         )
+        self.get_entity("input_number.aircon_comp_speed").set_state(
+            state=self.guesstimated_comp_speed
+        )
         self.get_entity("input_number.aircon_avg_deriv").set_state(state=avg_deriv)
 
         self.log(
             f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, "
-            f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}"
+            f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}, consecutive_step_count: {self.consecutive_step_count}"
         )
 
         unsigned_compressed_error = self.compress(
@@ -1028,6 +1034,7 @@ class Actrl(hass.Hass):
         self.outer_ramp_count = 0
         self.outer_ramp_rval = rval
         self.guesstimated_comp_speed = 0
+        self.consecutive_step_count = 0
         return rval
 
     def midea_runtime_quirks(self, rval):
@@ -1035,7 +1042,8 @@ class Actrl(hass.Hass):
 
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
-        if rval > ac_stable_threshold + 1:
+        # Or if there are many consecutive steps up
+        if rval > ac_stable_threshold + 1 or self.consecutive_step_count > 3:
             # Assume that there is demand for max power (plus lower and upper safety margin)
             self.guesstimated_comp_speed = (
                 compressor_power_increments + compressor_power_safety_margin
@@ -1044,6 +1052,8 @@ class Actrl(hass.Hass):
             self.outer_ramp_count = 0
             # Honestly can't remember if this is needed... copied from below for safety
             self.outer_ramp_rval = rval
+
+            self.consecutive_step_count = 0
 
             # Simple hysteresis
             if self.prev_unsigned_compressed_error > rval:
@@ -1066,6 +1076,7 @@ class Actrl(hass.Hass):
             )
         ):
             self.outer_ramp_count = 0
+            self.consecutive_step_count = 0
 
         # restart if the temp goes even further in the direction we're holding
         if (rval > ac_stable_threshold and rval > self.outer_ramp_rval) or (
@@ -1073,6 +1084,7 @@ class Actrl(hass.Hass):
         ):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = 1
+            self.consecutive_step_count = max(1, self.consecutive_step_count + 1)
             # Saturate after 15 power increments (note: slight over-estimate for safety margin, the number of increments appears to be 13)
             self.guesstimated_comp_speed = min(
                 compressor_power_increments + compressor_power_safety_margin,
@@ -1083,6 +1095,7 @@ class Actrl(hass.Hass):
         ):
             self.outer_ramp_rval = rval
             self.outer_ramp_count = -1
+            self.consecutive_step_count = min(-1, self.consecutive_step_count - 1)
             if rval < (ac_stable_threshold - 1):
                 self.guesstimated_comp_speed = -minimum_temp_intervals
             else:
@@ -1102,6 +1115,7 @@ class Actrl(hass.Hass):
             rval = self.outer_ramp_rval
         else:
             self.outer_ramp_rval = rval
+            self.consecutive_step_count = 0
 
         # Saturated, just keep demanding a compressor speed increase
         if (
