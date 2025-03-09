@@ -289,9 +289,9 @@ class DeadbandIntegrator:
             self.integral = max(-1, self.integral + 2)
             rval = -1
 
-        print(
-            f"input: {error}, integral: {self.integral}, increment_count: {self.increment_count} rval: {rval}"
-        )
+        # print(
+        #    f"input: {error}, integral: {self.integral}, increment_count: {self.increment_count} rval: {rval}"
+        # )
         return rval
 
     def get(self):
@@ -433,11 +433,10 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_weighted_error").set_state(
             state=weighted_error
         )
+        self.get_entity("input_number.aircon_avg_deriv").set_state(state=avg_deriv)
         self.get_entity("input_number.aircon_comp_speed").set_state(
             state=self.guesstimated_comp_speed
         )
-        self.get_entity("input_number.aircon_avg_deriv").set_state(state=avg_deriv)
-
         self.log(
             f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, "
             f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}, consecutive_step_count: {self.consecutive_step_count}"
@@ -612,9 +611,9 @@ class Actrl(hass.Hass):
                 max_mode_offset["heat"] = min(midpoint_offset, heat_offset)
                 open_window_offset = self.window_handler.get_offset(room)
 
-                self.log(
-                    f"Adjusting {room} offset within limits of heat: {heat_offset:.3f}, midpoint: {midpoint_offset:.3f}, cool: {cool_offset:.3f}, window: {open_window_offset:.3f}"
-                )
+                # self.log(
+                #    f"Adjusting {room} offset within limits of heat: {heat_offset:.3f}, midpoint: {midpoint_offset:.3f}, cool: {cool_offset:.3f}, window: {open_window_offset:.3f}"
+                # )
 
                 if midpoint_offset <= 0:
                     self.log(
