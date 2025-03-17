@@ -775,13 +775,13 @@ class Actrl(hass.Hass):
         # Ensure minimum airflow
         # SP2:
         # Min compressor speed ~= 0.9999
-        # Max compressor speed ~= 1.9999
+        # Max compressor speed ~= 1.4999
         # If kitchen has demand, this won't come into play as living airflow alone counts as 2
         # SP3, offset by another 1.0
         # SP4, offset by another 1.0
-        # Currently set to SP3 2.0 to 2.5
+        # Currently set to SP2 1.0 to 1.5
         min_airflow = (
-            2.0
+            1.0
             - 1e-9
             + 0.5
             * max(
