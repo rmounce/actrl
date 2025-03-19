@@ -185,6 +185,7 @@ class Statctrl(hass.Hass):
             entity
             for entity in self.get_state("switch")
             if entity.startswith("switch.schedule_")
+            and self.get_state(entity) == "on"  # Only include enabled switches
         ]
 
         matching_schedules = {}
