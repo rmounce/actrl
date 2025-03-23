@@ -5,6 +5,11 @@ import math
 from collections import deque
 import time
 
+device_name = "m5atom"
+climate_entity = f"climate.{device_name}_climate"
+static_pressure_entity = f"number.{device_name}_static_pressure"
+follow_me_service = f"esphome/{device_name}_send_follow_me"
+
 # Kitchen has 2 ducts, min airflow isn't an issue there
 # The rest of the rooms are comparable in size
 room_airflow = {
@@ -336,8 +341,8 @@ class Actrl(hass.Hass):
         self.grid_surplus_integral = float(
             self.get_state("input_number.grid_surplus_integral")
         )
-        if self.get_state("climate.aircon") in ["heat", "cool"]:
-            self.mode = self.get_state("climate.aircon")
+        if self.get_state(climate_entity) in ["heat", "cool"]:
+            self.mode = self.get_state(climate_entity)
             self.log("ASSUMING THAT THE AIRCON IS ALREADY RUNNING")
             self.compressor_totally_off = False
             self.on_counter = soft_delay + soft_ramp
@@ -394,7 +399,7 @@ class Actrl(hass.Hass):
         self.log(f"new_mode {new_mode} (old mode {self.mode})")
 
         celsius_setpoint = float(
-            self.get_entity("climate.aircon").get_state("temperature")
+            self.get_entity(climate_entity).get_state("temperature")
         )
 
         if self._handle_mode_change(new_mode, celsius_setpoint):
@@ -458,7 +463,7 @@ class Actrl(hass.Hass):
         )
 
         if (
-            self.get_state("climate.aircon") in ["cool", "heat"]
+            self.get_state(climate_entity) in ["cool", "heat"]
             and unsigned_compressed_error <= ac_off_threshold
             or (
                 self.off_fan_running_counter > 0
@@ -470,7 +475,7 @@ class Actrl(hass.Hass):
             self.off_fan_running_counter = 0
 
         if (self.off_fan_running_counter >= off_fan_running_time) or (
-            self.get_state("climate.aircon") == "off"
+            self.get_state(climate_entity) == "off"
             and unsigned_compressed_error < ac_stable_threshold
         ):
             self.log("temp beyond target, turning off altogether")
@@ -485,7 +490,7 @@ class Actrl(hass.Hass):
                 self.set_damper_pos(room, damper_vals[room], False)
 
         # Unsure if it does anything, send the current feels like immediately before powering on
-        if self.get_state("climate.aircon") == "off":
+        if self.get_state(climate_entity) == "off":
             self.set_fake_temp(celsius_setpoint, compressed_error, True)
 
         self.try_set_mode(self.mode)
@@ -664,11 +669,11 @@ class Actrl(hass.Hass):
         return errors, cooling_demand, heating_demand
 
     def _determine_new_mode(self, cooling_demand, heating_demand):
-        if self.get_state("climate.aircon") == "cool" and cooling_demand > (
+        if self.get_state(climate_entity) == "cool" and cooling_demand > (
             heating_demand + immediate_off_threshold
         ):
             return "cool", cooling_demand
-        elif self.get_state("climate.aircon") == "heat" and heating_demand > (
+        elif self.get_state(climate_entity) == "heat" and heating_demand > (
             cooling_demand + immediate_off_threshold
         ):
             return "heat", heating_demand
@@ -686,7 +691,7 @@ class Actrl(hass.Hass):
             self.compressor_totally_off = True
             self.on_counter = 0
             self.deadband_integrator.clear()
-            if self.get_state("climate.aircon") != "fan_only":
+            if self.get_state(climate_entity) != "fan_only":
                 self.try_set_mode("off")
             self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
             self._reset_metrics()
@@ -772,22 +777,29 @@ class Actrl(hass.Hass):
             self.pids[room].adjust_integral(offset)
             pid_outputs[room] = self.pids[room].get_output()
 
-        # Ensure minimum airflow
-        # SP2:
-        # Min compressor speed ~= 0.9999
-        # Max compressor speed ~= 1.4999
-        # If kitchen has demand, this won't come into play as living airflow alone counts as 2
-        # SP3, offset by another 1.0
-        # SP4, offset by another 1.0
-        # Currently set to SP2 1.0 to 1.5
-        min_airflow = (
-            1.0
-            - 1e-9
-            + 0.5
-            * max(
-                0.0,
-                min(self.guesstimated_comp_speed / compressor_power_increments, 1.0),
-            )
+        # Measured fan power usage at different static pressure settings
+        sp_power = {}
+        sp_power[1] = {"low": 44, "medium": 60.5, "high": 80.5}
+        sp_power[2] = {"low": 97, "medium": 115, "high": 144}
+        sp_power[3] = {"low": 169, "medium": 187, "high": 210}
+        sp_power[4] = {"low": 236, "medium": 261.5, "high": 293}
+
+        # SP2 low speed is used as a baseline for a single open duct
+        baseline_airflow = 1.0 - 1e-9
+        baseline_power = sp_power[2]["low"]
+
+        cur_static_pressure = int(float(self.get_state(static_pressure_entity)))
+        cur_fan_speed = self.get_entity(climate_entity).get_state("fan_mode")
+
+        # Default to the safest values
+        if cur_static_pressure not in sp_power:
+            cur_static_pressure = 4
+
+        if cur_fan_speed not in sp_power[cur_static_pressure]:
+            cur_fan_speed = "high"
+
+        min_airflow = baseline_airflow * (
+            sp_power[cur_static_pressure][cur_fan_speed] / baseline_power
         )
 
         # self.log(f"Door closed for {top_zone}, ensuring minimum airflow")
@@ -852,15 +864,19 @@ class Actrl(hass.Hass):
         if not transmit:
             return
         # Power on, FM update, mode auto, Fan auto, setpoint 25C?, room temp
+        # self.call_service(
+        #    "esphome/infrared_send_raw_command",
+        #    command=[
+        #        0xA4,
+        #        0x82,
+        #        0x48,
+        #        0x7F,
+        #        (int)(celsius_setpoint + compressed_error + 1),
+        #    ],
+        # )
         self.call_service(
-            "esphome/infrared_send_raw_command",
-            command=[
-                0xA4,
-                0x82,
-                0x48,
-                0x7F,
-                (int)(celsius_setpoint + compressed_error + 1),
-            ],
+            follow_me_service,
+            temperature=celsius_setpoint + compressed_error + 1,
         )
         time.sleep(0.1)
 
@@ -909,19 +925,19 @@ class Actrl(hass.Hass):
         self,
         mode,
     ):
-        if self.get_state("climate.aircon") != mode:
+        if self.get_state(climate_entity) != mode:
             self.call_service(
-                "climate/set_hvac_mode", entity_id="climate.aircon", hvac_mode=mode
+                "climate/set_hvac_mode", entity_id=climate_entity, hvac_mode=mode
             )
             # workaround to retransmit IR code
             time.sleep(0.1)
             self.call_service(
-                "climate/set_hvac_mode", entity_id="climate.aircon", hvac_mode=mode
+                "climate/set_hvac_mode", entity_id=climate_entity, hvac_mode=mode
             )
             time.sleep(0.1)
 
     def _determine_fan_mode(self):
-        current_fan_mode = self.get_entity("climate.aircon").get_state("fan_mode")
+        current_fan_mode = self.get_entity(climate_entity).get_state("fan_mode")
 
         low_to_medium = compressor_power_safety_margin
         medium_to_low = 0
@@ -947,14 +963,14 @@ class Actrl(hass.Hass):
             return "medium"
 
     def try_set_fan_mode(self, fan_mode):
-        if self.get_entity("climate.aircon").get_state("fan_mode") != fan_mode:
+        if self.get_entity(climate_entity).get_state("fan_mode") != fan_mode:
             self.call_service(
-                "climate/set_fan_mode", entity_id="climate.aircon", fan_mode=fan_mode
+                "climate/set_fan_mode", entity_id=climate_entity, fan_mode=fan_mode
             )
             # workaround to retransmit IR code
             time.sleep(0.1)
             self.call_service(
-                "climate/set_fan_mode", entity_id="climate.aircon", fan_mode=fan_mode
+                "climate/set_fan_mode", entity_id=climate_entity, fan_mode=fan_mode
             )
             time.sleep(0.1)
 
