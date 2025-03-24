@@ -876,7 +876,7 @@ class Actrl(hass.Hass):
         # )
         self.call_service(
             follow_me_service,
-            temperature=celsius_setpoint + compressed_error + 1,
+            temperature=celsius_setpoint + compressed_error,
         )
         time.sleep(0.1)
 
