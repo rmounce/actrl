@@ -489,16 +489,17 @@ class Actrl(hass.Hass):
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
                 self.set_damper_pos(room, damper_vals[room], False)
 
-        # Unsure if it does anything, send the current feels like immediately before powering on
-        if self.get_state(climate_entity) == "off":
-            self.set_fake_temp(celsius_setpoint, compressed_error, True)
-
+        was_off = self.get_state(climate_entity) == "off"
         self.try_set_mode(self.mode)
         self.try_set_fan_mode(self._determine_fan_mode())
         self.get_entity("input_number.aircon_meta_integral").set_state(
             state=self.deadband_integrator.get()
         )
         self.set_fake_temp(celsius_setpoint, compressed_error, True)
+        if was_off:
+            # Ensure that an extra follow me update packet is sent
+            # Otherwise the initial 'blip' to setpoint+1 to power on the compressor may not be processed?
+            self.set_fake_temp(celsius_setpoint, compressed_error, True)
 
     def _get_current_temperatures(self):
         temps = {}
