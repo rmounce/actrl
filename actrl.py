@@ -111,6 +111,14 @@ purge_delay = int(90 / interval)
 # 45 mins should be safe
 min_power_time = int(45 / interval)
 
+# After 15 mins of running the compressor at max speed, briefly shut down the system
+# to increase static pressure
+max_power_static_pressure_increment_time = int(15 / interval)
+
+# Not much point in complicating matters with a middle ground between efficiency and max output
+initial_static_pressure = 2
+max_static_pressure = 4
+
 # in cooling mode, how long to keep blowing the fan
 off_fan_running_time = int(2.5 / interval)
 
@@ -331,6 +339,7 @@ class Actrl(hass.Hass):
         self.damper_pos = {}
         self.prev_unsigned_compressed_error = 0
         self.min_power_counter = 0
+        self.max_power_counter = 0
         self.off_fan_running_counter = 0
         self.outer_ramp_count = 0
         self.outer_ramp_rval = 1
@@ -458,8 +467,10 @@ class Actrl(hass.Hass):
             state=self.guesstimated_comp_speed
         )
         self.log(
-            f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, "
-            f"min_power_counter: {self.min_power_counter}, on_counter: {self.on_counter}, consecutive_step_count: {self.consecutive_step_count}"
+            f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, consecutive_step_count: {self.consecutive_step_count}"
+        )
+        self.log(
+            f"min_power_counter: {self.min_power_counter}, max_power_counter: {self.max_power_counter}, on_counter: {self.on_counter}"
         )
 
         if (
@@ -484,12 +495,21 @@ class Actrl(hass.Hass):
             self.on_counter = 0
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
                 self.set_damper_pos(room, damper_vals[room], True)
+            self._set_static_pressure(initial_static_pressure)
             return
         else:
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
                 self.set_damper_pos(room, damper_vals[room], False)
 
         was_off = self.get_state(climate_entity) == "off"
+
+        # System is struggling for more than 15 mins, 'change gear' to max airflow
+        if self.max_power_counter > max_power_static_pressure_increment_time:
+            self._set_static_pressure(max_static_pressure)
+        elif was_off:
+            # Should have been done when powering off the system, but take this last chance to double check...
+            self._set_static_pressure(initial_static_pressure)
+
         self.try_set_mode(self.mode)
         self.try_set_fan_mode(self._determine_fan_mode())
         self.get_entity("input_number.aircon_meta_integral").set_state(
@@ -500,6 +520,26 @@ class Actrl(hass.Hass):
             # Ensure that an extra follow me update packet is sent
             # Otherwise the initial 'blip' to setpoint+1 to power on the compressor may not be processed?
             self.set_fake_temp(celsius_setpoint, compressed_error, True)
+
+    def _set_static_pressure(self, new_static_pressure):
+        attempts = 0
+        while (
+            int(float(self.get_state(static_pressure_entity))) != new_static_pressure
+            and attempts < 4
+        ):
+            self.try_set_mode("off")
+            # 2 attempts seems to be enough
+            attempts += 1
+            self.log(
+                f"CHANGING STATIC PRESSURE FROM {float(self.get_state(static_pressure_entity))} TO {new_static_pressure}"
+            )
+            self.call_service(
+                "number/set_value",
+                entity_id=static_pressure_entity,
+                value=new_static_pressure,
+            )
+            # Wait at least a second to see if the change was actually applied
+            time.sleep(2.0)
 
     def _get_current_temperatures(self):
         temps = {}
@@ -694,6 +734,7 @@ class Actrl(hass.Hass):
             self.deadband_integrator.clear()
             if self.get_state(climate_entity) != "fan_only":
                 self.try_set_mode("off")
+                self._restore_static_pressure()
             self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
             self._reset_metrics()
             return True
@@ -996,6 +1037,7 @@ class Actrl(hass.Hass):
         if self.compressor_totally_off:
             self.on_counter = 0
             self.min_power_counter = 0
+            self.max_power_counter = 0
 
             if error < desired_on_threshold:
                 # sometimes -2 isn't the true off_threshold?!
@@ -1145,6 +1187,9 @@ class Actrl(hass.Hass):
             >= compressor_power_increments + compressor_power_safety_margin
         ):
             rval = max(ac_stable_threshold + 2, rval)
+            self.max_power_counter += 1
+        else:
+            self.max_power_counter = 0
 
         # Saturated, just keep demanding a compressor speed decrease
         if self.guesstimated_comp_speed <= 0:
