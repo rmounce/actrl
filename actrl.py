@@ -143,8 +143,8 @@ grid_surplus_off_buffer = 750
 grid_surplus_on_buffer = 250
 
 # per interval
-# 1.0C = 1000W for 10 minutes
-grid_surplus_ki = interval / (1000 * 10)
+# 1.0C = 1000W for 5 minutes
+grid_surplus_ki = interval / (1000 * 5)
 
 # per interval
 # 0.2C per minute
