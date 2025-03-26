@@ -111,9 +111,8 @@ purge_delay = int(90 / interval)
 # 45 mins should be safe
 min_power_time = int(45 / interval)
 
-# After 15 mins of running the compressor at max speed, briefly shut down the system
-# to increase static pressure
-max_power_static_pressure_increment_time = int(15 / interval)
+# After 30 mins of struggling and running the compressor at max speed, briefly shut down the system to increase static pressure
+max_power_static_pressure_increment_time = int(30 / interval)
 
 # Not much point in complicating matters with a middle ground between efficiency and max output
 initial_static_pressure = 2
@@ -525,21 +524,21 @@ class Actrl(hass.Hass):
         attempts = 0
         while (
             int(float(self.get_state(static_pressure_entity))) != new_static_pressure
-            and attempts < 4
+            and attempts < 3
         ):
-            self.try_set_mode("off")
-            # 2 attempts seems to be enough
-            attempts += 1
             self.log(
                 f"CHANGING STATIC PRESSURE FROM {float(self.get_state(static_pressure_entity))} TO {new_static_pressure}"
             )
+            self.try_set_mode("off")
+            attempts += 1
             self.call_service(
                 "number/set_value",
                 entity_id=static_pressure_entity,
                 value=new_static_pressure,
             )
-            # Wait at least a second to see if the change was actually applied
-            time.sleep(2.0)
+            # Wait at least 10 seconds to see if the change was actually applied
+            # Typically reported in ~2 seconds
+            time.sleep(10)
 
     def _get_current_temperatures(self):
         temps = {}
@@ -734,7 +733,7 @@ class Actrl(hass.Hass):
             self.deadband_integrator.clear()
             if self.get_state(climate_entity) != "fan_only":
                 self.try_set_mode("off")
-                self._restore_static_pressure()
+                self._set_static_pressure(initial_static_pressure)
             self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
             self._reset_metrics()
             return True
@@ -1107,6 +1106,7 @@ class Actrl(hass.Hass):
             self.guesstimated_comp_speed = (
                 compressor_power_increments + compressor_power_safety_margin
             )
+            self.max_power_counter += 1
             # Reset any ramp count
             self.outer_ramp_count = 0
             self.consecutive_step_count = 0
