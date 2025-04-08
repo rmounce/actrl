@@ -115,7 +115,7 @@ min_power_time = int(45 / interval)
 max_power_static_pressure_increment_time = int(30 / interval)
 
 # Not much point in complicating matters with a middle ground between efficiency and max output
-initial_static_pressure = 2
+initial_static_pressure = {"cool": 2, "heat": 2}
 max_static_pressure = 4
 
 # in cooling mode, how long to keep blowing the fan
@@ -167,7 +167,9 @@ grid_surplus_min_cooling = 21
 grid_surplus_max_heating = 21
 
 # Offsets for celsius
+# 1 is usually sufficient
 ac_on_threshold = 1
+
 ac_stable_threshold = 1
 ac_off_threshold = -2
 
@@ -494,7 +496,6 @@ class Actrl(hass.Hass):
             self.on_counter = 0
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
                 self.set_damper_pos(room, damper_vals[room], True)
-            self._set_static_pressure(initial_static_pressure)
             return
         else:
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
@@ -506,39 +507,37 @@ class Actrl(hass.Hass):
         if self.max_power_counter > max_power_static_pressure_increment_time:
             self._set_static_pressure(max_static_pressure)
         elif was_off:
-            # Should have been done when powering off the system, but take this last chance to double check...
-            self._set_static_pressure(initial_static_pressure)
+            self._set_static_pressure(initial_static_pressure[self.mode])
 
         self.try_set_mode(self.mode)
         self.try_set_fan_mode(self._determine_fan_mode())
         self.get_entity("input_number.aircon_meta_integral").set_state(
             state=self.deadband_integrator.get()
         )
-        self.set_fake_temp(celsius_setpoint, compressed_error, True)
         if was_off:
             # Ensure that an extra follow me update packet is sent
-            # Otherwise the initial 'blip' to setpoint+1 to power on the compressor may not be processed?
+            # And that they are sent AFTER the C3 command to power on the unit
+            # Otherwise the initial 'blip' to ac_on_threshold to power on the compressor may not be processed?
+            # sometimes 0.5 isn't enough to ensure ordering!
+            # bumped up to 1.0s with a break between each message
+            time.sleep(1.0)
             self.set_fake_temp(celsius_setpoint, compressed_error, True)
+            time.sleep(1.0)
+        self.set_fake_temp(celsius_setpoint, compressed_error, True)
 
     def _set_static_pressure(self, new_static_pressure):
-        attempts = 0
-        while (
-            int(float(self.get_state(static_pressure_entity))) != new_static_pressure
-            and attempts < 3
-        ):
+        while int(float(self.get_state(static_pressure_entity))) != new_static_pressure:
             self.log(
                 f"CHANGING STATIC PRESSURE FROM {float(self.get_state(static_pressure_entity))} TO {new_static_pressure}"
             )
             self.try_set_mode("off")
-            attempts += 1
             self.call_service(
                 "number/set_value",
                 entity_id=static_pressure_entity,
                 value=new_static_pressure,
             )
-            # Wait at least 10 seconds to see if the change was actually applied
             # Typically reported in ~2 seconds
-            time.sleep(10)
+            time.sleep(1)
 
     def _get_current_temperatures(self):
         temps = {}
@@ -733,7 +732,6 @@ class Actrl(hass.Hass):
             self.deadband_integrator.clear()
             if self.get_state(climate_entity) != "fan_only":
                 self.try_set_mode("off")
-                self._set_static_pressure(initial_static_pressure)
             self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
             self._reset_metrics()
             return True
