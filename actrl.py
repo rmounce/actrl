@@ -115,7 +115,7 @@ min_power_time = int(45 / interval)
 max_power_static_pressure_increment_time = int(30 / interval)
 
 # Not much point in complicating matters with a middle ground between efficiency and max output
-initial_static_pressure = {"cool": 2, "heat": 2}
+initial_static_pressure = {"cool": 2, "heat": 3}
 max_static_pressure = 4
 
 # in cooling mode, how long to keep blowing the fan
