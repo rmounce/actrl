@@ -1094,11 +1094,10 @@ class Actrl(hass.Hass):
         # Rules:
         # - Each value change increases/decreases speed by 1
         # - value >= 2 sets "Ramp up" flag
-        # - value <= -1 sets "Ramp down" and clears "Ramp up"
-        # - value >= 1 clears "Ramp down"
-        # This minimal 6-step sequence ensures both flags are cleared by the end:
-        # [0 → +1 → +2 → -1 → +1 → 0]
-        step_up_sequence = [1, 2, -1, 1]
+        # - value <- -2 clears "Ramp up" flag
+        # - value <= -1 sets "Ramp down" flag
+        # - value >= 1 clears "Ramp down" flag
+        step_up_sequence = [2, -2, -1, 1]
         if self.prev_step > 0:
             rval = ac_stable_threshold + step_up_sequence[self.prev_step]
             self.prev_step += 1
@@ -1107,11 +1106,6 @@ class Actrl(hass.Hass):
             return rval
 
         # Sequence to decrement speed by -1 with final value = 0 and no flags set.
-        # Rules:
-        # - Each value change increases/decreases speed by 1
-        # - value <= -1 sets "Ramp down"
-        # - value >= 1 clears "Ramp down"
-        # This minimal 3-step sequence clears the flag by briefly crossing +1:
         # [0 → -1 → +1 → 0]
         step_down_sequence = [-1, 1]
         if self.prev_step < 0:
