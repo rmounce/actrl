@@ -1083,32 +1083,43 @@ class Actrl(hass.Hass):
         # Midea controller seems to have a "NEAR_TARGET_RAMP_DOWN" flag that is set when
         # the sensed temperature is equal or overshooting the setpoint. and un-set when
         # the sensed temperature is 1C or greater from satisfying the setpoint.
+        # It also seems to have a "FAR_FROM_TARGET_RAMP_UP" flag that is set when sensed
+        # is more than 3C from the setpoint (2C from stable), and un-set (when???)
         # Both sequences of step-up and step-down return values are crafted to avoid leaving
         # this flag set by returning a positive value before returning to the "stable" value,
         # otherwise it will not be possible to maintain equilibrium with stable compressor
         # speed.
 
-        # subsequent step up, which will be negated upon returning to stable threshold
-        if self.prev_step == 1:
-            self.prev_step = 0
-            self.guesstimated_comp_speed = min(
-                compressor_power_increments + compressor_power_safety_margin,
-                max(compressor_power_safety_margin, self.guesstimated_comp_speed + 1),
-            )
-            return ac_stable_threshold + 2
+        # Sequence to increment speed by +1 with final value = 0 and no flags set.
+        # Rules:
+        # - Each value change increases/decreases speed by 1
+        # - value >= 2 sets "Ramp up" flag
+        # - value <= -1 sets "Ramp down" and clears "Ramp up"
+        # - value >= 1 clears "Ramp down"
+        # This minimal 6-step sequence ensures both flags are cleared by the end:
+        # [0 → +1 → +2 → -1 → +1 → 0]
+        step_up_sequence = [1, 2, -1, 1]
+        if self.prev_step > 0:
+            rval = ac_stable_threshold + step_up_sequence[self.prev_step]
+            self.prev_step += 1
+            if self.prev_step >= len(step_up_sequence):
+                self.prev_step = 0
+            return rval
 
-        # subsequent step down, which negates the initial step but it will be restored
-        # upon returning to stable threshold
-        if self.prev_step == -1:
-            self.prev_step = 0
-            self.guesstimated_comp_speed = max(
-                -minimum_temp_intervals,
-                min(
-                    compressor_power_increments,
-                    self.guesstimated_comp_speed - 1,
-                ),
-            )
-            return ac_stable_threshold + 1
+        # Sequence to decrement speed by -1 with final value = 0 and no flags set.
+        # Rules:
+        # - Each value change increases/decreases speed by 1
+        # - value <= -1 sets "Ramp down"
+        # - value >= 1 clears "Ramp down"
+        # This minimal 3-step sequence clears the flag by briefly crossing +1:
+        # [0 → -1 → +1 → 0]
+        step_down_sequence = [-1, 1]
+        if self.prev_step < 0:
+            rval = ac_stable_threshold + step_down_sequence[-self.prev_step]
+            self.prev_step -= 1
+            if -self.prev_step >= len(step_down_sequence):
+                self.prev_step = 0
+            return rval
 
         # Positive values
 
@@ -1146,8 +1157,12 @@ class Actrl(hass.Hass):
         if rval > ac_stable_threshold and self.guesstimated_comp_speed < (
             compressor_power_increments + compressor_power_safety_margin
         ):
+            self.guesstimated_comp_speed = min(
+                compressor_power_increments + compressor_power_safety_margin,
+                max(compressor_power_safety_margin, self.guesstimated_comp_speed + 1),
+            )
             self.prev_step = 1
-            return ac_stable_threshold + 1
+            return ac_stable_threshold + step_up_sequence[0]
 
         # Negative values
 
@@ -1176,7 +1191,15 @@ class Actrl(hass.Hass):
 
             # Initial step down
             if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
+                self.guesstimated_comp_speed = max(
+                    -minimum_temp_intervals,
+                    min(
+                        compressor_power_increments,
+                        self.guesstimated_comp_speed - 1,
+                    ),
+                )
                 self.prev_step = -1
+                return ac_stable_threshold + step_down_sequence[0]
         else:
             self.min_power_counter = 0
 
