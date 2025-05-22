@@ -1094,10 +1094,10 @@ class Actrl(hass.Hass):
         # Rules:
         # - Each value change increases/decreases speed by 1
         # - value >= 2 sets "Ramp up" flag
-        # - value <- -2 clears "Ramp up" flag
+        # - don't know how to clear the "Ramp up" flag!
         # - value <= -1 sets "Ramp down" flag
         # - value >= 1 clears "Ramp down" flag
-        step_up_sequence = [2, -2, -1, 1]
+        step_up_sequence = [-2, -1, 0, 1]
         if self.prev_step > 0:
             rval = ac_stable_threshold + step_up_sequence[self.prev_step]
             self.prev_step += 1
