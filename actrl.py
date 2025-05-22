@@ -1097,7 +1097,7 @@ class Actrl(hass.Hass):
         # - don't know how to clear the "Ramp up" flag!
         # - value <= -1 sets "Ramp down" flag
         # - value >= 1 clears "Ramp down" flag
-        step_up_sequence = [1, 2]
+        step_up_sequence = [1, 2, 0]
         if self.prev_step > 0:
             rval = ac_stable_threshold + step_up_sequence[self.prev_step]
             self.prev_step += 1
@@ -1107,7 +1107,7 @@ class Actrl(hass.Hass):
 
         # Sequence to decrement speed by -1 with final value = 0 and no flags set.
         # [0 → -1 → +1 → 0]
-        step_down_sequence = [-1, 1]
+        step_down_sequence = [-1, 1, 0]
         if self.prev_step < 0:
             rval = ac_stable_threshold + step_down_sequence[-self.prev_step]
             self.prev_step -= 1
