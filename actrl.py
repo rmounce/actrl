@@ -38,21 +38,6 @@ global_ki = 0.00025
 global_deadband_ki = 0.0125
 # a 0.1 deg error will accumulate 1 in ~13.33 minutes
 
-# in seconds, time for aircon to ramp up power 1 increment & stay there
-step_up_time = 200
-step_up_intervals = step_up_time / (60.0 * interval)
-# shorter as it latches instantly
-# 120s sufficient in cooling mode to step down?
-# previously an extra 30s was added to make soft start more reliable
-step_down_time = 120
-step_down_intervals = step_down_time / (60.0 * interval)
-
-# seems to be 6 minutes / 360 seconds in heating mode!?!?
-# round up to 390 seconds to be really sure
-heat_step_down_time = 390
-heat_step_down_intervals = heat_step_down_time / (60.0 * interval)
-
-
 # swing full scale across 2.0C of error
 normalised_damper_range = 2.0
 
@@ -342,9 +327,7 @@ class Actrl(hass.Hass):
         self.min_power_counter = 0
         self.max_power_counter = 0
         self.off_fan_running_counter = 0
-        self.outer_ramp_count = 0
-        self.outer_ramp_rval = 1
-        self.consecutive_step_count = 0
+        self.prev_step = 0
         self.guesstimated_comp_speed = int(
             float(self.get_state("input_number.aircon_comp_speed"))
         )
@@ -1087,107 +1070,90 @@ class Actrl(hass.Hass):
         )
 
     def midea_reset_quirks(self, rval):
-        self.outer_ramp_count = 0
-        self.outer_ramp_rval = rval
         self.guesstimated_comp_speed = 0
-        self.consecutive_step_count = 0
+        self.prev_step = 0
         return rval
 
     def midea_runtime_quirks(self, rval):
         rval = round(rval)
 
+        # Process these early so that prev_step is restored to 0 and doesn't give rise
+        # to weird edge cases.
+
+        # Midea controller seems to have a "NEAR_TARGET_RAMP_DOWN" flag that is set when
+        # the sensed temperature is equal or overshooting the setpoint. and un-set when
+        # the sensed temperature is 1C or greater from satisfying the setpoint.
+        # Both sequences of step-up and step-down return values are crafted to avoid leaving
+        # this flag set by returning a positive value before returning to the "stable" value,
+        # otherwise it will not be possible to maintain equilibrium with stable compressor
+        # speed.
+
+        # subsequent step up, which will be negated upon returning to stable threshold
+        if self.prev_step == 1:
+            self.prev_step = 0
+            self.guesstimated_comp_speed = min(
+                compressor_power_increments + compressor_power_safety_margin,
+                max(compressor_power_safety_margin, self.guesstimated_comp_speed + 1),
+            )
+            return ac_stable_threshold + 2
+
+        # subsequent step down, which negates the initial step but it will be restored
+        # upon returning to stable threshold
+        if self.prev_step == -1:
+            self.prev_step = 0
+            self.guesstimated_comp_speed = max(
+                -minimum_temp_intervals,
+                min(
+                    compressor_power_increments,
+                    self.guesstimated_comp_speed - 1,
+                ),
+            )
+            return ac_stable_threshold + 1
+
+        # Positive values
+
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
-        # Or if there are many consecutive steps up
         if rval > ac_stable_threshold + 1:
             # Assume that there is demand for max power (plus lower and upper safety margin)
             self.guesstimated_comp_speed = (
                 compressor_power_increments + compressor_power_safety_margin
             )
             self.max_power_counter += 1
-            # Reset any ramp count
-            self.outer_ramp_count = 0
-            self.consecutive_step_count = 0
-            # Honestly can't remember if this is needed... copied from below for safety
-            self.outer_ramp_rval = rval
 
-            # Simple hysteresis
+            # Reset any step that may have been in progress
+            self.prev_step = 0
+
+            # Simple hysteresis, provide a stable value and keep commanding max power when
+            # we drop from a huge error to a smaller (but still substantial) error.
+            # Otherwise a "downward step" ends up briefly reducing power output while we're
+            # still struggling to reach the target!
             if self.prev_unsigned_compressed_error > rval:
                 return rval + 1
             else:
                 return rval
 
-        # reset once the temp step has been held for long enough
-        if (
-            (self.outer_ramp_count > 0 and rval < ac_stable_threshold)
-            or (self.outer_ramp_count < 0 and rval > ac_stable_threshold)
-            or (self.outer_ramp_count > step_up_intervals)
-            or (
-                self.outer_ramp_count
-                < -(
-                    heat_step_down_intervals
-                    if self.mode == "heat"
-                    else step_down_intervals
-                )
-            )
-        ):
-            self.outer_ramp_count = 0
-            self.consecutive_step_count = 0
-
-        # restart if the temp goes even further in the direction we're holding
-        if (rval > ac_stable_threshold and rval > self.outer_ramp_rval) or (
-            rval == self.outer_ramp_rval == ac_stable_threshold + 1
-        ):
-            self.outer_ramp_rval = rval
-            self.outer_ramp_count = 1
-            self.consecutive_step_count = max(1, self.consecutive_step_count + 1)
-            # Saturate after 15 power increments (note: slight over-estimate for safety margin, the number of increments appears to be 13)
-            self.guesstimated_comp_speed = min(
-                compressor_power_increments + compressor_power_safety_margin,
-                max(compressor_power_safety_margin, self.guesstimated_comp_speed + 1),
-            )
-        elif (rval < ac_stable_threshold and rval < self.outer_ramp_rval) or (
-            rval == self.outer_ramp_rval == ac_stable_threshold - 1
-        ):
-            self.outer_ramp_rval = rval
-            self.outer_ramp_count = -1
-            self.consecutive_step_count = min(-1, self.consecutive_step_count - 1)
-            if rval < (ac_stable_threshold - 1):
-                self.guesstimated_comp_speed = -minimum_temp_intervals
-            else:
-                self.guesstimated_comp_speed = max(
-                    -minimum_temp_intervals,
-                    min(
-                        compressor_power_increments,
-                        self.guesstimated_comp_speed - 1,
-                    ),
-                )
-
-        if self.consecutive_step_count > 3:
-            # Assume that there is demand for max power (plus lower and upper safety margin)
-            self.guesstimated_comp_speed = (
-                compressor_power_increments + compressor_power_safety_margin
-            )
-
-        if self.outer_ramp_count > 0:
-            self.outer_ramp_count += 1
-            rval = self.outer_ramp_rval
-        elif self.outer_ramp_count < 0:
-            self.outer_ramp_count -= 1
-            rval = self.outer_ramp_rval
-        else:
-            self.outer_ramp_rval = rval
-            self.consecutive_step_count = 0
-
         # Saturated, just keep demanding a compressor speed increase
-        if (
+        if rval >= ac_stable_threshold and (
             self.guesstimated_comp_speed
             >= compressor_power_increments + compressor_power_safety_margin
         ):
-            rval = max(ac_stable_threshold + 2, rval)
-            self.max_power_counter += 1
+            return ac_stable_threshold + 1
         else:
             self.max_power_counter = 0
+
+        # Initial step up
+        if rval > ac_stable_threshold and self.guesstimated_comp_speed < (
+            compressor_power_increments + compressor_power_safety_margin
+        ):
+            self.prev_step = 1
+            return ac_stable_threshold + 1
+
+        # Negative values
+
+        # Any larger offset should jump to minimum power
+        if rval < ac_stable_threshold - 1:
+            self.guesstimated_comp_speed = -minimum_temp_intervals
 
         # Saturated, just keep demanding a compressor speed decrease
         if self.guesstimated_comp_speed <= 0:
@@ -1206,28 +1172,12 @@ class Actrl(hass.Hass):
 
             # aircon seems to react to edges
             # so provide as many as possible to quickly reduce power?
-            return max(rval, self.prev_unsigned_compressed_error - 1)
+            rval = max(rval, self.prev_unsigned_compressed_error - 1)
+
+            # Initial step down
+            if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
+                self.prev_step = -1
         else:
             self.min_power_counter = 0
-
-        # cooling mode
-        # at the setpoint ac will start ramping back power
-        # and will continue ramping back at setpoint+1
-        # a brief jump up to setpoint+2 is needed to arrest the fall and stabilise output power
-        # in heating mode there is no gradual rampdown at all, it drops straight to min power
-        # heating mode
-        # sometimes the same in reverse?
-        if (
-            (self.mode == "cool")
-            and self.prev_unsigned_compressed_error < ac_stable_threshold
-            and rval >= ac_stable_threshold
-        ):
-            return max(rval, ac_stable_threshold + 1)
-        if (
-            self.mode == "heat"
-            and self.prev_unsigned_compressed_error > ac_stable_threshold
-            and rval <= ac_stable_threshold
-        ):
-            return min(rval, ac_stable_threshold - 1)
 
         return rval
