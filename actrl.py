@@ -451,7 +451,7 @@ class Actrl(hass.Hass):
             state=self.guesstimated_comp_speed
         )
         self.log(
-            f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, consecutive_step_count: {self.consecutive_step_count}"
+            f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, prev_step: {self.prev_step}"
         )
         self.log(
             f"min_power_counter: {self.min_power_counter}, max_power_counter: {self.max_power_counter}, on_counter: {self.on_counter}"
