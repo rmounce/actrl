@@ -1097,7 +1097,7 @@ class Actrl(hass.Hass):
         # - don't know how to clear the "Ramp up" flag!
         # - value <= -1 sets "Ramp down" flag
         # - value >= 1 clears "Ramp down" flag
-        step_up_sequence = [-2, -1, 0, 1]
+        step_up_sequence = [1, 2]
         if self.prev_step > 0:
             rval = ac_stable_threshold + step_up_sequence[self.prev_step]
             self.prev_step += 1
@@ -1160,6 +1160,18 @@ class Actrl(hass.Hass):
 
         # Negative values
 
+        # Initial step down
+        if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
+            self.guesstimated_comp_speed = max(
+                -minimum_temp_intervals,
+                min(
+                    compressor_power_increments,
+                    self.guesstimated_comp_speed - 1,
+                ),
+            )
+            self.prev_step = -1
+            return ac_stable_threshold + step_down_sequence[0]
+
         # Any larger offset should jump to minimum power
         if rval < ac_stable_threshold - 1:
             self.guesstimated_comp_speed = -minimum_temp_intervals
@@ -1183,17 +1195,6 @@ class Actrl(hass.Hass):
             # so provide as many as possible to quickly reduce power?
             rval = max(rval, self.prev_unsigned_compressed_error - 1)
 
-            # Initial step down
-            if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
-                self.guesstimated_comp_speed = max(
-                    -minimum_temp_intervals,
-                    min(
-                        compressor_power_increments,
-                        self.guesstimated_comp_speed - 1,
-                    ),
-                )
-                self.prev_step = -1
-                return ac_stable_threshold + step_down_sequence[0]
         else:
             self.min_power_counter = 0
 
