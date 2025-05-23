@@ -1110,9 +1110,9 @@ class Actrl(hass.Hass):
                 self.prev_step = 0
             return rval
 
-        # Sequence to decrement speed by -1 with final value = 0 and no flags set.
-        # [0 → -1 → +1 → 0]
-        step_down_sequence = [-1, 1, 0]
+        # Sequence to decrement speed by -1, jumping up to +1 to un-set the internal ramp down flag?
+        # For cooling mode, perhaps a simpler sequence of [-1, 1, 0] will be needed to get a single decrement
+        step_down_sequence = [-1, -2, 1, 0]
         if self.prev_step < 0:
             rval = ac_stable_threshold + step_down_sequence[-self.prev_step]
             self.prev_step -= 1
