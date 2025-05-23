@@ -9,6 +9,8 @@ device_name = "m5atom"
 climate_entity = f"climate.{device_name}_climate"
 static_pressure_entity = f"number.{device_name}_static_pressure"
 follow_me_service = f"esphome/{device_name}_send_follow_me"
+compressor_entity = f"binary_sensor.{device_name}_compressor"
+outdoor_fan_entity = f"binary_sensor.{device_name}_outdoor_fan"
 
 # Kitchen has 2 ducts, min airflow isn't an issue there
 # The rest of the rooms are comparable in size
@@ -446,6 +448,18 @@ class Actrl(hass.Hass):
         self.on_counter += 1
         if self.get_state("input_boolean.ac_min_power") == "on":
             self.on_counter = min(self.on_counter, soft_delay - 1)
+
+        if (
+            self.get_state(climate_entity) == "heat"
+            and self.get_state(compressor_entity) == "on"
+            and self.get_state(outdor_fan_entity) == "off"
+            and self.guesstimated_comp_speed
+            < (compressor_power_increments + compressor_power_safety_margin)
+        ):
+            self.log(f"Defrost cycle detected, request max speed on restart")
+            self.guesstimated_comp_speed = (
+                compressor_power_increments + compressor_power_safety_margin
+            )
 
         self.get_entity("input_number.aircon_comp_speed").set_state(
             state=self.guesstimated_comp_speed
