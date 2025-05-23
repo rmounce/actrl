@@ -452,7 +452,7 @@ class Actrl(hass.Hass):
         if (
             self.get_state(climate_entity) == "heat"
             and self.get_state(compressor_entity) == "on"
-            and self.get_state(outdor_fan_entity) == "off"
+            and self.get_state(outdoor_fan_entity) == "off"
             and self.guesstimated_comp_speed
             < (compressor_power_increments + compressor_power_safety_margin)
         ):
@@ -1122,8 +1122,9 @@ class Actrl(hass.Hass):
 
         # Reset any step that may have been in progress
         # Failsafe, should never be reachable
-        self.prev_step = 0
-        self.log("Resetting self.prev_step which shouldn't have been set anyway")
+        if self.prev_step != 0:
+            self.prev_step = 0
+            self.log("Resetting self.prev_step which shouldn't have been set anyway")
 
 
         # Begin step up sequence, unless already at max power
