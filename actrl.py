@@ -1134,7 +1134,26 @@ class Actrl(hass.Hass):
         self.prev_step = 0
         self.log("Resetting self.prev_step which shouldn't have been set anyway")
 
-        # Positive values
+
+        # Begin step up sequence, unless already at max power
+        if rval == ac_stable_threshold + 1 and self.guesstimated_comp_speed < (
+            compressor_power_increments + compressor_power_safety_margin
+        ):
+            self.guesstimated_comp_speed = max(
+                compressor_power_safety_margin, self.guesstimated_comp_speed + 1
+            )
+            self.prev_step = 1
+            return ac_stable_threshold + step_up_sequence[0]
+
+        # Begin step down sequence, unless already at min power
+        if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
+            self.guesstimated_comp_speed = min(
+                compressor_power_increments,
+                self.guesstimated_comp_speed - 1,
+            )
+            self.prev_step = -1
+            return ac_stable_threshold + step_down_sequence[0]
+
 
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
@@ -1163,26 +1182,6 @@ class Actrl(hass.Hass):
         else:
             self.max_power_counter = 0
 
-        # Initial step up
-        if rval > ac_stable_threshold and self.guesstimated_comp_speed < (
-            compressor_power_increments + compressor_power_safety_margin
-        ):
-            self.guesstimated_comp_speed = max(
-                compressor_power_safety_margin, self.guesstimated_comp_speed + 1
-            )
-            self.prev_step = 1
-            return ac_stable_threshold + step_up_sequence[0]
-
-        # Negative values
-
-        # Initial step down
-        if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
-            self.guesstimated_comp_speed = min(
-                compressor_power_increments,
-                self.guesstimated_comp_speed - 1,
-            )
-            self.prev_step = -1
-            return ac_stable_threshold + step_down_sequence[0]
 
         # Any larger offset should jump to minimum power
         if rval < ac_stable_threshold - 1:
