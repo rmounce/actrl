@@ -1129,6 +1129,11 @@ class Actrl(hass.Hass):
                 self.prev_step = 0
             return rval
 
+        # Reset any step that may have been in progress
+        # Failsafe, should never be reachable
+        self.prev_step = 0
+        self.log("Resetting self.prev_step which shouldn't have been set anyway")
+
         # Positive values
 
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
@@ -1139,9 +1144,6 @@ class Actrl(hass.Hass):
                 compressor_power_increments + compressor_power_safety_margin
             )
             self.max_power_counter += 1
-
-            # Reset any step that may have been in progress
-            self.prev_step = 0
 
             # Simple hysteresis, provide a stable value and keep commanding max power when
             # we drop from a huge error to a smaller (but still substantial) error.
@@ -1165,9 +1167,8 @@ class Actrl(hass.Hass):
         if rval > ac_stable_threshold and self.guesstimated_comp_speed < (
             compressor_power_increments + compressor_power_safety_margin
         ):
-            self.guesstimated_comp_speed = min(
-                compressor_power_increments + compressor_power_safety_margin,
-                max(compressor_power_safety_margin, self.guesstimated_comp_speed + 1),
+            self.guesstimated_comp_speed = max(
+                compressor_power_safety_margin, self.guesstimated_comp_speed + 1
             )
             self.prev_step = 1
             return ac_stable_threshold + step_up_sequence[0]
@@ -1176,12 +1177,9 @@ class Actrl(hass.Hass):
 
         # Initial step down
         if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
-            self.guesstimated_comp_speed = max(
-                -minimum_temp_intervals,
-                min(
-                    compressor_power_increments,
-                    self.guesstimated_comp_speed - 1,
-                ),
+            self.guesstimated_comp_speed = min(
+                compressor_power_increments,
+                self.guesstimated_comp_speed - 1,
             )
             self.prev_step = -1
             return ac_stable_threshold + step_down_sequence[0]
