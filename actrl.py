@@ -1054,7 +1054,7 @@ class Actrl(hass.Hass):
 
         if error > faithful_threshold:
             # Bypass soft start for big errors
-            self.on_counter = min(self.on_counter, soft_delay)
+            self.on_counter = max(self.on_counter, soft_delay)
 
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(
