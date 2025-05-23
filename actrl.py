@@ -124,8 +124,12 @@ desired_on_threshold = 0.0
 
 # After reducing to minimum power and holding for a while, turn off at a tighter threshold
 eventual_off_threshold = -0.5
+
 # Give up on incremental control and cut to minimum power to avoid overshooting
-min_power_threshold = -1.25
+# This includes the derivative
+#min_power_threshold = -1.25
+min_power_threshold = -2.0
+
 # Worst case, turn off if we have overshot massively.
 immediate_off_threshold = -1.5
 
