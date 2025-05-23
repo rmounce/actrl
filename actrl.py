@@ -1052,32 +1052,23 @@ class Actrl(hass.Hass):
         # goal of the derivative is to proactively reduce/increase compressor power, but not to influence on/off state
         error = error + deriv
 
-        if error > min_power_threshold and (self.on_counter < soft_delay):
-            if self.on_counter < soft_delay:
-                print("soft start, on_counter: " + str(self.on_counter))
-            self.deadband_integrator.clear()
-            return self.midea_runtime_quirks(ac_stable_threshold - 1)
-
         if error > faithful_threshold:
-            if self.on_counter < (soft_delay + soft_ramp):
-                ramp_progress = (self.on_counter - soft_delay) / soft_ramp
-                print(
-                    "ramping "
-                    + str(ramp_progress)
-                    + ", on_counter: "
-                    + str(self.on_counter)
-                )
-            else:
-                ramp_progress = 1
+            # Bypass soft start for big errors
+            self.on_counter = min(self.on_counter, soft_delay)
 
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(
-                ac_stable_threshold + ramp_progress * (2 + error - faithful_threshold)
+                ac_stable_threshold + 2 + error - faithful_threshold
             )
 
         if error <= min_power_threshold:
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_off_threshold + 1)
+
+        if self.on_counter < soft_delay:
+            print("soft start, on_counter: " + str(self.on_counter))
+            self.deadband_integrator.clear()
+            return self.midea_runtime_quirks(ac_stable_threshold - 1)
 
         return self.midea_runtime_quirks(
             ac_stable_threshold + self.deadband_integrator.set(error)
