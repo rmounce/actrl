@@ -1124,12 +1124,6 @@ class Actrl(hass.Hass):
                 self.prev_step = 0
             return rval
 
-        # Reset any step that may have been in progress
-        # Failsafe, should never be reachable
-        if self.prev_step != 0:
-            self.prev_step = 0
-            self.log("Resetting self.prev_step which shouldn't have been set anyway")
-
         # Begin step up sequence, unless already at max power
         if rval == ac_stable_threshold + 1 and self.guesstimated_comp_speed < (
             compressor_power_increments + compressor_power_safety_margin
