@@ -127,7 +127,7 @@ eventual_off_threshold = -0.5
 
 # Give up on incremental control and cut to minimum power to avoid overshooting
 # This includes the derivative
-#min_power_threshold = -1.25
+# min_power_threshold = -1.25
 min_power_threshold = -2.0
 
 # Worst case, turn off if we have overshot massively.
@@ -1130,7 +1130,6 @@ class Actrl(hass.Hass):
             self.prev_step = 0
             self.log("Resetting self.prev_step which shouldn't have been set anyway")
 
-
         # Begin step up sequence, unless already at max power
         if rval == ac_stable_threshold + 1 and self.guesstimated_comp_speed < (
             compressor_power_increments + compressor_power_safety_margin
@@ -1149,7 +1148,6 @@ class Actrl(hass.Hass):
             )
             self.prev_step = -1
             return ac_stable_threshold + step_down_sequence[0]
-
 
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
@@ -1178,18 +1176,17 @@ class Actrl(hass.Hass):
         else:
             self.max_power_counter = 0
 
-
         # Any larger offset should jump to minimum power
         if rval < ac_stable_threshold - 1:
-            self.guesstimated_comp_speed = -minimum_temp_intervals
+            self.guesstimated_comp_speed = 0
 
-        # Saturated, just keep demanding a compressor speed decrease
+        # Saturated, demand absolute minimum power
         if self.guesstimated_comp_speed <= 0:
-            rval = min(ac_stable_threshold - 1, rval)
-
-        # After 5 minutes worth of consecutive decrements assume that we want the absolute minimum power
-        if self.guesstimated_comp_speed <= -minimum_temp_intervals:
-            rval = min(ac_off_threshold + 1, rval)
+            # Be more conservative for the first 5 minutes after startup to avoid stopping the compressor
+            if self.on_counter < minimum_temp_intervals:
+                rval = min(ac_stable_threshold - 1, rval)
+            else:
+                rval = min(ac_off_threshold + 1, rval)
 
         if rval < ac_stable_threshold:
             self.min_power_counter += 1
