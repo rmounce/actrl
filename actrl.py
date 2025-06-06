@@ -82,7 +82,7 @@ minimum_temp_intervals = int(5 / interval)
 compressor_power_increments = 14
 
 # Additional safety margin when switching between stepping up / down
-compressor_power_safety_margin = 3
+compressor_power_safety_margin = 2
 
 # over 45 mins immediate_off_threshold will ramp to eventual_off_threshold, and reset after 90 min purge delay
 min_power_delay = int(45 / interval)
