@@ -746,9 +746,10 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_meta_integral").set_state(state=null_state)
 
     def _add_grid_surplus(self):
-        grid_surplus = -float(
-            self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
-        )
+        #grid_surplus = -float(
+        #    self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
+        #)
+        grid_surplus = 0
         # 10kW solar 24/7, yeah that'd be nice
         # grid_surplus = 10000.0
 
@@ -1131,8 +1132,12 @@ class Actrl(hass.Hass):
             self.guesstimated_comp_speed = max(
                 compressor_power_safety_margin, self.guesstimated_comp_speed + 1
             )
-            self.prev_step = 1
-            return ac_stable_threshold + step_up_sequence[0]
+            # Don't perform the increment sequence if jumping to max power
+            if self.guesstimated_comp_speed < (
+                compressor_power_increments + compressor_power_safety_margin
+            ):
+                self.prev_step = 1
+                return ac_stable_threshold + step_up_sequence[0]
 
         # Begin step down sequence, unless already at min power
         if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
@@ -1140,8 +1145,10 @@ class Actrl(hass.Hass):
                 compressor_power_increments,
                 self.guesstimated_comp_speed - 1,
             )
-            self.prev_step = -1
-            return ac_stable_threshold + step_down_sequence[0]
+            # Don't perform the decrement sequence if dropping to min power
+            if self.guesstimated_comp_speed > 0:
+                self.prev_step = -1
+                return ac_stable_threshold + step_down_sequence[0]
 
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
