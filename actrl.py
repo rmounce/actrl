@@ -134,15 +134,16 @@ min_power_threshold = -2.0
 immediate_off_threshold = -1.5
 
 # Target 750W surplus power before ramping down
-grid_surplus_lower_threshold = 750
-# extra 750W buffer when the system is fully off
-grid_surplus_off_buffer = 750
-# smaller 250W buffer when the system is running
-grid_surplus_on_buffer = 250
+grid_surplus_lower_threshold = 300
+# extra buffer when the system is fully off
+grid_surplus_off_buffer = 200
+# smaller buffer when the system is running
+grid_surplus_on_buffer = 100
 
 # per interval
-# 1.0C = 1000W for 5 minutes
-grid_surplus_ki = interval / (1000 * 5)
+# 1.0C = 2000W for 30 seconds
+# or, 2000W of a single 5 minute interval over the next 60 minutes for 6 minutes
+grid_surplus_ki = interval / (2000 * 0.5)
 
 # per interval
 # 0.2C per minute
@@ -746,13 +747,44 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_meta_integral").set_state(state=null_state)
 
     def _add_grid_surplus(self):
-        #grid_surplus = -float(
-        #    self.get_state("sensor.power_grid_fronius_power_flow_0_fronius_lan")
-        #)
-        grid_surplus = 0
-        # 10kW solar 24/7, yeah that'd be nice
-        # grid_surplus = 10000.0
+        # Define the number of 5-minute intervals to look ahead (12 * 5 = 60 minutes)
+        lookahead_intervals = 12
+        grid_surplus = 0  # Default to 0 surplus
 
+        try:
+            # Fetch the forecast data from the EMHASS sensor attribute
+            forecast_list = self.get_state(
+                "sensor.mpc_p_pv_curtailment", attribute="forecasts"
+            )
+
+            if forecast_list and isinstance(forecast_list, list):
+                # Get the curtailment values for the next hour (first 12 elements)
+                curtailment_forecasts = [
+                    float(item.get("mpc_p_pv_curtailment", 0))
+                    for item in forecast_list[:lookahead_intervals]
+                ]
+
+                # Calculate the average curtailment over the lookahead window
+                if curtailment_forecasts:
+                    grid_surplus = sum(curtailment_forecasts) / len(
+                        curtailment_forecasts
+                    )
+                    self.log(
+                        f"EMHASS Forecast: Avg curtailment of {grid_surplus:.2f}W over the next hour."
+                    )
+                else:
+                    self.log("EMHASS forecast list was empty, assuming 0 surplus.")
+
+            else:
+                self.log(
+                    "Warning: Could not retrieve valid EMHASS forecast data for curtailment."
+                )
+
+        except Exception as e:
+            self.log(f"Error processing EMHASS forecast: {e}", level="ERROR")
+            grid_surplus = 0  # Ensure we fail safe
+
+        # The rest of the integral logic remains the same, but now fed by the forecast
         grid_surplus_upper_threshold = grid_surplus_lower_threshold + (
             grid_surplus_off_buffer
             if self.compressor_totally_off
