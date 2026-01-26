@@ -1182,9 +1182,17 @@ class Actrl(hass.Hass):
                 self.prev_step = -1
                 return ac_stable_threshold + step_down_sequence[0]
 
+        # If we are already in max power mode (counter > 0), we lower the threshold
+        # to prevent dropping out of this mode prematurely (State Hysteresis).
+        #
+        # Entry: rval > threshold + 1
+        # Exit:  rval <= threshold
+        threshold_offset = 0 if self.max_power_counter > 0 else 1
+
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
-        if rval > ac_stable_threshold + 1:
+        if rval > ac_stable_threshold + threshold_offset:
+
             # Assume that there is demand for max power (plus lower and upper safety margin)
             self.guesstimated_comp_speed = (
                 compressor_power_increments + compressor_power_safety_margin
