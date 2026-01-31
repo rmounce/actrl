@@ -376,7 +376,8 @@ class Actrl(hass.Hass):
 
     def main(self, kwargs):
         if self.get_state("input_boolean.ac_manual_mode") == "on":
-            self.log("Manual mode, skipping")
+            self.log("Manual mode active, resetting internal state")
+            self._reset_internal_state()
             return
         self.log("")
         self.log("#### BEGIN CYCLE ####")
@@ -389,7 +390,7 @@ class Actrl(hass.Hass):
         errors, cooling_demand, heating_demand = self._calculate_demand(temps)
 
         self.get_entity("input_number.grid_surplus_integral").set_state(
-            state=self.grid_surplus_integral
+            state=float(self.grid_surplus_integral)
         )
         self.log(
             f"heating_demand: {heating_demand:.3f}, cooling_demand: {cooling_demand:.3f}"
@@ -436,7 +437,7 @@ class Actrl(hass.Hass):
         weighted_error = mode_sign[self.mode] * demand
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
-            state=weighted_error
+            state=float(weighted_error)
         )
         self.get_entity("input_number.aircon_avg_deriv").set_state(state=avg_deriv)
 
@@ -467,7 +468,7 @@ class Actrl(hass.Hass):
             )
 
         self.get_entity("input_number.aircon_comp_speed").set_state(
-            state=self.guesstimated_comp_speed
+            state=float(self.guesstimated_comp_speed)
         )
         self.log(
             f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, prev_step: {self.prev_step}"
@@ -505,7 +506,7 @@ class Actrl(hass.Hass):
 
         was_off = self.get_state(climate_entity) == "off"
 
-        # System is struggling for more than 15 mins, 'change gear' to max airflow
+        # System is struggling for more than 30 mins, 'change gear' to max airflow
         if self.max_power_counter > max_power_static_pressure_increment_time:
             self._set_static_pressure(max_static_pressure)
         elif was_off:
@@ -514,7 +515,7 @@ class Actrl(hass.Hass):
         self.try_set_mode(self.mode)
         self.try_set_fan_mode(self._determine_fan_mode())
         self.get_entity("input_number.aircon_meta_integral").set_state(
-            state=self.deadband_integrator.get()
+            state=float(self.deadband_integrator.get())
         )
         if was_off:
             # Ensure that an extra follow me update packet is sent
@@ -526,6 +527,31 @@ class Actrl(hass.Hass):
             self.set_fake_temp(celsius_setpoint, compressed_error, True)
             time.sleep(1.0)
         self.set_fake_temp(celsius_setpoint, compressed_error, True)
+
+    def _reset_internal_state(self):
+        """Resets the script state counters and flags, but preserves PID objects."""
+        # Force mode to None so _handle_mode_change won't wipe PIDs on resume
+        self.mode = None
+        self.compressor_totally_off = True
+        self.on_counter = 0
+        self.min_power_counter = 0
+        self.max_power_counter = 0
+        self.off_fan_running_counter = 0
+        self.prev_step = 0
+        
+        # Reset Integrators (except Room PIDs)
+        self.deadband_integrator.clear()
+        
+        # Reset Derivatives (Historic data is likely stale)
+        for room in self.temp_derivs:
+            self.temp_derivs[room].clear()
+
+        # Reset Metrics
+        self._reset_metrics()
+        
+        # Also reset state that would normally be persisted on a hot reload
+        self.guesstimated_comp_speed = 0
+        self.grid_surplus_integral = 0
 
     def _set_static_pressure(self, new_static_pressure):
         while int(float(self.get_state(static_pressure_entity))) != new_static_pressure:
@@ -918,7 +944,7 @@ class Actrl(hass.Hass):
                 pid_outputs[room] = self.pids[room].get_output()
 
             self.get_entity(f"input_number.{room}_pid").set_state(
-                state=pid_outputs[room]
+                state=float(pid_outputs[room])
             )
             self.log(
                 f"{room} adjusted PID output: {pid_outputs[room]:.3f} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
@@ -932,7 +958,7 @@ class Actrl(hass.Hass):
 
     def set_fake_temp(self, celsius_setpoint, compressed_error, transmit=True):
         self.get_entity("input_number.fake_temperature").set_state(
-            state=(celsius_setpoint + compressed_error)
+            state=float(celsius_setpoint + compressed_error)
         )
         if not transmit:
             return
@@ -963,7 +989,7 @@ class Actrl(hass.Hass):
 
         damper_log = f"{room} damper scaled: {damper_val:.3f}, cur_pos: {cur_pos}, actual_cur_pos: {actual_cur_pos}"
         self.get_entity("input_number." + room + "_damper_target").set_state(
-            state=damper_val
+            state=float(damper_val)
         )
 
         cur_deadband = damper_deadband
@@ -1158,8 +1184,14 @@ class Actrl(hass.Hass):
             return rval
 
         # Begin step up sequence, unless already at max power
-        if rval == ac_stable_threshold + 1 and self.guesstimated_comp_speed < (
-            compressor_power_increments + compressor_power_safety_margin
+        # FIX: Added 'and self.max_power_counter == 0'
+        # This prevents the stepping logic from intercepting execution when we
+        # should be locked in the high-priority "Max Power" hysteresis loop.
+        if (
+            rval == ac_stable_threshold + 1
+            and self.max_power_counter == 0
+            and self.guesstimated_comp_speed
+            < (compressor_power_increments + compressor_power_safety_margin)
         ):
             self.guesstimated_comp_speed = max(
                 compressor_power_safety_margin, self.guesstimated_comp_speed + 1
@@ -1182,16 +1214,17 @@ class Actrl(hass.Hass):
                 self.prev_step = -1
                 return ac_stable_threshold + step_down_sequence[0]
 
-        # If we are already in max power mode (counter > 0), we lower the threshold
-        # to prevent dropping out of this mode prematurely (State Hysteresis).
-        #
-        # Entry: rval > threshold + 1
-        # Exit:  rval <= threshold
-        threshold_offset = 0 if self.max_power_counter > 0 else 1
-
         # Bypass the stepping behaviour for extreme errors above faithful_threshold
         # in favor of simple hysteresis
-        if rval > ac_stable_threshold + threshold_offset:
+        # Entry: rval >= 3 (Stable + 2)
+        # Stay:  rval >= 1 (Stable + 0) -> Catches rval=1 (Integrator Reset) and rval=2
+        threshold_offset = 0 if self.max_power_counter > 0 else 2
+
+        if rval >= ac_stable_threshold + threshold_offset:
+
+            self.log(
+                f"Hysteresis Active. rval: {rval}, counter: {self.max_power_counter}"
+            )
 
             # Assume that there is demand for max power (plus lower and upper safety margin)
             self.guesstimated_comp_speed = (
@@ -1199,14 +1232,11 @@ class Actrl(hass.Hass):
             )
             self.max_power_counter += 1
 
-            # Simple hysteresis, provide a stable value and keep commanding max power when
-            # we drop from a huge error to a smaller (but still substantial) error.
-            # Otherwise a "downward step" ends up briefly reducing power output while we're
-            # still struggling to reach the target!
-            if self.prev_unsigned_compressed_error > rval:
-                return rval + 1
-            else:
-                return rval
+            # FIX: Stronger Output Latching
+            # Instead of just adding 1 (which turns rval=1 into 2),
+            # we latch to the previous value to keep the output stable at 3.
+            # We only allow the value to rise, not fall, while in this mode.
+            return max(rval, self.prev_unsigned_compressed_error)
 
         # Saturated, just keep demanding a compressor speed increase
         if rval >= ac_stable_threshold and (
