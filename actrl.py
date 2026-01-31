@@ -390,7 +390,7 @@ class Actrl(hass.Hass):
         errors, cooling_demand, heating_demand = self._calculate_demand(temps)
 
         self.get_entity("input_number.grid_surplus_integral").set_state(
-            state=float(self.grid_surplus_integral)
+            state=str(float(self.grid_surplus_integral))
         )
         self.log(
             f"heating_demand: {heating_demand:.3f}, cooling_demand: {cooling_demand:.3f}"
@@ -437,9 +437,9 @@ class Actrl(hass.Hass):
         weighted_error = mode_sign[self.mode] * demand
 
         self.get_entity("input_number.aircon_weighted_error").set_state(
-            state=float(weighted_error)
+            state=str(float(weighted_error))
         )
-        self.get_entity("input_number.aircon_avg_deriv").set_state(state=avg_deriv)
+        self.get_entity("input_number.aircon_avg_deriv").set_state(state=str(avg_deriv))
 
         unsigned_compressed_error = self.compress(
             weighted_error * mode_sign[self.mode], avg_deriv * mode_sign[self.mode]
@@ -468,7 +468,7 @@ class Actrl(hass.Hass):
             )
 
         self.get_entity("input_number.aircon_comp_speed").set_state(
-            state=float(self.guesstimated_comp_speed)
+            state=str(float(self.guesstimated_comp_speed))
         )
         self.log(
             f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, prev_step: {self.prev_step}"
@@ -515,7 +515,7 @@ class Actrl(hass.Hass):
         self.try_set_mode(self.mode)
         self.try_set_fan_mode(self._determine_fan_mode())
         self.get_entity("input_number.aircon_meta_integral").set_state(
-            state=float(self.deadband_integrator.get())
+            state=str(float(self.deadband_integrator.get()))
         )
         if was_off:
             # Ensure that an extra follow me update packet is sent
@@ -944,7 +944,7 @@ class Actrl(hass.Hass):
                 pid_outputs[room] = self.pids[room].get_output()
 
             self.get_entity(f"input_number.{room}_pid").set_state(
-                state=float(pid_outputs[room])
+                state=str(float(pid_outputs[room]))
             )
             self.log(
                 f"{room} adjusted PID output: {pid_outputs[room]:.3f} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
@@ -958,7 +958,7 @@ class Actrl(hass.Hass):
 
     def set_fake_temp(self, celsius_setpoint, compressed_error, transmit=True):
         self.get_entity("input_number.fake_temperature").set_state(
-            state=float(celsius_setpoint + compressed_error)
+            state=str(float(celsius_setpoint + compressed_error))
         )
         if not transmit:
             return
@@ -989,7 +989,7 @@ class Actrl(hass.Hass):
 
         damper_log = f"{room} damper scaled: {damper_val:.3f}, cur_pos: {cur_pos}, actual_cur_pos: {actual_cur_pos}"
         self.get_entity("input_number." + room + "_damper_target").set_state(
-            state=float(damper_val)
+            state=str(float(damper_val))
         )
 
         cur_deadband = damper_deadband
