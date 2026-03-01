@@ -1205,6 +1205,7 @@ class Actrl(hass.Hass):
 
         # Begin step down sequence, unless already at min power
         if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
+            self.max_power_counter = 0
             self.guesstimated_comp_speed = min(
                 compressor_power_increments,
                 self.guesstimated_comp_speed - 1,
