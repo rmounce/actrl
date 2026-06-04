@@ -9,7 +9,7 @@ class Statctrl(hass.Hass):
             ["heat", "cool"] if "type" not in self.args else [self.args["type"]]
         )
         self.states = ["turbo", "active", "inactive"]
-        self.step_size = 0.1
+        self.default_step_size = 0.1
         self.active_timers = {}
 
         self.run_every(self.periodic_check, "now", 60)
@@ -88,6 +88,23 @@ class Statctrl(hass.Hass):
         # self.log(f"Current setpoint for {mode} is {setpoint}")
         return float(self.get_state(climate_entity, attribute=attr))
 
+    def get_step_size(self):
+        climate_entity = f"climate.{self.room}_aircon"
+        step_size = self.get_state(climate_entity, attribute="target_temp_step")
+        if step_size is None:
+            return self.default_step_size
+        return float(step_size)
+
+    def step_towards(self, current, target, mode):
+        step_size = self.get_step_size()
+        direction = -1 if mode == "cool" else 1
+        if not self.should_step_to_target(current, target, mode):
+            direction *= -1
+        new_temp = current + (step_size * direction)
+        if direction > 0:
+            return min(new_temp, target)
+        return max(new_temp, target)
+
     def should_step_to_target(self, current, target, mode):
         if mode == "heat":
             return current < target
@@ -127,16 +144,15 @@ class Statctrl(hass.Hass):
                 slew_on_rate = float(self.get_state("input_number.statctrl_slew_on"))
 
                 if (setpoint_delta / time_until_next) > slew_on_rate:
-                    new_temp = current_setpoint + (
-                        self.step_size * (-1 if mode == "cool" else 1)
-                    )
+                    new_temp = self.step_towards(current_setpoint, setpoints["active"], mode)
                     self.set_climate(mode, new_temp)
 
                     steps_remaining = (
-                        abs(setpoints["active"] - new_temp) / self.step_size
+                        abs(setpoints["active"] - new_temp) / self.get_step_size()
                     )
-                    time_to_next = time_until_next / steps_remaining
-                    self.schedule_next_update(mode, time_to_next * 3600)
+                    if steps_remaining > 0:
+                        time_to_next = time_until_next / steps_remaining
+                        self.schedule_next_update(mode, time_to_next * 3600)
                     return
         # self.log("No immediate action required")
 
@@ -146,14 +162,13 @@ class Statctrl(hass.Hass):
             or self.should_step_to_target(current_setpoint, target, mode)
         ):
             # self.log("Slew-off")
-            new_temp = current_setpoint + (
-                self.step_size * (-1 if mode == "heat" else 1)
-            )
+            new_temp = self.step_towards(current_setpoint, target, mode)
             self.set_climate(mode, new_temp)
 
-            slew_off_rate = float(self.get_state("input_number.statctrl_slew_off"))
-            time_to_next = (self.step_size * 3600) / slew_off_rate
-            self.schedule_next_update(mode, time_to_next)
+            if new_temp != target:
+                slew_off_rate = float(self.get_state("input_number.statctrl_slew_off"))
+                time_to_next = (self.get_step_size() * 3600) / slew_off_rate
+                self.schedule_next_update(mode, time_to_next)
 
     def set_climate(self, mode, temp):
         climate_entity = f"climate.{self.room}_aircon"
