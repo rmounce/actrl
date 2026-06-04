@@ -355,6 +355,7 @@ class Actrl(hass.Hass):
             ki=(global_deadband_ki * 60.0 * interval),
         )
         self.window_handler = WindowStateHandler()
+        self.missing_room_climate_entities = set()
 
         for room in rooms:
             self.pids[room] = MyPID(
@@ -411,7 +412,7 @@ class Actrl(hass.Hass):
         pid_outputs = self._calculate_pid_outputs(errors)
 
         # Disabled rooms
-        for room in rooms - cur_targets[self.mode].keys():
+        for room in set(rooms) - set(cur_targets[self.mode]):
             if self.get_entity("cover." + room).get_state("current_position") != "0":
                 self.log("Closing damper for disabled room: " + room)
                 self.set_damper_pos(room, 0, False)
@@ -592,9 +593,20 @@ class Actrl(hass.Hass):
 
     def _get_current_targets(self):
         cur_targets = {"heat": {}, "cool": {}}
+        climate_states = self.get_state("climate")
+        available_climates = (
+            set(climate_states.keys()) if isinstance(climate_states, dict) else set()
+        )
+        missing_room_climate_entities = set()
+
         for room in rooms:
-            climate_state = self.get_state("climate." + room + "_aircon")
-            climate_entity = self.get_entity("climate." + room + "_aircon")
+            room_climate_entity = "climate." + room + "_aircon"
+            if room_climate_entity not in available_climates:
+                missing_room_climate_entities.add(room_climate_entity)
+                continue
+
+            climate_state = self.get_state(room_climate_entity)
+            climate_entity = self.get_entity(room_climate_entity)
 
             if climate_state == "heat_cool":
                 cur_targets["heat"][room] = climate_entity.get_state("target_temp_low")
@@ -603,6 +615,16 @@ class Actrl(hass.Hass):
                 cur_targets["heat"][room] = climate_entity.get_state("temperature")
             elif climate_state == "cool":
                 cur_targets["cool"][room] = climate_entity.get_state("temperature")
+
+        if missing_room_climate_entities != self.missing_room_climate_entities:
+            if missing_room_climate_entities:
+                self.log(
+                    "Missing room climate entities: "
+                    + ", ".join(sorted(missing_room_climate_entities)),
+                    level="WARNING",
+                )
+            self.missing_room_climate_entities = missing_room_climate_entities
+
         return cur_targets
 
     def _update_room_target(self, room, mode, cur_targets):
@@ -736,6 +758,9 @@ class Actrl(hass.Hass):
         return errors, cooling_demand, heating_demand
 
     def _determine_new_mode(self, cooling_demand, heating_demand):
+        if not math.isfinite(max(cooling_demand, heating_demand)):
+            return None, float("-inf")
+
         if self.get_state(climate_entity) == "cool" and cooling_demand > (
             heating_demand + immediate_off_threshold
         ):
@@ -748,7 +773,7 @@ class Actrl(hass.Hass):
             return "cool", cooling_demand
         elif heating_demand > cooling_demand:
             return "heat", heating_demand
-        return None
+        return None, max(cooling_demand, heating_demand)
 
     def _handle_mode_change(self, new_mode, celsius_setpoint):
         if new_mode is None or (self.mode is not None and (new_mode != self.mode)):
