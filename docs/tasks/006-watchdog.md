@@ -1,6 +1,6 @@
 # 006: Watchdog app — alert on stale sensors and dead control loop
 
-Status: ready
+Status: done
 Branch: task/006-watchdog
 
 ## Goal
@@ -127,3 +127,14 @@ git diff master -- actrl.py control.py statctrl.py | wc -l   # expect 0
 ## Log
 
 - 2026-07-02: spec written (Claude Fable), status ready.
+- 2026-07-02: implementation started by a Sonnet subagent, which was
+  terminated mid-task by an account spend limit after drafting
+  hvac_watchdog.py and tests (uncommitted). Claude Fable completed the
+  task directly in the same worktree: fixed the tests' missing hassapi
+  stub (module import crashed collection), added tz-aware/naive
+  timestamp robustness to `_age_minutes` (+ test), added
+  hvac_watchdog.py to deploy.sh FILES, wrote docs/watchdog.md.
+  Acceptance: 107 passed / 1 skipped offline; hassapi-stub import OK;
+  deploy.sh grep = 1; actrl/control/statctrl diff vs master = 0 lines.
+  Not deployed; live apps.yaml block is a manual prod step
+  (docs/watchdog.md). Status done.
