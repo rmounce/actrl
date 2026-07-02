@@ -112,8 +112,9 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
 - `[ ]` Structured metrics: publish PID terms and controller state as JSON
   attributes on one entity rather than many `input_number`s (fewer recorder
   rows, easier analysis).
-- `[ ]` Watchdog: alert if the main loop stops running or a service call
-  repeatedly fails (currently failures are silent in logs).
+- `[x]` Watchdog: `hvac_watchdog.py` (task 006) alerts on stale/unavailable
+  sensors and a wedged control loop — see docs/watchdog.md. Deployed apps
+  need a manual apps.yaml block in prod.
 - `[x]` Deploy script: `./deploy.sh` copies the deployable files into
   `appdaemon/`.
 - Won't do (for now): anything building on statctrl adaptive optimum start
