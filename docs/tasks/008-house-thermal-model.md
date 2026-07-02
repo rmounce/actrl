@@ -1,6 +1,6 @@
 # 008: House thermal model — per-room RC simulator
 
-Status: review
+Status: done
 Branch: task/008-house-thermal-model
 
 ## Goal
@@ -124,3 +124,10 @@ git diff master -- analysis/sysid_june.py calib.py | wc -l   # expect 0
   that it's the noisiest/least-identifiable room (tau_out ≈ 118.6 h,
   effectively unidentifiable outdoor path, r² = 0.50 in the original fit).
   All acceptance criteria pass. Status → review.
+- 2026-07-02: reviewed and merged to master (Claude Fable, supervising).
+  Implemented by a Sonnet 5 subagent. Verified: main checkout untouched,
+  only in-scope files changed, tests and the 24-night validation replay
+  re-run independently in the worktree (identical numbers), model
+  structure and defaults match docs/calibration.md exactly, stability
+  guard is conservative (tau_eff/2 vs the true 2*tau_eff limit).
+  Status done.
