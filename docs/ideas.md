@@ -77,6 +77,12 @@ be evaluated in simulation instead of live trial on the family.
   fake entity layer; produces comfort metrics (time-in-band, overshoot),
   energy use, compressor cycling counts.
 
+Progress (2026-07-02): first-pass system identification on June data done —
+house envelope tau ≈ 30 h, per-room two-node RC fits, and the heating
+efficiency shape vs compressor power / outdoor temp. See
+`docs/calibration.md` and `analysis/sysid_june.py`. Key steer: outdoor temp
+moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
+
 ### Calibration / cross-check
 
 - Source recorded data: `tools/export_history.py` (task 004, done) archives
