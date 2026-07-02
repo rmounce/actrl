@@ -1,0 +1,107 @@
+[
+ {
+  "cycle": 0,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 0,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 0,
+  "write": [
+   "input_number.aircon_meta_integral",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.aircon_meta_integral",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.aircon_meta_integral",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.aircon_meta_integral",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.aircon_meta_integral",
+   "unknown"
+  ]
+ }
+]

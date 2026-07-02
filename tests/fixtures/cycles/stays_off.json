@@ -1,0 +1,1449 @@
+[
+ {
+  "cycle": 0,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 0,
+  "write": [
+   "input_number.fake_temperature",
+   "25.0"
+  ]
+ },
+ {
+  "cycle": 0,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 0,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 0,
+  "write": [
+   "input_number.aircon_meta_integral",
+   "unknown"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "service": "cover/set_cover_position",
+  "data": {
+   "entity_id": "cover.bed_1",
+   "position": 100
+  }
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "service": "cover/set_cover_position",
+  "data": {
+   "entity_id": "cover.bed_2",
+   "position": 100
+  }
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "service": "cover/set_cover_position",
+  "data": {
+   "entity_id": "cover.bed_3",
+   "position": 100
+  }
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "service": "cover/set_cover_position",
+  "data": {
+   "entity_id": "cover.kitchen",
+   "position": 100
+  }
+ },
+ {
+  "cycle": 1,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 1,
+  "service": "cover/set_cover_position",
+  "data": {
+   "entity_id": "cover.study",
+   "position": 100
+  }
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 2,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 3,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 4,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 5,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 6,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 7,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 8,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 9,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 10,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 11,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 12,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 13,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.grid_surplus_integral",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.bed_1_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.bed_2_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.bed_3_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.kitchen_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.study_pid",
+   "2.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.aircon_weighted_error",
+   "0.5"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.aircon_avg_deriv",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.aircon_comp_speed",
+   "0.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.bed_1_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.bed_2_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.bed_3_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.kitchen_damper_target",
+   "100.0"
+  ]
+ },
+ {
+  "cycle": 14,
+  "write": [
+   "input_number.study_damper_target",
+   "100.0"
+  ]
+ }
+]
