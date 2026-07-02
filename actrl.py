@@ -431,7 +431,7 @@ class Actrl(hass.Hass):
 
             damper_vals[room] = 100.0 * (clamped_output / normalised_damper_range)
 
-        avg_deriv = deriv_sum / weight_sum
+        avg_deriv = deriv_sum / weight_sum if weight_sum > 0 else 0.0
 
         # Use the state of the zone with the highest demand rather than weighted demand
         # weighted_error = error_sum / weight_sum
@@ -555,7 +555,14 @@ class Actrl(hass.Hass):
         self.grid_surplus_integral = 0
 
     def _set_static_pressure(self, new_static_pressure):
-        while int(float(self.get_state(static_pressure_entity))) != new_static_pressure:
+        # Bounded retries so an unresponsive device can't wedge the app;
+        # the next cycle will try again anyway.
+        for _ in range(5):
+            if (
+                int(float(self.get_state(static_pressure_entity)))
+                == new_static_pressure
+            ):
+                return
             self.log(
                 f"CHANGING STATIC PRESSURE FROM {float(self.get_state(static_pressure_entity))} TO {new_static_pressure}"
             )
@@ -567,6 +574,10 @@ class Actrl(hass.Hass):
             )
             # Typically reported in ~2 seconds
             time.sleep(1)
+        self.log(
+            f"Static pressure change to {new_static_pressure} not confirmed, giving up until next cycle",
+            level="WARNING",
+        )
 
     def _get_current_temperatures(self):
         temps = {}
@@ -606,15 +617,15 @@ class Actrl(hass.Hass):
                 continue
 
             climate_state = self.get_state(room_climate_entity)
-            climate_entity = self.get_entity(room_climate_entity)
+            room_climate = self.get_entity(room_climate_entity)
 
             if climate_state == "heat_cool":
-                cur_targets["heat"][room] = climate_entity.get_state("target_temp_low")
-                cur_targets["cool"][room] = climate_entity.get_state("target_temp_high")
+                cur_targets["heat"][room] = room_climate.get_state("target_temp_low")
+                cur_targets["cool"][room] = room_climate.get_state("target_temp_high")
             elif climate_state == "heat":
-                cur_targets["heat"][room] = climate_entity.get_state("temperature")
+                cur_targets["heat"][room] = room_climate.get_state("temperature")
             elif climate_state == "cool":
-                cur_targets["cool"][room] = climate_entity.get_state("temperature")
+                cur_targets["cool"][room] = room_climate.get_state("temperature")
 
         if missing_room_climate_entities != self.missing_room_climate_entities:
             if missing_room_climate_entities:
@@ -1128,7 +1139,7 @@ class Actrl(hass.Hass):
             else:
                 self.compressor_totally_off = False
                 self.deadband_integrator.clear()
-                print(f"starting compressor {ac_on_threshold}")
+                self.log(f"starting compressor {ac_on_threshold}")
 
         # "blip" the power to get AC to start
         if self.on_counter < 1:
@@ -1154,7 +1165,7 @@ class Actrl(hass.Hass):
             return self.midea_runtime_quirks(ac_off_threshold + 1)
 
         if self.on_counter < soft_delay:
-            print("soft start, on_counter: " + str(self.on_counter))
+            self.log("soft start, on_counter: " + str(self.on_counter))
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_stable_threshold - 1)
 

@@ -131,18 +131,10 @@ running"). Everything else (PIDs, counters) restarts cold.
 
 ## Known issues / risks
 
-- **`_set_static_pressure` can loop forever** (`while` + `time.sleep(1)`)
-  if the ESPHome device never reports the requested value. Wedges the app.
-- **Division by zero** at `avg_deriv = deriv_sum / weight_sum` if every PID
-  output is ≤ 0 (all rooms just satisfied but demand not yet below the off
-  threshold).
 - **Blocking sleeps in callbacks**: up to ~2.5 s of `time.sleep` per cycle in
   a 10 s `run_every` callback (AppDaemon thread-pool pressure; warnings on
-  overrun).
-- `_get_current_targets` shadows module-level `climate_entity` with a local —
-  works, but reads like a bug.
-- Stray `print()` calls (in `compress`, `midea_runtime_quirks` path) instead
-  of `self.log()`.
+  overrun). `_set_static_pressure` retries are bounded (5 × 1 s) but still
+  block while active.
 - No tests; the pure-logic classes (`MyWMA`, `MyDeriv`, `MyPID`,
   `DeadbandIntegrator`, `compress`/`midea_runtime_quirks`) are the riskiest
   code and are extractable/testable without HA. See `docs/ideas.md`.

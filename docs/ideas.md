@@ -5,13 +5,13 @@ progress, `[x]` done.
 
 ## 1. Near-term fixes (small, low risk)
 
-- `[ ]` statctrl `save_adaptive_model`: merge only this room's keys to fix
+- `[x]` statctrl `save_adaptive_model`: merge only this room's keys to fix
   the cross-instance overwrite race (docs/statctrl.md).
-- `[ ]` actrl `_set_static_pressure`: bound the retry loop (N attempts →
-  log error and continue) so a dead ESPHome device can't wedge the app.
-- `[ ]` actrl: guard `avg_deriv = deriv_sum / weight_sum` against
+- `[x]` actrl `_set_static_pressure`: bound the retry loop (5 attempts →
+  warn and continue) so a dead ESPHome device can't wedge the app.
+- `[x]` actrl: guard `avg_deriv = deriv_sum / weight_sum` against
   `weight_sum == 0`.
-- `[ ]` actrl: replace stray `print()` with `self.log()`; rename the local
+- `[x]` actrl: replace stray `print()` with `self.log()`; rename the local
   that shadows module-level `climate_entity` in `_get_current_targets`.
 - `[ ]` Reduce/eliminate blocking `time.sleep` in callbacks (AppDaemon
   `run_in` continuations, or at minimum document why each sleep exists).
