@@ -55,7 +55,10 @@
 
   "sensor__power": {
     "rp": "rp_raw",
-    "entities": ["m5atom_current"]
+    "entities": [
+      "shellyem_ec64c9c6932b_channel_1_power",
+      "shellyem_ec64c9c6932b_channel_2_power"
+    ]
   },
 
   "temperature_adelaide": {
