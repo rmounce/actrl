@@ -35,7 +35,8 @@
   (per-room setpoint scheduling). `archive/` holds retired experiments.
 - `appdaemon/` is a gitignored deployed copy of the apps. Top-level files are
   the source of truth; a difference means undeployed work. Do not edit
-  `appdaemon/` directly. Deploy process: confirm with user before assuming.
+  `appdaemon/` directly. Deploy: `cp actrl.py statctrl.py appdaemon/`
+  (AppDaemon auto-reloads changed apps). Deploy only when the user asks.
 - Control code runs a real house's HVAC. Changes to control logic need user
   review before deployment; prefer adding tests/simulation over live trial.
 
