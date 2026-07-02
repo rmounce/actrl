@@ -93,11 +93,14 @@ automatically since files already exist.)
   found in any RP as of 2026-07-02 -- likely stale/legacy metadata from an
   earlier integration version). The tool's `GROUP BY *` + per-series export
   handles this correctly (empty series produce no output rows).
-- `sensor__power` `m5atom_current`: had data up to 2026-06-29 06:17 UTC,
-  none since (confirmed via `SELECT last(value)`). The 2-day export run on
-  2026-07-02 got an expected "empty result" warning for it -- looks like
-  the m5atom device/sensor stopped reporting recently, not a tool bug.
-  Worth checking if that's a live device issue.
+- The Midea/m5atom power and current entities exist but report no useful
+  data on this system (per the user, 2026-07-02; `m5atom_current` had no
+  points after 2026-06-29 anyway). The real HVAC power source of truth is a
+  separate Shelly EM meter: `sensor__power` entity
+  `shellyem_ec64c9c6932b_channel_1_power` = **outdoor unit** (compressor +
+  outdoor fan), `..._channel_2_power` = **indoor unit** (indoor fan). Both
+  report ~every 13 s. Channel 1 reads slightly negative at idle (~-7 W, CT
+  offset) -- clamp at 0 before integrating energy.
 - `cover__damper` `bed_2` / `bed_3`: got "empty result" warnings on some of
   the two sample days during the acceptance test -- these dampers may not
   be reporting position changes as often as `bed_1`/`kitchen`/`study` (or
