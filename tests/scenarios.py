@@ -161,6 +161,81 @@ def manual_mode():
     return {"name": "manual_mode", "initial": world, "cycles": 5, "updates": {}}
 
 
+def cool_overshoot_off():
+    """Cooling that overshoots hard: ramp down, min power, off with fan run-on."""
+    targets = {room: 24.5 for room in ROOMS}
+    start = {room: 25.5 for room in ROOMS}
+    cycles = 130
+    world = base_world()
+    room_climates(world, "cool", targets, start)
+    return {
+        "name": "cool_overshoot_off",
+        "initial": world,
+        "cycles": cycles,
+        "updates": temp_updates(cycles, start, -0.03),
+    }
+
+
+def mode_switch_heat_to_cool():
+    """heat_cool rooms swinging from too-cold to too-hot: heat -> off -> cool."""
+    targets = {room: (19.0, 25.0) for room in ROOMS}
+    start = {room: 18.5 for room in ROOMS}
+    cycles = 170
+    world = base_world()
+    room_climates(world, "heat_cool", targets, start)
+    return {
+        "name": "mode_switch_heat_to_cool",
+        "initial": world,
+        "cycles": cycles,
+        "updates": temp_updates(cycles, start, 0.05),
+    }
+
+
+def feels_like_fallback():
+    """ac_use_feels_like on; some rooms lack the sensor and must fall back."""
+    targets = {"bed_1": 21.0, "bed_2": 20.5, "bed_3": 21.0, "kitchen": 21.5, "study": 20.0}
+    start = {room: t - 1.0 for room, t in targets.items()}
+    cycles = 40
+    world = base_world()
+    world["input_boolean.ac_use_feels_like"]["state"] = "on"
+    room_climates(world, "heat", targets, start)
+    # feels-like present (and warmer) for two rooms only; others fall back
+    world["sensor.bed_1_feels_like"] = {"state": str(start["bed_1"] + 0.3)}
+    world["sensor.kitchen_feels_like"] = {"state": str(start["kitchen"] + 0.3)}
+    updates = temp_updates(cycles, start, 0.01)
+    for cycle in range(cycles):
+        updates[cycle]["sensor.bed_1_feels_like"] = {
+            "state": str(round(start["bed_1"] + 0.3 + 0.01 * cycle, 4))
+        }
+        updates[cycle]["sensor.kitchen_feels_like"] = {
+            "state": str(round(start["kitchen"] + 0.3 + 0.01 * cycle, 4))
+        }
+    return {
+        "name": "feels_like_fallback",
+        "initial": world,
+        "cycles": cycles,
+        "updates": updates,
+    }
+
+
+def min_power_hold():
+    """ac_min_power switched on mid-run: on_counter clamped below soft_delay."""
+    targets = {"bed_1": 21.0, "bed_2": 20.5, "bed_3": 21.0, "kitchen": 21.5, "study": 20.0}
+    start = {room: t - 1.2 for room, t in targets.items()}
+    cycles = 80
+    world = base_world()
+    room_climates(world, "heat", targets, start)
+    updates = temp_updates(cycles, start, 0.008)
+    updates[30]["input_boolean.ac_min_power"] = {"state": "on"}
+    updates[60]["input_boolean.ac_min_power"] = {"state": "off"}
+    return {
+        "name": "min_power_hold",
+        "initial": world,
+        "cycles": cycles,
+        "updates": updates,
+    }
+
+
 ALL_SCENARIOS = [
     heat_approach,
     stays_off,
@@ -168,4 +243,8 @@ ALL_SCENARIOS = [
     window_open_heat,
     defrost_heat,
     manual_mode,
+    cool_overshoot_off,
+    mode_switch_heat_to_cool,
+    feels_like_fallback,
+    min_power_hold,
 ]

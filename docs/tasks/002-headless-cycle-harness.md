@@ -31,3 +31,7 @@ direct implementation cheaper than spec + review):
 
 - 2026-07-02: implemented, 6 scenario goldens captured, 11 tests green
   (5 unit + 6 cycle). Merged as part of master commit 1a43bf7.
+- 2026-07-02: four more scenarios (cool_overshoot_off,
+  mode_switch_heat_to_cool, feels_like_fallback, min_power_hold) to cover
+  mode transitions, cooling fan run-on shutdown, feels-like fallback and the
+  ac_min_power clamp ahead of task 003. 15 tests green.
