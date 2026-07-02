@@ -131,8 +131,16 @@ class Statctrl(hass.Hass):
         return model
 
     def save_adaptive_model(self):
+        # Only merge this room's keys: other rooms' app instances own theirs,
+        # and merging our stale copies would revert their newer saves.
+        own_prefix = f"{self.room}:"
+        own_models = {
+            key: value
+            for key, value in self.adaptive_model["models"].items()
+            if key.startswith(own_prefix)
+        }
         latest_model = self.load_adaptive_model()
-        latest_model["models"].update(self.adaptive_model["models"])
+        latest_model["models"].update(own_models)
         self.adaptive_model = latest_model
 
         path = self.adaptive_model_path

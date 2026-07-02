@@ -63,19 +63,14 @@ instead of the naive slew-rate heuristic.
   `room:mode` key.
 - Model persisted to `statctrl_adaptive.json` next to the app (path
   overridable via `adaptive_model_path` arg); written atomically via a
-  per-room tmp file + `os.replace`.
+  per-room tmp file + `os.replace`. Saves reload the file and merge only this
+  room's keys, so concurrent per-room instances can't revert each other.
 - When adaptive is enabled, "active with error" transitions also slew instead
   of jumping (`update_setpoint` → `slew_on_step`), so learned rates reflect
   the same mechanism used for pre-start.
 
 ## Known issues / risks
 
-- **Shared-model merge race** (`save_adaptive_model`): each room instance
-  holds a full copy of the JSON including *other* rooms' models. On save it
-  reloads and merges via `latest_model["models"].update(self.adaptive_model["models"])`
-  — this room's stale copy of another room's model can overwrite that room's
-  newer value. Fix: merge only keys owned by this instance
-  (`f"{self.room}:"` prefix).
 - `handle_adaptive_start` returns `True` for both "too early, deliberately
   waiting" and "started pre-start ramp", which makes `update_setpoint`'s
   control flow hard to trace.
