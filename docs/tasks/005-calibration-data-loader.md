@@ -1,6 +1,6 @@
 # 005: Calibration data loader — align data/raw/ into analysis-ready series
 
-Status: review
+Status: done
 Branch: task/005-calibration-data-loader
 
 ## Goal
@@ -146,3 +146,14 @@ during June) and unlimited-ffill dampers at 100% after their seed point.
   pandas' native `interpolate(limit=...)`, which partially fills the front
   of longer gaps instead of leaving them alone — added a `long_gap_mask`
   helper to implement this correctly. Status -> review.
+- 2026-07-02: reviewed and merged to master (Claude Fable, supervising).
+  Implemented by a Sonnet 5 subagent. Verified: main checkout untouched
+  (the subagent's stray `uv add` into the main checkout was fully
+  reverted — status/stash/.venv all clean), field `current_position`
+  confirmed present in real cover__damper data (alongside `value`; the
+  docs/data.md field list from task 004 was non-exhaustive), all
+  acceptance criteria re-run independently including the June parquet
+  export (43200×45, bed_1 coverage 96.5%) and the apps-pandas-free
+  check. m5atom raw temp sparsity (~11–19% coverage) looks like
+  ESPHome on-change reporting — dense under load, silent when flat —
+  acceptable for calibration. Status done.

@@ -21,7 +21,8 @@ progress, `[x]` done.
 Progress: task 001 (pure-class extraction, done), task 002 (headless
 whole-cycle harness + golden scenarios, done), task 003 (capacity controller
 extraction, done), task 004 (calibration data export, done — see
-`docs/data.md`). See `docs/tasks/`.
+`docs/data.md`), task 005 (calibration data loader `calib.py`, done).
+See `docs/tasks/`.
 
 Extract the remaining control logic from the `hass.Hass` classes so it can
 be unit-tested and later driven by a simulator:
