@@ -1,6 +1,6 @@
 # 008: House thermal model — per-room RC simulator
 
-Status: ready
+Status: done
 Branch: task/008-house-thermal-model
 
 ## Goal
@@ -95,3 +95,39 @@ git diff master -- analysis/sysid_june.py calib.py | wc -l   # expect 0
 ## Log
 
 - 2026-07-02: spec written (Claude Fable), status ready.
+- 2026-07-02: implemented `sim/house.py` (`HouseParams`/`RoomParams`
+  dataclasses with docs/calibration.md defaults baked in, forward-Euler
+  `House` with a stability guard rejecting `dt_s` where any room's
+  `dt_h > tau_eff/2`, `tau_eff = 1/(a+c)`). `tests/test_house.py`: 8 offline
+  analytic tests (single-room exponential decay within 1%, symmetric-room
+  equilibrium fixed point, coupling-pulls-together-faster-than-outdoor,
+  constant-`q` steady-state offset, stability guard at construction and at
+  `step()`, default-params room coverage, missing-room validation) — all
+  pass, plus full existing suite (115 passed, 1 skipped, unrelated
+  pre-existing skip).
+  Regenerated `data/processed/june.parquet` under this worktree (gitignored,
+  read-only source archive untouched) via `calib.py`.
+  `analysis/validate_house_sim.py` imports `night_windows` from
+  `analysis/sysid_june.py` unmodified (`git diff master -- analysis/sysid_june.py
+  calib.py` = 0 lines), replays all 24 free-running June night windows
+  free-running (q=0) from recorded initial room temps driven by recorded
+  outdoor temp, at 1-min steps (native data grid). Result:
+
+  ```
+  24 windows replayed.
+  per-room medians (C): bed_1 0.126  bed_2 0.128  bed_3 0.142  kitchen 0.253  study 0.138
+  house-average median RMSE: 0.141 C
+  ```
+
+  All well under the 0.5 C flag threshold — no flag raised. Kitchen has the
+  highest median RMSE (0.253 C), consistent with docs/calibration.md's note
+  that it's the noisiest/least-identifiable room (tau_out ≈ 118.6 h,
+  effectively unidentifiable outdoor path, r² = 0.50 in the original fit).
+  All acceptance criteria pass. Status → review.
+- 2026-07-02: reviewed and merged to master (Claude Fable, supervising).
+  Implemented by a Sonnet 5 subagent. Verified: main checkout untouched,
+  only in-scope files changed, tests and the 24-night validation replay
+  re-run independently in the worktree (identical numbers), model
+  structure and defaults match docs/calibration.md exactly, stability
+  guard is conservative (tau_eff/2 vs the true 2*tau_eff limit).
+  Status done.
