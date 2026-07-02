@@ -107,9 +107,8 @@ be evaluated in simulation instead of live trial on the family.
   rows, easier analysis).
 - `[ ]` Watchdog: alert if the main loop stops running or a service call
   repeatedly fails (currently failures are silent in logs).
-- `[ ]` Deploy script: rsync top-level apps into `appdaemon/` (or make the
-  appdaemon dir a symlink) so deployed-vs-source drift is deliberate, not
-  accidental.
+- `[x]` Deploy script: `./deploy.sh` copies the deployable files into
+  `appdaemon/`.
 - Won't do (for now): anything building on statctrl adaptive optimum start
   (e.g. exposing learned minutes-per-degree as sensors) — feature trialed
   and deliberately left inert, not a focus area (docs/statctrl.md).

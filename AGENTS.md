@@ -45,9 +45,10 @@
   (per-room setpoint scheduling). `archive/` holds retired experiments.
 - `appdaemon/` is a gitignored deployed copy of the apps. Top-level files are
   the source of truth; a difference means undeployed work. Do not edit
-  `appdaemon/` directly. Deploy: `cp actrl.py statctrl.py control.py appdaemon/`
-  (AppDaemon auto-reloads changed apps; actrl.py imports control.py, so they
-  must deploy together). Deploy only when the user asks.
+  `appdaemon/` directly. Deploy: `./deploy.sh` (copies the deployable files;
+  AppDaemon auto-reloads, verify with `docker logs hass-appdaemon-1`).
+  Deploy only when the user asks. New deployable module: add it to the
+  FILES list in deploy.sh.
 - Control code runs a real house's HVAC. Changes to control logic need user
   review before deployment; prefer adding tests/simulation over live trial.
 
