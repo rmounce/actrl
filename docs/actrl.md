@@ -129,6 +129,16 @@ Restart-safe state lives in HA entities: comp speed estimate, grid surplus
 integral; mode is inferred from the climate entity ("assuming aircon already
 running"). Everything else (PIDs, counters) restarts cold.
 
+Warm start (app reload while the unit is running, observed 2026-07-02):
+`on_counter` is set to `soft_delay + soft_ramp`, so a restart mid-soft-start
+bypasses the remaining soft start; `min_power_counter` resets to 0,
+restarting the tightening-off-threshold/purge clock; PID integrals cold-start
+and are re-normalised within one cycle (dampers held by the deadband). All
+accepted by design — warm starts are rare and don't need perfect continuity,
+only a consistent state, which the persisted speed estimate provides. The
+weak spot would be a restart mid-ramp-up with a stale
+`input_number.aircon_comp_speed`.
+
 ## Known issues / risks
 
 - **Blocking sleeps in callbacks**: up to ~2.5 s of `time.sleep` per cycle in
