@@ -1,0 +1,10 @@
+[Unit]
+Description=Archive InfluxDB HA history to data/ for simulator calibration
+
+[Service]
+Type=oneshot
+Nice=19
+WorkingDirectory=/home/saltspork/actrl
+# Credentials come from the gitignored tools/influx.env (read by the tool).
+# --days 32 overlaps the previous monthly run; existing files are skipped.
+ExecStart=/home/saltspork/.local/bin/uv run python tools/export_history.py --days 32

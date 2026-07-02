@@ -37,15 +37,26 @@ Output row format: long/tall CSV, one row per (time, field) pair --
 `time,field,value`. A `climate` entity with 5 numeric fields produces 5 rows
 per timestamp, not 5 columns.
 
-### Cron suggestion (monthly, not installed)
+### Monthly systemd timer (installed 2026-07-02)
 
-```
-0 6 1 * * cd /home/saltspork/actrl && INFLUX_PASSWORD=... uv run python tools/export_history.py --days 32 >> /var/log/actrl-export.log 2>&1
-```
+`systemd/actrl-export-history.{service,timer}` — user units, same pattern as
+ai-energy-forecast-slop: tracked in the repo, symlinked into
+`~/.config/systemd/user/`, edits take effect after
+`systemctl --user daemon-reload`. Runs `--days 32` on the 1st of each month
+at 06:10 with `Persistent=true` (a missed month = raw data gone forever, so
+it catches up on next boot). Overlap with the previous run is skipped
+automatically since those files already exist. Credentials come from the
+gitignored `tools/influx.env` (mode 600).
 
-(32 not 30 to overlap the previous run by a couple of days in case the raw
-RP rolled off slightly before the last run reached it -- overlap is skipped
-automatically since files already exist.)
+```bash
+# setup on a new machine (linger already enabled on this one)
+ln -s /home/saltspork/actrl/systemd/actrl-export-history.* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now actrl-export-history.timer
+# logs / status
+journalctl --user -u actrl-export-history.service
+systemctl --user list-timers actrl-export-history.timer
+```
 
 ## Confirmed schema facts (re-verified 2026-07-02 against the live DB)
 
