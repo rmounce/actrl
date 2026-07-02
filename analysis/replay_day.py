@@ -71,6 +71,7 @@ def build_loop(day: pd.DataFrame) -> ClosedLoop:
 def replay(day: pd.DataFrame) -> pd.DataFrame:
     loop = build_loop(day)
     tout = day["temperature_adelaide"].ffill().values
+    pv = (day["power_pv_5m"].fillna(0).clip(lower=0) / 1000.0).values
     sp = day["climate.m5atom_climate.temperature"].ffill().values
     lows = {r: day[f"climate.{r}_aircon.target_temp_low"].ffill().values for r in ROOMS}
     highs = {r: day[f"climate.{r}_aircon.target_temp_high"].ffill().values for r in ROOMS}
@@ -90,7 +91,7 @@ def replay(day: pd.DataFrame) -> pd.DataFrame:
                 for r in ROOMS
             },
         }
-        rows.append(loop.step(t_out=float(tout[m]), updates=updates))
+        rows.append(loop.step(t_out=float(tout[m]), updates=updates, pv_kw=float(pv[m])))
     loop.close()
 
     sim = pd.DataFrame(rows[CYCLES_PER_MIN - 1 :: CYCLES_PER_MIN], index=day.index)

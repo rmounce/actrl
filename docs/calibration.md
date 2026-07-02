@@ -143,9 +143,29 @@ toward the record — so this validates the whole stack. Four June days
   bases): the un-sunlit simulated rooms call for heat the real house
   didn't need — same root cause, amplified by the small denominators.
 
-Next model improvement, clearly indicated: a per-room solar-gain term.
-`power_pv_5m` (Solcast actual-forecast PV power) is already in the archive
-and is a decent irradiance proxy to regress against the daytime residuals.
+### Solar-gain term (added 2026-07-03)
+
+`analysis/solar_fit.py` regresses unit-off residuals (night RC params held
+fixed) on the Solcast PV proxy `power_pv_5m`: bed_3 is the sunny room
+(s = 0.133 K/h per kW, r² = 0.45), bed_1/study modest (0.031/0.042), bed_2
+weak (0.029, r² = 0.03), kitchen clamped to 0 (raw fit slightly negative —
+coupling-term cross-talk from sunlit bed_3, and kitchen already replays at
+~0.4 °C). Now `RoomParams.solar`, driven by `pv_kw` through
+`ClosedLoop.step`; zero PV reproduces the night fit exactly.
+
+Replay after: bed_3 daytime RMSE improves ~25–45% (e.g. 2.41 → 1.36 °C on
+the 8th), bed_1 and study similarly, mild-day energy error halves
+(+94% → +41% on the 8th). Trade-off: heavy-day energy moves from −10/−11%
+to −19/−23% — sunlit simulated rooms ask for less heat than the real
+system used. Remaining known gaps, in likely order of value:
+
+- **bed_2**: still −1.6 °C daytime bias and NOT PV-correlated (r² = 0.03).
+  Its warmth in the record likely arrives via the per-room heat split
+  during unit-on periods (AIRFLOW_WEIGHTS equal-split assumption) or
+  occupancy gains — next thing to investigate.
+- Heavy-day energy deficit beyond defrost (~13–17%): same suspect — if the
+  sim misallocates delivered heat, simulated actrl satisfies targets
+  sooner than the real house did.
 
 ## Caveats / next steps
 
