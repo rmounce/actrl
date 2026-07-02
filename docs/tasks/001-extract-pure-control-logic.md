@@ -1,6 +1,6 @@
 # 001: Capture golden fixtures and extract pure control logic
 
-Status: ready
+Status: review
 Branch: task/001-extract-pure-control-logic
 
 ## Goal
@@ -107,3 +107,14 @@ git status --short appdaemon/ | wc -l   # expect 0 (dir is gitignored; also: no 
 ## Log
 
 - 2026-07-02: spec written (Claude Fable), status ready.
+- 2026-07-02: implemented (Claude Sonnet 5) in worktree
+  `.claude/worktrees/task-001-extract-pure-control-logic`. Captured golden
+  fixtures with `tests/capture_fixtures.py` against unmodified `actrl.py`;
+  moved the five classes verbatim into `control.py` (inlined
+  `grid_surplus_open_window_rate`'s computed default, same value); updated
+  `actrl.py` to import from `control` (diff is subtractive + one import
+  line, verified with `git diff master -- actrl.py`); added
+  `tests/test_control.py` replaying all fixtures; added `pyproject.toml`
+  (`tool.uv.package = false` — not a distributable package, no build step
+  needed) and `.venv/`/`*.egg-info/` to `.gitignore`. All 5 acceptance
+  criteria pass. Status review.
