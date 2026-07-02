@@ -18,8 +18,10 @@ progress, `[x]` done.
 
 ## 2. Testability refactor
 
-First slice done: pure-class extraction + golden fixtures
-(`docs/tasks/001-extract-pure-control-logic.md`) — `control.py` + `tests/`.
+Progress: task 001 (pure-class extraction, done), task 002 (headless
+whole-cycle harness + golden scenarios, done), task 003 (capacity controller
+extraction, ready for implementation), task 004 (calibration data export,
+draft). See `docs/tasks/`.
 
 Extract the remaining control logic from the `hass.Hass` classes so it can
 be unit-tested and later driven by a simulator:
