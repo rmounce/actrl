@@ -55,30 +55,52 @@ Joint fit `e = e0 + b·(P_kW − 0.7) + c·(T_out − 10)`, steady heating
 
 - All heating samples (n = 590): min→max power efficiency loss **8%**,
   outdoor-temp effect **+5.5%/K**.
-- **No-sun samples only (n = 421, the honest number): min→max loss ~14%,
-  outdoor effect +5.0%/K** (daytime solar gain otherwise gets credited to
-  the AC, flattering high-power daytime runs).
+- No-sun samples only (n = 421): min→max loss ~14%, outdoor effect
+  +5.0%/K (daytime solar gain otherwise gets credited to the AC,
+  flattering high-power daytime runs).
+- **No-sun + defrost-excised (n = 380, the honest number): min→max loss
+  ~17%, outdoor effect +5.0%/K.** Excising defrost barely moves the
+  coefficients — the conclusion was already robust to it.
 
 Interpretation, with caveats below:
 
 - The **naive binned curve shows a ~35% efficiency drop** from min to max
   power — but that's mostly confounding: high power happens on cold
   nights. At *fixed* outdoor temp the compressor-speed penalty is a much
-  smaller ~14%.
+  smaller ~17%.
 - Outdoor temperature dominates: ~5%/K means a 6 °C outdoor swing moves
   efficiency ~30% — more than the entire compressor-speed range.
 - Policy implication (preliminary): "run at minimum power as long as
-  possible" is directionally right but worth ~14%, not ~35%. Conversely,
+  possible" is directionally right but worth ~17%, not ~35%. Conversely,
   *when* you heat matters more than *how hard*: heating during the warm
   part of the day (which also tends to be PV-surplus time) beats gentle
   overnight running on both counts. Supports the grid-surplus strategy;
   quantify properly once C_house is pinned down.
 
+## Defrost (detected 2026-07-02)
+
+- Detection: actrl forces `aircon_comp_speed` to max on defrost
+  (compressor on + outdoor fan off), so **comp_speed ≥ 15 while the
+  outdoor unit draws > 300 W** labels defrost + recovery. Nine June
+  episodes, all 03:30–07:00 local at outdoor 3.9–7.1 °C, corroborated by
+  `m5atom_inside_coil_inlet_temp` crashing from its normal ~35 °C to
+  1–12 °C during each one. (The outside-coil-excursion idea found
+  nothing — that sensor never rose > 10 K above ambient; use the inside
+  coil / comp-speed signals instead.)
+- Overhead: defrost + recovery windows consumed **7.5 kWh of June's
+  116.9 kWh heating (6.4%)**. Concentrated where it hurts: cold pre-dawn
+  heating (03:00–08:00 local, T_out < 7.5 °C) was 29% of June's heating
+  energy and paid **23% of itself into defrost windows** — on top of its
+  ~25% cold-outdoor efficiency handicap. The case for shifting heating
+  load away from pre-dawn toward warm/PV hours is now quantified from
+  three directions at once.
+
 ## Caveats / next steps
 
-- r² ≈ 0.28 on the efficiency fit — noisy at 10-min resolution; defrost
-  cycles are only crudely excluded (the e < −2 / > 15 trim). Better:
-  detect defrost from `m5atom_outside_coil_temp` excursions and excise.
+- r² ≈ 0.28 on the efficiency fit — noisy at 10-min resolution even after
+  defrost excision; residual scatter is likely uneven room weighting of
+  delivered heat, occupancy/appliance gains, and wind (BOM wind speed is
+  exportable if we want it as a regressor).
 - tau_house = 29.9 h is baked into q; error in tau shifts the *level* of
   e slightly but barely affects the power/Tout coefficients (heating
   dT/dt >> decay term during active heating).
