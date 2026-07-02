@@ -1,6 +1,6 @@
 # 005: Calibration data loader — align data/raw/ into analysis-ready series
 
-Status: ready
+Status: review
 Branch: task/005-calibration-data-loader
 
 ## Goal
@@ -131,3 +131,18 @@ during June) and unlimited-ffill dampers at 100% after their seed point.
 ## Log
 
 - 2026-07-02: spec written (Claude Fable), status ready.
+- 2026-07-02: implemented `calib.py` (COLUMN_SPECS covering 45 columns:
+  room + m5atom temperatures, dampers, climate setpoints, Shelly power
+  channels, input_number controller series, BOM/EMHASS slow series) with
+  the five resampling kinds (temperature/state/power/controller/slow) as
+  pure functions plus thin I/O wrappers, `tests/test_calib.py` (28 offline
+  tests, synthetic `.csv.gz` fixtures via tmp_path), `docs/data.md` "Loading
+  for analysis" section, `pandas`+`pyarrow` dev deps. All runnable
+  acceptance criteria pass, incl. the live-archive `--report` and
+  `--out`/parquet runs against `/home/saltspork/actrl/data` (read-only) and
+  the apps-stay-pandas-free check. Notable fix during implementation: the
+  temperature interpolation cap needed all-or-nothing gap semantics (a run
+  either fully bridges if ≤15 min or stays entirely NaN) rather than
+  pandas' native `interpolate(limit=...)`, which partially fills the front
+  of longer gaps instead of leaving them alone — added a `long_gap_mask`
+  helper to implement this correctly. Status -> review.
