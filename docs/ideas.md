@@ -25,11 +25,9 @@ draft). See `docs/tasks/`.
 
 Extract the remaining control logic from the `hass.Hass` classes so it can
 be unit-tested and later driven by a simulator:
-- `compress`/`midea_reset_quirks`/`midea_runtime_quirks` — refactor into a
-  `MideaCapacityController` object whose inputs are (error, deriv, mode,
-  defrost_detected) and whose outputs are (fake temp offset, speed estimate).
-  This encodes the irreplaceable reverse-engineered behaviour; it deserves
-  the densest test coverage.
+- Done (task 003): `compress`/`midea_reset_quirks`/`midea_runtime_quirks`
+  extracted as `control.MideaCapacityController` with 8 golden fixture
+  scenarios in `tests/fixtures/capacity/`.
 - The PID integral-adjustment passes in `_calculate_pid_outputs` (top-zone
   anti-runaway, normalisation, minimum airflow, negative clamp) — pure given
   (pid states, errors, airflow weights, door states, fan power).

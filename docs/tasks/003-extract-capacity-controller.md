@@ -1,6 +1,6 @@
 # 003: Extract MideaCapacityController from actrl.py
 
-Status: review
+Status: done
 Branch: task/003-extract-capacity-controller
 
 ## Goal
@@ -201,3 +201,9 @@ git diff master -- actrl.py         # manual review per Design "diffable rule"
     Design's diffable rule.
 
   Nothing ambiguous encountered; no questions.
+- 2026-07-02: reviewed and merged to master (Claude Fable, supervising).
+  Implemented by a Sonnet 5 subagent under direct supervision. Capacity
+  fixtures independently regenerated from pre-move master code —
+  byte-identical; cycle goldens confirmed untouched; actrl.py diff verified
+  as import block + constructor + mechanical substitutions; Midea comments
+  preserved. Status done. Not yet deployed.
