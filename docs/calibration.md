@@ -104,11 +104,21 @@ Interpretation, with caveats below:
 - tau_house = 29.9 h is baked into q; error in tau shifts the *level* of
   e slightly but barely affects the power/Tout coefficients (heating
   dT/dt >> decay term during active heating).
-- Absolute COP needs C_house (kWh/K). Candidate methods: (a) step
-  experiments — known electrical energy into a closed-up house overnight,
-  measure ΔT; (b) manufacturer capacity tables for the Midea unit matched
-  to observed compressor increments. Then e converts to real COP and the
-  policy trade-offs become kWh-denominated.
+- **C_house anchor (2026-07-02, weak but physically coherent)**: the unit
+  is an ActronAir URC-100AS/LRE-100AS (10 kW nominal); rated capacity/power
+  tables transcribed in `analysis/actron_tables.py` (source PDF in
+  docs/references/). Matching observed high-power no-sun no-defrost
+  samples (only n = 9 in June, P > 1.6 kW) against interpolated table COP
+  gives **effective C_house ≈ 4.8 kWh/K (IQR 4.0–5.1) → UA ≈ 160 W/K**,
+  implying min-power COP ≈ 5.0 at 10 °C outdoor / ≈ 3.75 at 5 °C —
+  sensible part-load inverter numbers vs the ~3.5 rated COP. Caveats:
+  duct losses are folded in (this C is referenced to unit-delivered
+  heat); rated-COP-at-part-load biases C low; the 4 °C table point is
+  defrost-affected (rating-standard artefact), muddying interpolation
+  near 5–6 °C. Note temperature data alone can never separate Q from C —
+  the table anchor (or a resistive-heater experiment) is structurally
+  required, not a shortcut. July's cold mornings will add full-power
+  samples and tighten this.
 - Winter data only. Cooling-season parameters (and solar gain modelling)
   need summer archives — the monthly export timer is accumulating them.
 - Room-level delivered-heat split (damper positions × fan power → per-room
