@@ -125,7 +125,11 @@ class ClosedLoop:
 
         # Unit side: mode from the climate entity actrl controls; feed every
         # follow-me packet emitted this cycle (power-on retransmits included).
-        unit_mode = self.world.entities.get(UNIT_CLIMATE, {}).get("state")
+        unit_entity = self.world.entities.get(UNIT_CLIMATE, {})
+        unit_mode = unit_entity.get("state")
+        sp = unit_entity.get("attributes", {}).get("temperature")
+        if sp is not None:
+            self.unit.setpoint = float(sp)  # real unit learns setpoint changes
         reports = self._follow_me_reports(journal_slice)
         if unit_mode in ("heat", "cool"):
             if self.unit.mode != unit_mode:

@@ -91,7 +91,12 @@ transmits `setpoint + mode_sign×demand`, so heat mode reports *below*
 setpoint for more compressor (emulator assumption 11). Compressor spin-up
 lag identified from June power-step transients (`analysis/lag_fit.py`,
 tau ≈ 20 s) and modelled as a first-order lag on electrical power.
-Remaining: whole-day replay validation vs a recorded June day; defrost
+Whole-day replay validation done (`analysis/replay_day.py`, four June
+days): kitchen 0.34–0.40 °C RMSE with ~zero bias; energy within −11%
+on heavy heating days (missing defrost explains most). Dominant gap =
+solar/internal gains (night-only RC fit) — bedrooms read 1–2 °C cold in
+the day and mild days overpredict heating energy. Remaining: per-room
+solar-gain term (regress daytime residuals on `power_pv_5m`); defrost
 emulation; cooling calibration (needs summer data).
 
 Also (2026-07-02): first-pass system identification on June data done —

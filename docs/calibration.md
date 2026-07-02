@@ -121,6 +121,32 @@ settling at min power) that the first-order model doesn't reproduce —
 acceptable for energy/comfort questions, revisit if cycling behaviour
 matters.
 
+## Whole-day closed-loop replay (2026-07-03)
+
+`analysis/replay_day.py` replays a recorded local day end-to-end: real
+actrl drives the simulated unit/house while only the exogenous inputs
+(BOM outdoor temp, statctrl room targets, unit setpoint) come from the
+archive. Room temps and HVAC behaviour are fully simulated — no nudging
+toward the record — so this validates the whole stack. Four June days
+(08, 15, 22, 27 local):
+
+- **Kitchen tracks within 0.34–0.40 °C RMSE, ~zero bias, on every day.**
+  Kitchen is the open zone that dominates the house response, so the
+  envelope + HVAC calibration is solid.
+- Heavy heating days (22nd: 11.6 kWh, 27th: 9.7 kWh recorded): simulated
+  energy −10/−11%, unit-on fraction matches within ~3 points. Missing
+  defrost (~6% overhead) accounts for most of the energy deficit.
+- Bedrooms/study run cold in the daytime (bias −1 to −2.2 °C, night bias
+  −0.3 to −0.9 °C): **solar/internal gains are not modelled** (the RC fit
+  is night-only). This is the dominant model gap.
+- Mild days (8th, 15th) overpredict energy (+94%, +18% on 2.1/2.8 kWh
+  bases): the un-sunlit simulated rooms call for heat the real house
+  didn't need — same root cause, amplified by the small denominators.
+
+Next model improvement, clearly indicated: a per-room solar-gain term.
+`power_pv_5m` (Solcast actual-forecast PV power) is already in the archive
+and is a decent irradiance proxy to regress against the daytime residuals.
+
 ## Caveats / next steps
 
 - r² ≈ 0.28 on the efficiency fit — noisy at 10-min resolution even after
