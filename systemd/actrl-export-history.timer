@@ -1,0 +1,11 @@
+[Unit]
+Description=Monthly archive of InfluxDB HA history (raw RP is a rolling 30 days)
+
+[Timer]
+# 1st of each month, 06:10. Persistent so a missed run (machine off) fires
+# on next boot -- losing a month means the raw data is gone forever.
+OnCalendar=*-*-01 06:10:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
