@@ -3,3 +3,5 @@ appdaemon
 .claude/
 .venv/
 *.egg-info/
+data/
+tools/influx.env
