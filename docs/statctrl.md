@@ -50,6 +50,20 @@ Setpoints per state come from `input_number.<room>_setpoint_<state>_<low|high>`
 
 ## Adaptive optimum start
 
+**Status: deliberately inert (2026-07-02).** Trialed, results not liked,
+disabled; not a focus area for future work. The code remains but does
+nothing unless explicitly enabled. Enabling requires HA helpers that
+intentionally do not exist:
+
+- `input_boolean.statctrl_adaptive_optimum_start` — global switch.
+- `input_boolean.<room>_adaptive_optimum_start` — per-room override.
+- Or `adaptive_optimum_start: true` app arg in `apps.yaml`.
+
+With none present, `adaptive_enabled()` falls back to the arg default
+(false). The "Entity ... not found" warnings from each statctrl instance at
+init are the `listen_state` subscriptions to these absent helpers — expected
+and harmless.
+
 Learns each room's actual minutes-per-degree and uses it (× safety factor
 1.2, capped at 180 min lead) to decide when to begin the pre-start ramp,
 instead of the naive slew-rate heuristic.

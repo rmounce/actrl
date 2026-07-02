@@ -108,5 +108,6 @@ be evaluated in simulation instead of live trial on the family.
 - `[ ]` Deploy script: rsync top-level apps into `appdaemon/` (or make the
   appdaemon dir a symlink) so deployed-vs-source drift is deliberate, not
   accidental.
-- `[ ]` statctrl: expose learned minutes-per-degree as HA sensors for
-  dashboard visibility of the adaptive model.
+- Won't do (for now): anything building on statctrl adaptive optimum start
+  (e.g. exposing learned minutes-per-degree as sensors) — feature trialed
+  and deliberately left inert, not a focus area (docs/statctrl.md).
