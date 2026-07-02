@@ -35,7 +35,7 @@ entity in the real system, out of scope here -- see Assumption 8).
 | 8 | No restart after shutdown           | "Holding at setpoint-reached ... shuts the unit down entirely"; no source describes a follow-me-driven power-on rule (power on/off is a separate HA climate-entity protocol in the real system). | Once shut down by rule 6, `running` stays False and comp_speed 0 for the rest of the instance's life; `reset()` is provided for test convenience but never called automatically. | n/a |
 | 9 | "Setpoint-reached report"           | "Holding at the setpoint-reached report for ~1h shuts the unit down ... any report change resets that timer" | Interpreted literally: reported_error == 0 (reported temp exactly equals setpoint). Any interval with reported_error != 0 resets the counter to 0. This is exactly the condition the `min_power_time` "blip" in `compress()` exists to avoid (it forces a nonzero report periodically), so the two designs interlock as intended by the source comment. | `shutdown_after_cycles`  |
 | 10| Initial state                       | n/a                                                                            | Constructed already running, comp_speed 0, no flags set, `prev_reported_error` 0 -- mirrors `MideaCapacityController.__init__`'s own cold-start assumptions (guesstimated_comp_speed 0, no flags). | n/a |
-| 11| `reported_temp` -> `reported_error` | "one reported temperature per control interval ... work in offsets ... integer degrees" | `reported_error = round(reported_temp - setpoint)`. Setpoint itself may be a float (accepted for flexibility) but all rule evaluation happens on the rounded integer offset, matching `compress()`'s own `round(rval)`. | n/a |
+| 11| `reported_temp` -> `reported_error` | "one reported temperature per control interval ... work in offsets ... integer degrees" | `reported_error = round(mode_sign * (reported_temp - setpoint))`, mode_sign +1 cool / -1 heat mirroring actrl.py's `mode_sign`: the rule thresholds are written in demand space (cooling convention); in heat mode the real system reports BELOW setpoint to demand more compressor (found via closed-loop sim 2026-07-03). Rules evaluate the rounded integer offset, matching `compress()`'s own `round(rval)`. | `mode` |
 
 These are all reviewable/tunable constructor parameters precisely so they
 can be corrected against recorded data without touching the rule structure.
@@ -77,6 +77,7 @@ class MideaUnit:
     def __init__(
         self,
         setpoint,
+        mode="cool",
         max_speed=DEFAULT_MAX_SPEED,
         interval_seconds=DEFAULT_INTERVAL_SECONDS,
         purge_delay_cycles=DEFAULT_PURGE_DELAY_CYCLES,
@@ -89,7 +90,18 @@ class MideaUnit:
         ramp_down_clear_threshold=DEFAULT_RAMP_DOWN_CLEAR_THRESHOLD,
         ramp_flag_rate=DEFAULT_RAMP_FLAG_RATE,
     ):
+        if mode not in ("cool", "heat"):
+            raise ValueError(f"mode must be 'cool' or 'heat', got {mode!r}")
         self.setpoint = setpoint
+        # Demand-space convention: all the rules in this module (and the
+        # documented flag thresholds) are written for cooling, where a
+        # report ABOVE setpoint asks for more compressor. actrl transmits
+        # setpoint + mode_sign*demand (mode_sign: cool +1, heat -1 — see
+        # actrl.py `mode_sign` and `compressed_error`), so in heat mode a
+        # report BELOW setpoint asks for more compressor and we flip the
+        # sign back into demand space here.
+        self.mode_sign = 1.0 if mode == "cool" else -1.0
+        self.mode = mode
         self.max_speed = max_speed
         self.interval_seconds = interval_seconds
         self.purge_delay_cycles = purge_delay_cycles
@@ -141,7 +153,7 @@ class MideaUnit:
     def step(self, reported_temp) -> None:
         """Advance one control interval given the newly reported (fake)
         ambient temperature."""
-        reported_error = round(reported_temp - self.setpoint)
+        reported_error = round(self.mode_sign * (reported_temp - self.setpoint))
         self.reported_error = reported_error
 
         if not self.running:
