@@ -1,0 +1,3917 @@
+[
+  {
+    "pattern": "immediate_off",
+    "steps": [
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 1,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 1,
+        "state": {
+          "on_counter": 1,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 1,
+          "min_power_counter": 1,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 1,
+          "min_power_counter": 1,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 2,
+        "state": {
+          "on_counter": 2,
+          "min_power_counter": 1,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 2,
+          "min_power_counter": 2,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 2,
+          "min_power_counter": 2,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 3,
+        "state": {
+          "on_counter": 3,
+          "min_power_counter": 2,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 3,
+          "min_power_counter": 3,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 3,
+          "min_power_counter": 3,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 4,
+        "state": {
+          "on_counter": 4,
+          "min_power_counter": 3,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 4,
+          "min_power_counter": 4,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 4,
+          "min_power_counter": 4,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 5,
+        "state": {
+          "on_counter": 5,
+          "min_power_counter": 4,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 5,
+          "min_power_counter": 5,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 5,
+          "min_power_counter": 5,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 6,
+        "state": {
+          "on_counter": 6,
+          "min_power_counter": 5,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 6,
+          "min_power_counter": 6,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 6,
+          "min_power_counter": 6,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 7,
+        "state": {
+          "on_counter": 7,
+          "min_power_counter": 6,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 7,
+          "min_power_counter": 7,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 7,
+          "min_power_counter": 7,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 8,
+        "state": {
+          "on_counter": 8,
+          "min_power_counter": 7,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 8,
+          "min_power_counter": 8,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 8,
+          "min_power_counter": 8,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 9,
+        "state": {
+          "on_counter": 9,
+          "min_power_counter": 8,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 9,
+          "min_power_counter": 9,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 9,
+          "min_power_counter": 9,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 10,
+        "state": {
+          "on_counter": 10,
+          "min_power_counter": 9,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 10,
+          "min_power_counter": 10,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 10,
+          "min_power_counter": 10,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 11,
+        "state": {
+          "on_counter": 11,
+          "min_power_counter": 10,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 11,
+          "min_power_counter": 11,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 11,
+          "min_power_counter": 11,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 12,
+        "state": {
+          "on_counter": 12,
+          "min_power_counter": 11,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 12,
+          "min_power_counter": 12,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 12,
+          "min_power_counter": 12,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 13,
+        "state": {
+          "on_counter": 13,
+          "min_power_counter": 12,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 13,
+          "min_power_counter": 13,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 13,
+          "min_power_counter": 13,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 14,
+        "state": {
+          "on_counter": 14,
+          "min_power_counter": 13,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 14,
+          "min_power_counter": 14,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 14,
+          "min_power_counter": 14,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 15,
+        "state": {
+          "on_counter": 15,
+          "min_power_counter": 14,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 15,
+          "min_power_counter": 15,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 15,
+          "min_power_counter": 15,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 16,
+        "state": {
+          "on_counter": 16,
+          "min_power_counter": 15,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 16,
+          "min_power_counter": 16,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 16,
+          "min_power_counter": 16,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 17,
+        "state": {
+          "on_counter": 17,
+          "min_power_counter": 16,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 17,
+          "min_power_counter": 17,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 17,
+          "min_power_counter": 17,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 18,
+        "state": {
+          "on_counter": 18,
+          "min_power_counter": 17,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 18,
+          "min_power_counter": 18,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 18,
+          "min_power_counter": 18,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 19,
+        "state": {
+          "on_counter": 19,
+          "min_power_counter": 18,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 19,
+          "min_power_counter": 19,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 19,
+          "min_power_counter": 19,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 20,
+        "state": {
+          "on_counter": 20,
+          "min_power_counter": 19,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 20,
+          "min_power_counter": 20,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 20,
+          "min_power_counter": 20,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 21,
+        "state": {
+          "on_counter": 21,
+          "min_power_counter": 20,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 21,
+          "min_power_counter": 21,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 21,
+          "min_power_counter": 21,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 22,
+        "state": {
+          "on_counter": 22,
+          "min_power_counter": 21,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 22,
+          "min_power_counter": 22,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 22,
+          "min_power_counter": 22,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 23,
+        "state": {
+          "on_counter": 23,
+          "min_power_counter": 22,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 23,
+          "min_power_counter": 23,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 23,
+          "min_power_counter": 23,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 24,
+        "state": {
+          "on_counter": 24,
+          "min_power_counter": 23,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 24,
+          "min_power_counter": 24,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 24,
+          "min_power_counter": 24,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 25,
+        "state": {
+          "on_counter": 25,
+          "min_power_counter": 24,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 25,
+          "min_power_counter": 25,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 25,
+          "min_power_counter": 25,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 26,
+        "state": {
+          "on_counter": 26,
+          "min_power_counter": 25,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 26,
+          "min_power_counter": 26,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 26,
+          "min_power_counter": 26,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 27,
+        "state": {
+          "on_counter": 27,
+          "min_power_counter": 26,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 27,
+          "min_power_counter": 27,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 27,
+          "min_power_counter": 27,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 28,
+        "state": {
+          "on_counter": 28,
+          "min_power_counter": 27,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 28,
+          "min_power_counter": 28,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 28,
+          "min_power_counter": 28,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 29,
+        "state": {
+          "on_counter": 29,
+          "min_power_counter": 28,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": 0,
+        "state": {
+          "on_counter": 29,
+          "min_power_counter": 29,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 0,
+        "state": {
+          "on_counter": 29,
+          "min_power_counter": 29,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 30,
+        "state": {
+          "on_counter": 30,
+          "min_power_counter": 29,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 30,
+          "min_power_counter": 30,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 0,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 30,
+          "min_power_counter": 30,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 31,
+        "state": {
+          "on_counter": 31,
+          "min_power_counter": 30,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 31,
+          "min_power_counter": 31,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 31,
+          "min_power_counter": 31,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 32,
+        "state": {
+          "on_counter": 32,
+          "min_power_counter": 31,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 32,
+          "min_power_counter": 32,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 32,
+          "min_power_counter": 32,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 33,
+        "state": {
+          "on_counter": 33,
+          "min_power_counter": 32,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 33,
+          "min_power_counter": 33,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 33,
+          "min_power_counter": 33,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 34,
+        "state": {
+          "on_counter": 34,
+          "min_power_counter": 33,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 34,
+          "min_power_counter": 34,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 34,
+          "min_power_counter": 34,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 35,
+        "state": {
+          "on_counter": 35,
+          "min_power_counter": 34,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 35,
+          "min_power_counter": 35,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 35,
+          "min_power_counter": 35,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 36,
+        "state": {
+          "on_counter": 36,
+          "min_power_counter": 35,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 36,
+          "min_power_counter": 36,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 36,
+          "min_power_counter": 36,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 37,
+        "state": {
+          "on_counter": 37,
+          "min_power_counter": 36,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 37,
+          "min_power_counter": 37,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 37,
+          "min_power_counter": 37,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 38,
+        "state": {
+          "on_counter": 38,
+          "min_power_counter": 37,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 38,
+          "min_power_counter": 38,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 38,
+          "min_power_counter": 38,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 39,
+        "state": {
+          "on_counter": 39,
+          "min_power_counter": 38,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 39,
+          "min_power_counter": 39,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 39,
+          "min_power_counter": 39,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 40,
+        "state": {
+          "on_counter": 40,
+          "min_power_counter": 39,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 40,
+          "min_power_counter": 40,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 40,
+          "min_power_counter": 40,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 41,
+        "state": {
+          "on_counter": 41,
+          "min_power_counter": 40,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 41,
+          "min_power_counter": 41,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 41,
+          "min_power_counter": 41,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 42,
+        "state": {
+          "on_counter": 42,
+          "min_power_counter": 41,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 42,
+          "min_power_counter": 42,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 42,
+          "min_power_counter": 42,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 43,
+        "state": {
+          "on_counter": 43,
+          "min_power_counter": 42,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 43,
+          "min_power_counter": 43,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 43,
+          "min_power_counter": 43,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 44,
+        "state": {
+          "on_counter": 44,
+          "min_power_counter": 43,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 44,
+          "min_power_counter": 44,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 44,
+          "min_power_counter": 44,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 45,
+        "state": {
+          "on_counter": 45,
+          "min_power_counter": 44,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 45,
+          "min_power_counter": 45,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 45,
+          "min_power_counter": 45,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 46,
+        "state": {
+          "on_counter": 46,
+          "min_power_counter": 45,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 46,
+          "min_power_counter": 46,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 46,
+          "min_power_counter": 46,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 47,
+        "state": {
+          "on_counter": 47,
+          "min_power_counter": 46,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 47,
+          "min_power_counter": 47,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 47,
+          "min_power_counter": 47,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 48,
+        "state": {
+          "on_counter": 48,
+          "min_power_counter": 47,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 48,
+          "min_power_counter": 48,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 48,
+          "min_power_counter": 48,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 49,
+        "state": {
+          "on_counter": 49,
+          "min_power_counter": 48,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 0.0,
+        "deriv": 0.0,
+        "rval": -1,
+        "state": {
+          "on_counter": 49,
+          "min_power_counter": 49,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 49,
+          "min_power_counter": 49,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 50,
+        "state": {
+          "on_counter": 50,
+          "min_power_counter": 49,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": -1,
+        "state": {
+          "on_counter": 50,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -1,
+        "state": {
+          "on_counter": 50,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 51,
+        "state": {
+          "on_counter": 51,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 2,
+        "state": {
+          "on_counter": 51,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": -1,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 2,
+        "state": {
+          "on_counter": 51,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 52,
+        "state": {
+          "on_counter": 52,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 3,
+        "state": {
+          "on_counter": 52,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 3,
+        "state": {
+          "on_counter": 52,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 53,
+        "state": {
+          "on_counter": 53,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 53,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 53,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 54,
+        "state": {
+          "on_counter": 54,
+          "min_power_counter": 50,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 54,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 54,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 55,
+        "state": {
+          "on_counter": 55,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 55,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 55,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 56,
+        "state": {
+          "on_counter": 56,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 56,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 56,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 57,
+        "state": {
+          "on_counter": 57,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 57,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 57,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 58,
+        "state": {
+          "on_counter": 58,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 58,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 58,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 59,
+        "state": {
+          "on_counter": 59,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 2,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 2,
+        "state": {
+          "on_counter": 59,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 2,
+        "state": {
+          "on_counter": 59,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 60,
+        "state": {
+          "on_counter": 60,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 3,
+        "state": {
+          "on_counter": 60,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 3,
+        "state": {
+          "on_counter": 60,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 61,
+        "state": {
+          "on_counter": 61,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 61,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 61,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 62,
+        "state": {
+          "on_counter": 62,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 62,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 62,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 63,
+        "state": {
+          "on_counter": 63,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 63,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 63,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 64,
+        "state": {
+          "on_counter": 64,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 64,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 64,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 65,
+        "state": {
+          "on_counter": 65,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 65,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 65,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 66,
+        "state": {
+          "on_counter": 66,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 66,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 66,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 67,
+        "state": {
+          "on_counter": 67,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 3,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 2,
+        "state": {
+          "on_counter": 67,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 2,
+        "state": {
+          "on_counter": 67,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 68,
+        "state": {
+          "on_counter": 68,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 3,
+        "state": {
+          "on_counter": 68,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 3,
+        "state": {
+          "on_counter": 68,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 69,
+        "state": {
+          "on_counter": 69,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 69,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 69,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 70,
+        "state": {
+          "on_counter": 70,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 70,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 70,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 71,
+        "state": {
+          "on_counter": 71,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 71,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 71,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 72,
+        "state": {
+          "on_counter": 72,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 72,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 72,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 73,
+        "state": {
+          "on_counter": 73,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.5
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 73,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 73,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 74,
+        "state": {
+          "on_counter": 74,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.75
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 74,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 74,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 75,
+        "state": {
+          "on_counter": 75,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 4,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 1.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 2,
+        "state": {
+          "on_counter": 75,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 2,
+        "state": {
+          "on_counter": 75,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 76,
+        "state": {
+          "on_counter": 76,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 1,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.75
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 3,
+        "state": {
+          "on_counter": 76,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 2,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 3,
+        "state": {
+          "on_counter": 76,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 77,
+        "state": {
+          "on_counter": 77,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 2,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.5
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 77,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 3,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 77,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 78,
+        "state": {
+          "on_counter": 78,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": -0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 78,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 78,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 79,
+        "state": {
+          "on_counter": 79,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.0
+        }
+      },
+      {
+        "op": "compress",
+        "error": 1.9,
+        "deriv": 0.1,
+        "rval": 1,
+        "state": {
+          "on_counter": 79,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": 1,
+        "state": {
+          "on_counter": 79,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 80,
+        "state": {
+          "on_counter": 80,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 5,
+          "compressor_totally_off": false,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": -1.6,
+        "deriv": 0.0,
+        "rval": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": 1,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 1,
+        "state": {
+          "on_counter": 1,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": -1.6,
+        "deriv": 0.0,
+        "rval": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 1,
+        "state": {
+          "on_counter": 1,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": -1.6,
+        "deriv": 0.0,
+        "rval": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 1,
+        "state": {
+          "on_counter": 1,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": -1.6,
+        "deriv": 0.0,
+        "rval": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 1,
+        "state": {
+          "on_counter": 1,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "compress",
+        "error": -1.6,
+        "deriv": 0.0,
+        "rval": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "prev_unsigned_compressed_error",
+        "value": -3,
+        "state": {
+          "on_counter": 0,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      },
+      {
+        "op": "set_attr",
+        "attr": "on_counter",
+        "value": 1,
+        "state": {
+          "on_counter": 1,
+          "min_power_counter": 0,
+          "max_power_counter": 0,
+          "prev_step": 0,
+          "guesstimated_comp_speed": 0,
+          "compressor_totally_off": true,
+          "prev_unsigned_compressed_error": -3,
+          "deadband_integral": 0.25
+        }
+      }
+    ]
+  }
+]
