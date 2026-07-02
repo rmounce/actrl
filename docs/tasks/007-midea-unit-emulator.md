@@ -1,6 +1,6 @@
 # 007: Midea unit emulator — the flip side of MideaCapacityController
 
-Status: review
+Status: done
 Branch: task/007-midea-unit-emulator
 
 ## Goal
@@ -138,3 +138,13 @@ git diff master -- control.py actrl.py | wc -l  # expect 0
   comp_speed to max independent of demand; docs/actrl.md and control.py's
   own comment call this desync "not a big deal" — seen in `min_power.json`,
   which is long enough to trigger one purge).
+- 2026-07-02: reviewed and merged to master (Claude Fable, supervising).
+  Implemented by a Sonnet 5 subagent. Verified: main checkout untouched,
+  only in-scope files changed, 136 tests re-run independently, tracking
+  test inspected — exclusions are principled (soft-start, faithful,
+  saturation, off-reset, purge) and a per-fixture sanity check ensures
+  the assertion actually fires. Assumptions 1 (sign-capped stepping,
+  known −1 overshoot on the step-down sequence) and 3 (3-cycle ramp-up
+  debounce reconciling the documented instant "+2 latches" with our own
+  step sequences transiently emitting +2) flagged to the owner for
+  review against his protocol knowledge. Status done.
