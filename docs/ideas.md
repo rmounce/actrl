@@ -77,7 +77,14 @@ be evaluated in simulation instead of live trial on the family.
   fake entity layer; produces comfort metrics (time-in-band, overshoot),
   energy use, compressor cycling counts.
 
-Progress (2026-07-02): first-pass system identification on June data done —
+Progress (2026-07-02): thermal model (`sim/house.py`, task 008 — 24-night
+replay median RMSE 0.14 °C) and unit emulator (`sim/midea_unit.py`, task
+007 — closed-loop tracking vs MideaCapacityController within ±2 increments;
+11 reviewable assumptions in its docstring) done. Remaining: HVAC
+capacity/COP model from `analysis/actron_tables.py` + the fitted efficiency
+shape, then closed-loop assembly with the actrl harness.
+
+Also (2026-07-02): first-pass system identification on June data done —
 house envelope tau ≈ 30 h, per-room two-node RC fits, and the heating
 efficiency shape vs compressor power / outdoor temp. See
 `docs/calibration.md` and `analysis/sysid_june.py`. Key steer: outdoor temp
