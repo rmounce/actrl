@@ -1,6 +1,6 @@
 # 004: Export recorded HA history for simulator calibration
 
-Status: ready
+Status: review
 Branch: task/004-history-export-for-calibration
 
 ## Goal
@@ -96,3 +96,20 @@ git grep -iE "WWyy|PASSWORD=" -- . ':!docs/tasks' | grep -v env.example | wc -l 
   availability, feels_like absence); open questions resolved: outdoor data =
   m5atom outside temp + Adelaide BOM measurements, power = m5atom_current +
   EMHASS power_* series, output = gitignored data/ in-repo. Status ready.
+- 2026-07-02: implemented. Re-verified schema live (see docs/data.md);
+  found two spec surprises: (1) BOM outdoor measurements
+  (temperature_adelaide/humidity_adelaide/wind_speed_adelaide) live in
+  rp_30m, not rp_raw as the spec assumed; (2) their field (and the EMHASS
+  power_* fields) is mean_value/min_value/max_value, not "value". Handled
+  generically by auto-detecting numeric fields via SHOW FIELD KEYS per
+  measurement (fieldType=float) instead of hardcoding "value", so no
+  per-measurement special-casing was needed in code, just correct `rp` in
+  tools/export_entities.json. All deliverables built: export_history.py,
+  export_entities.json, influx.env.example, .gitignore additions,
+  docs/data.md, tests/test_export_history.py (53 passed, 1 skipped live
+  test offline). Live 2-day export against the real DB produced 70
+  non-empty files plus expected warnings for two known-empty series
+  (cover__damper bed_2/bed_3 on some days, sensor__power m5atom_current
+  which appears to have stopped reporting after 2026-06-29 -- flagged in
+  docs/data.md, not a tool bug). All acceptance criteria pass, including
+  the secret grep (0 hits). Status review.

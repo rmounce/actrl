@@ -1,0 +1,80 @@
+{
+  "_comment": "measurement -> {rp, entities}. entities: list of entity_id values to filter to, or null for whole-measurement export (entity_id, if any, is taken from the returned series tags). Fields are always auto-detected per measurement via SHOW FIELD KEYS (all fieldType=float columns) -- see docs/data.md.",
+
+  "sensor__temperature": {
+    "rp": "rp_raw",
+    "entities": [
+      "bed_1_average_temperature",
+      "bed_2_average_temperature",
+      "bed_3_average_temperature",
+      "kitchen_average_temperature",
+      "study_average_temperature",
+      "m5atom_outside_temp",
+      "m5atom_inside_temp",
+      "m5atom_inside_coil_inlet_temp",
+      "m5atom_outside_coil_temp"
+    ]
+  },
+
+  "cover__damper": {
+    "rp": "rp_raw",
+    "entities": ["bed_1", "bed_2", "bed_3", "kitchen", "study"]
+  },
+
+  "climate": {
+    "rp": "rp_raw",
+    "entities": [
+      "bed_1_aircon",
+      "bed_2_aircon",
+      "bed_3_aircon",
+      "kitchen_aircon",
+      "study_aircon",
+      "m5atom_climate"
+    ]
+  },
+
+  "input_number": {
+    "rp": "rp_raw",
+    "entities": [
+      "bed_1_pid",
+      "bed_2_pid",
+      "bed_3_pid",
+      "kitchen_pid",
+      "study_pid",
+      "bed_1_damper_target",
+      "bed_2_damper_target",
+      "bed_3_damper_target",
+      "kitchen_damper_target",
+      "study_damper_target",
+      "aircon_comp_speed",
+      "aircon_weighted_error",
+      "aircon_avg_deriv",
+      "aircon_meta_integral"
+    ]
+  },
+
+  "sensor__power": {
+    "rp": "rp_raw",
+    "entities": ["m5atom_current"]
+  },
+
+  "temperature_adelaide": {
+    "rp": "rp_30m",
+    "entities": null
+  },
+
+  "humidity_adelaide": {
+    "rp": "rp_30m",
+    "entities": null
+  },
+
+  "power_load_5m": {
+    "rp": "rp_5m",
+    "entities": null
+  },
+
+  "power_pv_5m": {
+    "rp": "rp_5m",
+    "entities": null
+  }
+}
