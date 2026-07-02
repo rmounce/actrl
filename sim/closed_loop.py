@@ -110,9 +110,12 @@ class ClosedLoop:
             for r in ROOMS
         }
 
-    def step(self, t_out: float, updates: dict | None = None) -> dict:
+    def step(
+        self, t_out: float, updates: dict | None = None, pv_kw: float = 0.0
+    ) -> dict:
         """Advance one 10 s cycle. `updates` = extra world-entity updates
-        applied before actrl runs (setpoint changes etc.)."""
+        applied before actrl runs (setpoint changes etc.); `pv_kw` = PV
+        irradiance proxy for the house solar-gain term."""
         self.cycle += 1
         self.world.cycle = self.cycle
         self._write_room_temps()
@@ -161,7 +164,7 @@ class ClosedLoop:
 
         q_house = q_kw / self.hvac.params.c_eff_kwh_per_k
         q_rooms = self._room_q(q_house) if q_kw else {r: 0.0 for r in ROOMS}
-        self.house.step(t_out, q_rooms, dt_s=10.0)
+        self.house.step(t_out, q_rooms, dt_s=10.0, pv_kw=pv_kw)
 
         row = {
             "cycle": self.cycle,

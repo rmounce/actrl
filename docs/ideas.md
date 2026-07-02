@@ -95,9 +95,12 @@ Whole-day replay validation done (`analysis/replay_day.py`, four June
 days): kitchen 0.34–0.40 °C RMSE with ~zero bias; energy within −11%
 on heavy heating days (missing defrost explains most). Dominant gap =
 solar/internal gains (night-only RC fit) — bedrooms read 1–2 °C cold in
-the day and mild days overpredict heating energy. Remaining: per-room
-solar-gain term (regress daytime residuals on `power_pv_5m`); defrost
-emulation; cooling calibration (needs summer data).
+the day and mild days overpredict heating energy. Per-room solar-gain
+term fitted and added (`analysis/solar_fit.py` → `RoomParams.solar`,
+driven by `power_pv_5m`): bed_3 daytime RMSE −25–45%, mild-day energy
+error halved. Remaining: bed_2 daytime bias + heavy-day energy deficit
+(both point at the per-room heat-split assumption); defrost emulation;
+cooling calibration (needs summer data).
 
 Also (2026-07-02): first-pass system identification on June data done —
 house envelope tau ≈ 30 h, per-room two-node RC fits, and the heating

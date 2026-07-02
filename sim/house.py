@@ -63,6 +63,18 @@ _DEFAULT_GAIN = {
     "kitchen": 0.20,
     "study": 0.02,
 }
+# Solar gain [K/h per kW of PV-output proxy], fitted by analysis/solar_fit.py
+# (2026-07-03) on unit-off residuals against Solcast power_pv_5m. Kitchen's
+# raw fit came out slightly negative (coupling-term cross-talk from sunlit
+# bed_3, not physics) and it already replays at ~0.4 C RMSE, so it is
+# clamped to zero. Zero PV input (the default) reproduces the night fit.
+_DEFAULT_SOLAR = {
+    "bed_1": 0.031,
+    "bed_2": 0.029,
+    "bed_3": 0.133,
+    "kitchen": 0.0,
+    "study": 0.042,
+}
 
 
 @dataclass(frozen=True)
@@ -72,6 +84,7 @@ class RoomParams:
     tau_out: float
     tau_cpl: float
     gain: float
+    solar: float = 0.0  # K/h per kW of PV-output proxy (analysis/solar_fit.py)
 
     @property
     def a(self) -> float:
@@ -95,6 +108,7 @@ def _default_rooms() -> dict[str, RoomParams]:
             tau_out=_DEFAULT_TAU_OUT[room],
             tau_cpl=_DEFAULT_TAU_CPL[room],
             gain=_DEFAULT_GAIN[room],
+            solar=_DEFAULT_SOLAR[room],
         )
         for room in ROOMS
     }
@@ -173,11 +187,14 @@ class House:
         t_out: float,
         q: dict[str, float] | None = None,
         dt_s: float = 10.0,
+        pv_kw: float = 0.0,
     ) -> dict[str, float]:
         """Advance the model by dt_s seconds; returns the updated temps dict.
 
         q: optional per-room heat input [K/h], defaults to 0 for all rooms
         (free-running).
+        pv_kw: PV-output irradiance proxy [kW] driving per-room solar gain
+        (0 = night / not modelled, reproducing the pre-solar behaviour).
         """
         self._check_dt(dt_s)
         dt_h = dt_s / 3600.0
@@ -188,7 +205,13 @@ class House:
             p = self.params.rooms[room]
             t_i = current[room]
             others_mean = sum(current[r] for r in ROOMS if r != room) / (len(ROOMS) - 1)
-            dTdt = p.a * (t_out - t_i) + p.c * (others_mean - t_i) + p.gain + q.get(room, 0.0)
+            dTdt = (
+                p.a * (t_out - t_i)
+                + p.c * (others_mean - t_i)
+                + p.gain
+                + p.solar * pv_kw
+                + q.get(room, 0.0)
+            )
             new_temps[room] = t_i + dt_h * dTdt
         self.temps = new_temps
         return self.temps
