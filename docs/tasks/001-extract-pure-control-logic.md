@@ -1,6 +1,6 @@
 # 001: Capture golden fixtures and extract pure control logic
 
-Status: review
+Status: done
 Branch: task/001-extract-pure-control-logic
 
 ## Goal
@@ -118,3 +118,7 @@ git status --short appdaemon/ | wc -l   # expect 0 (dir is gitignored; also: no 
   (`tool.uv.package = false` — not a distributable package, no build step
   needed) and `.venv/`/`*.egg-info/` to `.gitignore`. All 5 acceptance
   criteria pass. Status review.
+- 2026-07-02: reviewed and merged to master (Claude Fable). Independently
+  regenerated fixtures from pre-move actrl.py — byte-identical to committed
+  fixtures; re-ran all acceptance criteria. Status done. NOTE: not yet
+  deployed; deploy now requires control.py alongside actrl.py.

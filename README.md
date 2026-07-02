@@ -27,6 +27,8 @@ soak up energy that would otherwise be curtailed.
 ## Layout
 
 - `actrl.py`, `statctrl.py` — source of truth for the active apps.
+- `control.py` — pure (HA-independent) control classes used by actrl;
+  covered by golden tests in `tests/` (`uv run pytest`).
 - `appdaemon/` — gitignored deployed copies; a diff vs top level means
   undeployed changes.
 - `archive/` — retired experiments (EMHASS/MPC-style planner), kept for

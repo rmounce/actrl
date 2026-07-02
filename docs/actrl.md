@@ -135,8 +135,9 @@ running"). Everything else (PIDs, counters) restarts cold.
   a 10 s `run_every` callback (AppDaemon thread-pool pressure; warnings on
   overrun). `_set_static_pressure` retries are bounded (5 × 1 s) but still
   block while active.
-- No tests; the pure-logic classes (`MyWMA`, `MyDeriv`, `MyPID`,
-  `DeadbandIntegrator`, `compress`/`midea_runtime_quirks`) are the riskiest
-  code and are extractable/testable without HA. See `docs/ideas.md`.
+- Partially tested: `MyWMA`/`MyDeriv`/`MyPID`/`DeadbandIntegrator`/
+  `WindowStateHandler` now live in `control.py` with golden tests (task 001).
+  The `compress`/`midea_runtime_quirks` capacity-control logic — the riskiest
+  code — remains untested inside the `Actrl` class. See `docs/ideas.md`.
 - All configuration (rooms, entities, thresholds) is module-level constants;
   fine for one house, hostile to testing/simulation.

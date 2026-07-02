@@ -18,14 +18,11 @@ progress, `[x]` done.
 
 ## 2. Testability refactor
 
-First slice (pure-class extraction + golden fixtures) is spec'd as
-`docs/tasks/001-extract-pure-control-logic.md`.
+First slice done: pure-class extraction + golden fixtures
+(`docs/tasks/001-extract-pure-control-logic.md`) — `control.py` + `tests/`.
 
-Extract the pure control logic from the `hass.Hass` classes so it can be
-unit-tested and later driven by a simulator:
-
-- `MyWMA`, `MyDeriv`, `MyPID`, `DeadbandIntegrator`, `WindowStateHandler` —
-  already pure, just need to move to a module (e.g. `control.py`).
+Extract the remaining control logic from the `hass.Hass` classes so it can
+be unit-tested and later driven by a simulator:
 - `compress`/`midea_reset_quirks`/`midea_runtime_quirks` — refactor into a
   `MideaCapacityController` object whose inputs are (error, deriv, mode,
   defrost_detected) and whose outputs are (fake temp offset, speed estimate).
