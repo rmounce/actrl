@@ -4,7 +4,7 @@
 set -eu
 cd "$(dirname "$0")"
 
-FILES="actrl.py statctrl.py control.py"
+FILES="actrl.py statctrl.py control.py hvac_watchdog.py"
 
 cp $FILES appdaemon/
 echo "Deployed: $FILES"
