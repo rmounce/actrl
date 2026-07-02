@@ -21,11 +21,20 @@ see docs/calibration.md and analysis/actron_tables.py):
   the ~6% cold-morning energy overhead (docs/calibration.md) must be
   added externally when comparing simulated vs recorded energy for cold
   pre-dawn runs.
+- Time delay: electrical power follows an increment command as a single
+  first-order lag with tau ~ 20 s (analysis/lag_fit.py + superposed-epoch
+  average of 84 clean +/-1 steps in June: 67% at 10 s, ~90% at 60 s,
+  settled by ~3 min). Shutdowns are instant cuts in the recorded traces,
+  so the lag applies to running changes only — the caller resets it on
+  power-off. Refrigerant/duct heat lag beyond the electrical lag is not
+  separately identifiable from room temps (the 10-min RC fit absorbs it);
+  delivered heat is computed from the LAGGED power.
 
 Stdlib only.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -49,6 +58,29 @@ class HvacParams:
     # Floor for the efficiency proxy: keeps COP positive if extrapolated
     # far outside the fitted envelope (e.g. very cold + max power).
     e_floor: float = 0.2
+    # Compressor spin-up: first-order lag of electrical power behind the
+    # commanded increment [s] (analysis/lag_fit.py). 0 disables.
+    lag_tau_s: float = 20.0
+
+
+class FirstOrderLag:
+    """y follows target with time constant tau_s; exact discrete update so
+    any dt_s is stable. tau_s <= 0 means pass-through."""
+
+    def __init__(self, tau_s: float, initial: float = 0.0):
+        self.tau_s = tau_s
+        self.value = initial
+
+    def step(self, target: float, dt_s: float) -> float:
+        if self.tau_s <= 0:
+            self.value = target
+        else:
+            alpha = 1.0 - math.exp(-dt_s / self.tau_s)
+            self.value += alpha * (target - self.value)
+        return self.value
+
+    def reset(self, value: float = 0.0) -> None:
+        self.value = value
 
 
 class Hvac:

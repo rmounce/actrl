@@ -41,6 +41,18 @@ def test_heat_mode_heats_and_consumes():
     assert max(r["increment"] for r in rows) > 0
 
 
+def test_compressor_spins_up_not_step():
+    # Power must approach the increment-0 steady draw (~0.665 kW) through
+    # the ~20 s first-order lag, not jump there on the first cycle.
+    loop, _ = make_loop()
+    rows = [loop.step(t_out=8.0) for _ in range(24)]  # 4 min
+    loop.close()
+    steady_min = loop.hvac.power_kw(0)
+    first = next(r for r in rows if r["p_kw"] > 0)
+    assert first["p_kw"] < 0.6 * steady_min
+    assert rows[-1]["p_kw"] >= 0.95 * loop.hvac.power_kw(rows[-1]["increment"])
+
+
 def test_satisfied_house_stays_off():
     loop, start = make_loop(deficit=-1.0)  # rooms 1 C above target
     rows = [loop.step(t_out=8.0) for _ in range(180)]

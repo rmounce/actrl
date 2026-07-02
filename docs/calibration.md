@@ -95,6 +95,32 @@ Interpretation, with caveats below:
   load away from pre-dawn toward warm/PV hours is now quantified from
   three directions at once.
 
+## Time delays (2026-07-03)
+
+How fast does the unit follow a compressor-increment command?
+`analysis/lag_fit.py` finds clean steps in the controller's speed estimate
+(constant ≥4 min before, ≥8 min after) and fits the Shelly outdoor-power
+response (13 s cadence). Superposed-epoch median over 84 clean ±1 running
+steps in June:
+
+- 67% of the power step within 10 s, ~90% by 60 s, fully settled by ~3 min
+  (a small slow tail after the fast jump).
+- Best single first-order fit: **tau ≈ 20 s** — modelled as
+  `HvacParams.lag_tau_s` applied to electrical power in the closed loop.
+- Shutdowns are instant cuts in the raw traces (kW → ~0 within one or two
+  13 s samples), so the lag applies to running changes only; power-off
+  resets it.
+
+Not separately modelled: refrigerant/duct heat-delivery lag beyond the
+electrical lag (unidentifiable from room temps — the 10-min RC fit absorbs
+it) and the sensor-side lag of the `*_average_temperature` entities (the
+sim feeds actrl true room temps; if closed-loop tuning of derivative-ish
+behaviour is ever attempted, this needs measuring first). Startup/defrost-
+recovery traces show a spin-up boost overshoot (~2.5 kW transient before
+settling at min power) that the first-order model doesn't reproduce —
+acceptable for energy/comfort questions, revisit if cycling behaviour
+matters.
+
 ## Caveats / next steps
 
 - r² ≈ 0.28 on the efficiency fit — noisy at 10-min resolution even after
