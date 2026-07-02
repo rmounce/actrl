@@ -1,0 +1,226 @@
+[
+  {
+    "pattern": "basic_sequence",
+    "steps": [
+      {
+        "op": "update",
+        "error": 0.5,
+        "setpoint": 21.0,
+        "output": 0.505
+      },
+      {
+        "op": "update",
+        "error": 0.4,
+        "setpoint": 21.0,
+        "output": 0.36965573770491805
+      },
+      {
+        "op": "update",
+        "error": 0.3,
+        "setpoint": 21.0,
+        "output": 0.2339672131147541
+      },
+      {
+        "op": "update",
+        "error": 0.2,
+        "setpoint": 21.0,
+        "output": 0.09793442622950822
+      },
+      {
+        "op": "update",
+        "error": 0.1,
+        "setpoint": 21.0,
+        "output": -0.03844262295081967
+      },
+      {
+        "op": "update",
+        "error": 0.0,
+        "setpoint": 21.0,
+        "output": -0.17516393442622952
+      },
+      {
+        "op": "update",
+        "error": -0.1,
+        "setpoint": 21.0,
+        "output": -0.31222950819672135
+      },
+      {
+        "op": "update",
+        "error": -0.2,
+        "setpoint": 21.0,
+        "output": -0.44963934426229507
+      },
+      {
+        "op": "update",
+        "error": 0.3,
+        "setpoint": 21.0,
+        "output": 0.254672131147541
+      },
+      {
+        "op": "update",
+        "error": 0.6,
+        "setpoint": 21.0,
+        "output": 0.680016393442623
+      },
+      {
+        "op": "update",
+        "error": 1.0,
+        "setpoint": 21.0,
+        "output": 1.2467377049180326
+      },
+      {
+        "op": "update",
+        "error": 0.5,
+        "setpoint": 21.0,
+        "output": 0.5517377049180328
+      },
+      {
+        "op": "update",
+        "error": -0.5,
+        "setpoint": 21.0,
+        "output": -0.8467049180327869
+      },
+      {
+        "op": "update",
+        "error": -1.0,
+        "setpoint": 21.0,
+        "output": -1.5468688524590164
+      },
+      {
+        "op": "update",
+        "error": 0.0,
+        "setpoint": 21.0,
+        "output": -0.14359016393442622
+      }
+    ]
+  },
+  {
+    "pattern": "interleaved_integral_ops",
+    "steps": [
+      {
+        "op": "update",
+        "error": 0.5,
+        "setpoint": 21.0,
+        "output": 0.505
+      },
+      {
+        "op": "update",
+        "error": 0.4,
+        "setpoint": 21.0,
+        "output": 0.36965573770491805
+      },
+      {
+        "op": "set_integral",
+        "value": 0.2,
+        "output": 0.5606557377049182
+      },
+      {
+        "op": "update",
+        "error": 0.3,
+        "setpoint": 21.0,
+        "output": 0.4249672131147541
+      },
+      {
+        "op": "adjust_integral",
+        "adjustment": -0.05,
+        "output": 0.3749672131147541
+      },
+      {
+        "op": "update",
+        "error": 0.2,
+        "setpoint": 21.5,
+        "output": 0.43565573770491806
+      },
+      {
+        "op": "update",
+        "error": 0.1,
+        "setpoint": 22.0,
+        "output": 0.4927213114754099
+      },
+      {
+        "op": "adjust_integral",
+        "adjustment": 0.15,
+        "output": 0.6427213114754099
+      },
+      {
+        "op": "update",
+        "error": -0.2,
+        "setpoint": 22.0,
+        "output": 0.21875409836065576
+      },
+      {
+        "op": "set_integral",
+        "value": -0.1,
+        "output": -0.18524590163934432
+      },
+      {
+        "op": "update",
+        "error": -0.3,
+        "setpoint": 22.0,
+        "output": -0.3295573770491803
+      },
+      {
+        "op": "update",
+        "error": 0.0,
+        "setpoint": 22.0,
+        "output": 0.08716393442622952
+      },
+      {
+        "op": "adjust_integral",
+        "adjustment": 0.5,
+        "output": 0.5871639344262296
+      },
+      {
+        "op": "update",
+        "error": 0.05,
+        "setpoint": 22.0,
+        "output": 0.6540573770491803
+      }
+    ]
+  },
+  {
+    "pattern": "clear_mid_sequence",
+    "steps": [
+      {
+        "op": "update",
+        "error": 0.5,
+        "setpoint": 21.0,
+        "output": 0.505
+      },
+      {
+        "op": "update",
+        "error": 0.4,
+        "setpoint": 21.0,
+        "output": 0.36965573770491805
+      },
+      {
+        "op": "update",
+        "error": 0.3,
+        "setpoint": 21.0,
+        "output": 0.2339672131147541
+      },
+      {
+        "op": "clear",
+        "output": 0.0
+      },
+      {
+        "op": "update",
+        "error": 1.0,
+        "setpoint": 21.0,
+        "output": 1.01
+      },
+      {
+        "op": "update",
+        "error": 0.5,
+        "setpoint": 21.0,
+        "output": 0.3182786885245902
+      },
+      {
+        "op": "update",
+        "error": -0.5,
+        "setpoint": 21.0,
+        "output": -1.0768852459016394
+      }
+    ]
+  }
+]

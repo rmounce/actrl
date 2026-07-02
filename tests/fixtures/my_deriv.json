@@ -1,0 +1,386 @@
+[
+  {
+    "pattern": "constant_error",
+    "steps": [
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      }
+    ]
+  },
+  {
+    "pattern": "ramping_error",
+    "steps": [
+      {
+        "error": 0.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 0.25,
+        "target": 0.0,
+        "output": 0.967741935483871
+      },
+      {
+        "error": 0.5,
+        "target": 0.0,
+        "output": 1.903225806451613
+      },
+      {
+        "error": 0.75,
+        "target": 0.0,
+        "output": 2.806451612903226
+      },
+      {
+        "error": 1.0,
+        "target": 0.0,
+        "output": 3.6774193548387095
+      },
+      {
+        "error": 1.25,
+        "target": 0.0,
+        "output": 4.516129032258065
+      },
+      {
+        "error": 1.5,
+        "target": 0.0,
+        "output": 5.322580645161291
+      },
+      {
+        "error": 1.75,
+        "target": 0.0,
+        "output": 6.096774193548387
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 6.838709677419355
+      },
+      {
+        "error": 2.25,
+        "target": 0.0,
+        "output": 7.548387096774193
+      },
+      {
+        "error": 2.5,
+        "target": 0.0,
+        "output": 8.225806451612902
+      },
+      {
+        "error": 2.75,
+        "target": 0.0,
+        "output": 8.870967741935484
+      },
+      {
+        "error": 3.0,
+        "target": 0.0,
+        "output": 9.483870967741934
+      },
+      {
+        "error": 3.25,
+        "target": 0.0,
+        "output": 10.064516129032258
+      },
+      {
+        "error": 3.5,
+        "target": 0.0,
+        "output": 10.612903225806452
+      },
+      {
+        "error": 3.75,
+        "target": 0.0,
+        "output": 11.129032258064516
+      },
+      {
+        "error": 4.0,
+        "target": 0.0,
+        "output": 11.612903225806452
+      },
+      {
+        "error": 4.25,
+        "target": 0.0,
+        "output": 12.064516129032258
+      },
+      {
+        "error": 4.5,
+        "target": 0.0,
+        "output": 12.483870967741936
+      },
+      {
+        "error": 4.75,
+        "target": 0.0,
+        "output": 12.870967741935484
+      }
+    ]
+  },
+  {
+    "pattern": "target_step",
+    "steps": [
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 19.35483870967742
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 18.70967741935484
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 18.06451612903226
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 17.41935483870968
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 16.774193548387096
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 16.129032258064516
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 15.483870967741936
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 14.838709677419356
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 14.193548387096776
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 13.548387096774194
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 12.903225806451614
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 12.258064516129034
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 11.612903225806452
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 10.967741935483872
+      },
+      {
+        "error": 2.0,
+        "target": 5.0,
+        "output": 10.322580645161292
+      }
+    ]
+  },
+  {
+    "pattern": "post_clear",
+    "steps": [
+      {
+        "op": "set",
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 1.0,
+        "target": 0.0,
+        "output": 0.0
+      },
+      {
+        "op": "clear",
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 3.0,
+        "target": 1.0,
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 3.0,
+        "target": 1.0,
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 3.0,
+        "target": 1.0,
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 3.0,
+        "target": 1.0,
+        "output": 0.0
+      },
+      {
+        "op": "set",
+        "error": 3.0,
+        "target": 1.0,
+        "output": 0.0
+      }
+    ]
+  }
+]
