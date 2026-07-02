@@ -138,3 +138,76 @@ PID/damper-target/comp-speed/error/deriv/integral state, BOM outdoor
 temp/humidity, EMHASS power load/PV) plus warnings (not failures) for the
 known-empty series above. Re-running with the same range skipped every file
 that already existed (idempotent); `--force` re-fetches.
+
+## Loading for analysis
+
+Tool: `calib.py` (repo root). Loads `data/raw/` into a single uniform-grid
+`pandas` DataFrame for simulator-calibration work (`docs/ideas.md` #3).
+Dev-only tooling (`pandas`/`pyarrow` are dev dependencies) — the deployed
+apps never import it or pandas.
+
+```python
+import calib
+
+df = calib.load_range(
+    start="2026-06-01", end="2026-06-30",   # inclusive UTC dates
+    data_dir="data",                          # data/raw/ underneath
+    freq="1min",                              # uniform output grid
+    seed_days=14,                             # look-back for state seeds
+)
+```
+
+Returns a DataFrame indexed by a UTC `DatetimeIndex` at `freq`, one column
+per (series, field) per the static `COLUMN_SPECS` table in `calib.py`
+(unmapped fields are silently skipped — extend the table to pick up more
+series).
+
+CLI:
+
+```bash
+uv run python calib.py --start 2026-06-01 --end 2026-06-30 \
+    [--data-dir data] [--freq 1min] [--seed-days 14] \
+    [--report] [--out data/processed/june.parquet]
+```
+
+`--report` prints a per-column coverage table (non-NaN %, first/last
+timestamp, count of gap runs > 30 min) — the data-QA view. `--out` writes
+parquet under `data/processed/` (gitignored, same as the rest of `data/`).
+
+### Column naming convention
+
+- Room/M5Atom temperature sensors: the bare `sensor__temperature` entity id,
+  e.g. `bed_1_average_temperature`, `m5atom_outside_coil_temp`.
+- Cover damper positions: `damper.<entity_id>`, e.g. `damper.bed_1`.
+- Climate setpoints: `climate.<entity_id>.<field>`, e.g.
+  `climate.bed_1_aircon.target_temp_high`,
+  `climate.m5atom_climate.temperature`.
+- Shelly EM channels: semantic names `power.outdoor_unit` (channel 1,
+  compressor + outdoor fan) / `power.indoor_unit` (channel 2, indoor fan).
+- `input_number` controller series (PID terms, comp_speed, damper targets,
+  weighted_error, avg_deriv, meta_integral): the bare entity id, e.g.
+  `bed_1_pid`, `aircon_comp_speed`.
+- BOM/EMHASS slow series: the bare measurement name, e.g.
+  `temperature_adelaide`, `power_load_5m`.
+
+### Resampling rules by kind
+
+| kind | rule |
+| --- | --- |
+| `temperature` (room averages, m5atom temps) | per-bin mean; bridge gaps ≤ 15 min by time-linear interpolation; longer gaps stay entirely `NaN` (not partially filled) |
+| `state` (dampers, climate setpoints) | last-observation-carried-forward, **unlimited** ffill (recorded on change only); seeded by scanning up to `seed_days` days before `start` for the most recent point; an absent per-day file means "did not change", not "missing" |
+| `power` (Shelly channels) | clamp raw values at ≥ 0 **before** binning (channel 1 idles ~-7 W, CT offset), then per-bin mean; no fill of empty bins |
+| `controller` (`input_number` PID terms, comp_speed, weighted_error, avg_deriv, meta_integral) | per-bin mean, then ffill up to 2 min only; longer gaps stay `NaN` (the app wasn't running — that fact matters for calibration) |
+| `slow` (BOM `temperature_adelaide`/`humidity_adelaide`, EMHASS `power_load_5m`/`power_pv_5m`, all via `mean_value`) | time-linear interpolation directly onto the grid; no extrapolation beyond the first/last raw point |
+
+### Observed coverage (2026-06-05 .. 2026-06-12, `--report`)
+
+Room temperatures and dampers: 100% (dampers unlimited-ffill from a seed
+before the window). `power.outdoor_unit` 99.9%. BOM/EMHASS slow series
+~99.7-100%. The four raw `m5atom_*` temperature sensors (coil/inside/outside,
+distinct from the per-room `sensor__temperature` averages) were much lower
+(11-19% coverage, 100+ gap runs > 30 min) — that sensor appears to report
+sparsely/unreliably over this window; not investigated further, flagging for
+whoever calibrates against it. `aircon_meta_integral` similarly had large
+gaps (11.6% coverage) despite the app clearly running throughout, worth a
+look before using it for calibration.
