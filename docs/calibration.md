@@ -111,11 +111,18 @@ steps in June:
   13 s samples), so the lag applies to running changes only; power-off
   resets it.
 
-Not separately modelled: refrigerant/duct heat-delivery lag beyond the
-electrical lag (unidentifiable from room temps — the 10-min RC fit absorbs
-it) and the sensor-side lag of the `*_average_temperature` entities (the
-sim feeds actrl true room temps; if closed-loop tuning of derivative-ish
-behaviour is ever attempted, this needs measuring first). Startup/defrost-
+Not yet modelled, but SHOULD be (Ryan, 2026-07-03): a heat-delivery lag on
+the order of **minutes** between a compressor-speed change (visible in
+power) and the "elbow" in the measured room-temperature trajectory — most
+observable near equilibrium during slow increment/decrement stepping.
+Measurement plan: take the clean ±1 steps found by `analysis/lag_fit.py`,
+superpose the room-temperature *derivative* around each step, and locate
+the elbow (delay + smearing) relative to the power step; model as a
+first-order lag (or dead time + lag) on delivered heat Q, distinct from
+the 20 s electrical lag. This bundles refrigerant/coil dynamics, duct
+transport, and the `*_average_temperature` sensor averaging — they are
+not separately identifiable from this data, and one lumped lag on Q is
+what the control loop actually experiences. Startup/defrost-
 recovery traces show a spin-up boost overshoot (~2.5 kW transient before
 settling at min power) that the first-order model doesn't reproduce —
 acceptable for energy/comfort questions, revisit if cycling behaviour
