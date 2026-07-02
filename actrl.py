@@ -5,7 +5,22 @@ import math
 from collections import deque
 import time
 
-from control import MyWMA, MyDeriv, MyPID, DeadbandIntegrator, WindowStateHandler
+from control import (
+    MyWMA,
+    MyDeriv,
+    MyPID,
+    DeadbandIntegrator,
+    WindowStateHandler,
+    MideaCapacityController,
+    interval,
+    soft_delay,
+    soft_ramp,
+    compressor_power_increments,
+    compressor_power_safety_margin,
+    immediate_off_threshold,
+    ac_stable_threshold,
+    ac_off_threshold,
+)
 
 device_name = "m5atom"
 climate_entity = f"climate.{device_name}_climate"
@@ -26,9 +41,6 @@ room_airflow = {
 
 rooms = list(room_airflow.keys())
 
-# in minutes
-interval = 10.0 / 60.0  # 10 seconds
-
 # WMA over the last 5 minutes
 global_temp_deriv_window = 5
 # to predict 10 minutes into the future
@@ -37,10 +49,6 @@ global_temp_deriv_factor = 10.0
 # per second
 global_ki = 0.00025
 # a 0.1 deg error will accumulate 0.1 in ~60 minutes
-
-# per second
-global_deadband_ki = 0.0125
-# a 0.1 deg error will accumulate 1 in ~13.33 minutes
 
 # swing full scale across 2.0C of error
 normalised_damper_range = 2.0
@@ -68,38 +76,6 @@ damper_deadband = 7.5
 # match the zone10e step size
 damper_round = 5
 
-# soft start to avoid overshoot
-# start at min power and gradually report the actual rval
-# 5 min delay at min power
-# 7.5 min to be safe
-# covers a defrost cycle
-soft_delay = int(7.5 / interval)
-# then gradually report the actual rval over 2.5 mins
-soft_ramp = int(2.5 / interval)
-
-# wait for 5 minutes of soft start before dropping to absolute minimum power
-minimum_temp_intervals = int(5 / interval)
-
-# Saturate after 14 power increments (slight over-estimate, appears to be closer to 13)
-compressor_power_increments = 14
-
-# Additional safety margin when switching between stepping up / down
-compressor_power_safety_margin = 2
-
-# over 45 mins immediate_off_threshold will ramp to eventual_off_threshold, and reset after 90 min purge delay
-min_power_delay = int(45 / interval)
-
-# Every 90 mins at low power it runs at full speed for about a minute.
-# Will be out of sync if we ramp down to min power after running at higher power
-# for a while, not a big deal. Mainly focused on marginal operation where
-# demanded power is slightly below minimum output.
-purge_delay = int(90 / interval)
-
-# setpoint - it takes about 7.5 (sometimes longer) to bring a/c to min power
-# don't hold it there forever as it'll shut down after 1hr at this temp
-# 45 mins should be safe
-min_power_time = int(45 / interval)
-
 # After 30 mins of struggling and running the compressor at max speed, briefly shut down the system to increase static pressure
 max_power_static_pressure_increment_time = int(30 / interval)
 
@@ -117,23 +93,6 @@ target_ramp_proportional = 1.0 * interval
 # linear below 0.1C
 target_ramp_linear_threshold = 0.1
 target_ramp_linear_increment = target_ramp_proportional * target_ramp_linear_threshold
-
-
-# when the error is greater than 2.0C
-# let the Midea controller do its thing
-faithful_threshold = 2.0
-desired_on_threshold = 0.0
-
-# After reducing to minimum power and holding for a while, turn off at a tighter threshold
-eventual_off_threshold = -0.5
-
-# Give up on incremental control and cut to minimum power to avoid overshooting
-# This includes the derivative
-# min_power_threshold = -1.25
-min_power_threshold = -2.0
-
-# Worst case, turn off if we have overshot massively.
-immediate_off_threshold = -1.5
 
 # Target 750W surplus power before ramping down
 grid_surplus_lower_threshold = 300
@@ -155,13 +114,6 @@ grid_surplus_max_offset = 1.0
 grid_surplus_min_cooling = 21
 grid_surplus_max_heating = 21
 
-# Offsets for celsius
-# 1 is usually sufficient
-ac_on_threshold = 1
-
-ac_stable_threshold = 1
-ac_off_threshold = -2
-
 null_state = "unknown"
 
 mode_sign = {"cool": 1.0, "heat": -1.0}
@@ -175,12 +127,9 @@ class Actrl(hass.Hass):
         self.targets = {"heat": {}, "cool": {}}
         self.rooms_enabled = {}
         self.damper_pos = {}
-        self.prev_unsigned_compressed_error = 0
-        self.min_power_counter = 0
-        self.max_power_counter = 0
         self.off_fan_running_counter = 0
-        self.prev_step = 0
-        self.guesstimated_comp_speed = int(
+        self.capacity = MideaCapacityController(log=self.log)
+        self.capacity.guesstimated_comp_speed = int(
             float(self.get_state("input_number.aircon_comp_speed"))
         )
         self.grid_surplus_integral = float(
@@ -189,16 +138,13 @@ class Actrl(hass.Hass):
         if self.get_state(climate_entity) in ["heat", "cool"]:
             self.mode = self.get_state(climate_entity)
             self.log("ASSUMING THAT THE AIRCON IS ALREADY RUNNING")
-            self.compressor_totally_off = False
-            self.on_counter = soft_delay + soft_ramp
+            self.capacity.compressor_totally_off = False
+            self.capacity.on_counter = soft_delay + soft_ramp
         else:
             self.mode = "off"
-            self.compressor_totally_off = True
-            self.on_counter = 0
+            self.capacity.compressor_totally_off = True
+            self.capacity.on_counter = 0
 
-        self.deadband_integrator = DeadbandIntegrator(
-            ki=(global_deadband_ki * 60.0 * interval),
-        )
         self.window_handler = WindowStateHandler()
         self.missing_room_climate_entities = set()
 
@@ -287,40 +233,40 @@ class Actrl(hass.Hass):
         )
         self.get_entity("input_number.aircon_avg_deriv").set_state(state=str(avg_deriv))
 
-        unsigned_compressed_error = self.compress(
+        unsigned_compressed_error = self.capacity.compress(
             weighted_error * mode_sign[self.mode], avg_deriv * mode_sign[self.mode]
         )
-        self.prev_unsigned_compressed_error = unsigned_compressed_error
+        self.capacity.prev_unsigned_compressed_error = unsigned_compressed_error
 
         compressed_error = mode_sign[self.mode] * unsigned_compressed_error
         self.log(
             f"weighted_error: {weighted_error:.3f}, avg_deriv: {avg_deriv:.3f}, compressed_error: {compressed_error}"
         )
 
-        self.on_counter += 1
+        self.capacity.on_counter += 1
         if self.get_state("input_boolean.ac_min_power") == "on":
-            self.on_counter = min(self.on_counter, soft_delay - 1)
+            self.capacity.on_counter = min(self.capacity.on_counter, soft_delay - 1)
 
         if (
             self.get_state(climate_entity) == "heat"
             and self.get_state(compressor_entity) == "on"
             and self.get_state(outdoor_fan_entity) == "off"
-            and self.guesstimated_comp_speed
+            and self.capacity.guesstimated_comp_speed
             < (compressor_power_increments + compressor_power_safety_margin)
         ):
             self.log(f"Defrost cycle detected, request max speed on restart")
-            self.guesstimated_comp_speed = (
+            self.capacity.guesstimated_comp_speed = (
                 compressor_power_increments + compressor_power_safety_margin
             )
 
         self.get_entity("input_number.aircon_comp_speed").set_state(
-            state=str(float(self.guesstimated_comp_speed))
+            state=str(float(self.capacity.guesstimated_comp_speed))
         )
         self.log(
-            f"compressor_totally_off: {self.compressor_totally_off}, guesstimated_comp_speed: {self.guesstimated_comp_speed}, prev_step: {self.prev_step}"
+            f"compressor_totally_off: {self.capacity.compressor_totally_off}, guesstimated_comp_speed: {self.capacity.guesstimated_comp_speed}, prev_step: {self.capacity.prev_step}"
         )
         self.log(
-            f"min_power_counter: {self.min_power_counter}, max_power_counter: {self.max_power_counter}, on_counter: {self.on_counter}"
+            f"min_power_counter: {self.capacity.min_power_counter}, max_power_counter: {self.capacity.max_power_counter}, on_counter: {self.capacity.on_counter}"
         )
 
         if (
@@ -342,7 +288,7 @@ class Actrl(hass.Hass):
             self.log("temp beyond target, turning off altogether")
             self.try_set_mode("off")
             self.off_fan_running_counter = 0
-            self.on_counter = 0
+            self.capacity.on_counter = 0
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
                 self.set_damper_pos(room, damper_vals[room], True)
             return
@@ -353,7 +299,7 @@ class Actrl(hass.Hass):
         was_off = self.get_state(climate_entity) == "off"
 
         # System is struggling for more than 30 mins, 'change gear' to max airflow
-        if self.max_power_counter > max_power_static_pressure_increment_time:
+        if self.capacity.max_power_counter > max_power_static_pressure_increment_time:
             self._set_static_pressure(max_static_pressure)
         elif was_off:
             self._set_static_pressure(initial_static_pressure[self.mode])
@@ -361,7 +307,7 @@ class Actrl(hass.Hass):
         self.try_set_mode(self.mode)
         self.try_set_fan_mode(self._determine_fan_mode())
         self.get_entity("input_number.aircon_meta_integral").set_state(
-            state=str(float(self.deadband_integrator.get()))
+            state=str(float(self.capacity.deadband_integrator.get()))
         )
         if was_off:
             # Ensure that an extra follow me update packet is sent
@@ -378,25 +324,25 @@ class Actrl(hass.Hass):
         """Resets the script state counters and flags, but preserves PID objects."""
         # Force mode to None so _handle_mode_change won't wipe PIDs on resume
         self.mode = None
-        self.compressor_totally_off = True
-        self.on_counter = 0
-        self.min_power_counter = 0
-        self.max_power_counter = 0
+        self.capacity.compressor_totally_off = True
+        self.capacity.on_counter = 0
+        self.capacity.min_power_counter = 0
+        self.capacity.max_power_counter = 0
         self.off_fan_running_counter = 0
-        self.prev_step = 0
-        
+        self.capacity.prev_step = 0
+
         # Reset Integrators (except Room PIDs)
-        self.deadband_integrator.clear()
-        
+        self.capacity.deadband_integrator.clear()
+
         # Reset Derivatives (Historic data is likely stale)
         for room in self.temp_derivs:
             self.temp_derivs[room].clear()
 
         # Reset Metrics
         self._reset_metrics()
-        
+
         # Also reset state that would normally be persisted on a hot reload
-        self.guesstimated_comp_speed = 0
+        self.capacity.guesstimated_comp_speed = 0
         self.grid_surplus_integral = 0
 
     def _set_static_pressure(self, new_static_pressure):
@@ -636,9 +582,9 @@ class Actrl(hass.Hass):
             self.mode = new_mode
             for room, pid in self.pids.items():
                 pid.clear()
-            self.compressor_totally_off = True
-            self.on_counter = 0
-            self.deadband_integrator.clear()
+            self.capacity.compressor_totally_off = True
+            self.capacity.on_counter = 0
+            self.capacity.deadband_integrator.clear()
             if self.get_state(climate_entity) != "fan_only":
                 self.try_set_mode("off")
             self.set_fake_temp(celsius_setpoint, ac_stable_threshold, False)
@@ -694,7 +640,7 @@ class Actrl(hass.Hass):
         # The rest of the integral logic remains the same, but now fed by the forecast
         grid_surplus_upper_threshold = grid_surplus_lower_threshold + (
             grid_surplus_off_buffer
-            if self.compressor_totally_off
+            if self.capacity.compressor_totally_off
             else grid_surplus_on_buffer
         )
 
@@ -926,17 +872,17 @@ class Actrl(hass.Hass):
         high_to_medium = compressor_power_increments - compressor_power_safety_margin
 
         # Determine fan speed with hysteresis
-        if self.guesstimated_comp_speed >= medium_to_high:
+        if self.capacity.guesstimated_comp_speed >= medium_to_high:
             return "high"
-        elif self.guesstimated_comp_speed <= medium_to_low:
+        elif self.capacity.guesstimated_comp_speed <= medium_to_low:
             return "low"
         elif (
             current_fan_mode == "high"
-            and self.guesstimated_comp_speed >= high_to_medium
+            and self.capacity.guesstimated_comp_speed >= high_to_medium
         ):
             return "high"
         elif (
-            current_fan_mode == "low" and self.guesstimated_comp_speed <= low_to_medium
+            current_fan_mode == "low" and self.capacity.guesstimated_comp_speed <= low_to_medium
         ):
             return "low"
         else:
@@ -954,205 +900,3 @@ class Actrl(hass.Hass):
             )
             time.sleep(0.1)
 
-    def compress(self, error, deriv):
-        # Tighten the deadband with runtime, with the goal of turning off
-        # before the high power 'purge' that occurs after 90 mins of continuous
-        # operation at low speed. This 'purge' often pushes us out of the
-        # deadband anyway, so it's more efficient to just turn off prior.
-        # Reset in sync with the purge period. Desync isn't a big deal.
-        wrapped_on_counter = self.min_power_counter % purge_delay
-        min_power_progress = min(1.0, wrapped_on_counter / min_power_delay)
-
-        if self.guesstimated_comp_speed <= 0 and error <= (
-            immediate_off_threshold * (1 - min_power_progress)
-            + eventual_off_threshold * min_power_progress
-        ):
-            self.compressor_totally_off = True
-
-        if self.guesstimated_comp_speed > 0 and error <= immediate_off_threshold:
-            self.compressor_totally_off = True
-
-        if self.compressor_totally_off:
-            self.on_counter = 0
-            self.min_power_counter = 0
-            self.max_power_counter = 0
-
-            if error < desired_on_threshold:
-                # sometimes -2 isn't the true off_threshold?!
-                # shut things down more decisively
-                return self.midea_reset_quirks(ac_off_threshold - 1)
-            else:
-                self.compressor_totally_off = False
-                self.deadband_integrator.clear()
-                self.log(f"starting compressor {ac_on_threshold}")
-
-        # "blip" the power to get AC to start
-        if self.on_counter < 1:
-            return self.midea_reset_quirks(ac_on_threshold)
-
-        # conditions in which to consider the derivative
-        # - aircon is currently running
-        # - the current temp (ignoring RoC) has not yet reached off threshold
-        # goal of the derivative is to proactively reduce/increase compressor power, but not to influence on/off state
-        error = error + deriv
-
-        if error > faithful_threshold:
-            # Bypass soft start for big errors
-            self.on_counter = max(self.on_counter, soft_delay)
-
-            self.deadband_integrator.clear()
-            return self.midea_runtime_quirks(
-                ac_stable_threshold + 2 + error - faithful_threshold
-            )
-
-        if error <= min_power_threshold:
-            self.deadband_integrator.clear()
-            return self.midea_runtime_quirks(ac_off_threshold + 1)
-
-        if self.on_counter < soft_delay:
-            self.log("soft start, on_counter: " + str(self.on_counter))
-            self.deadband_integrator.clear()
-            return self.midea_runtime_quirks(ac_stable_threshold - 1)
-
-        return self.midea_runtime_quirks(
-            ac_stable_threshold + self.deadband_integrator.set(error)
-        )
-
-    def midea_reset_quirks(self, rval):
-        self.guesstimated_comp_speed = 0
-        self.prev_step = 0
-        return rval
-
-    def midea_runtime_quirks(self, rval):
-        rval = round(rval)
-
-        # Process these early so that prev_step is restored to 0 and doesn't give rise
-        # to weird edge cases.
-
-        # Midea controller seems to have a "NEAR_TARGET_RAMP_DOWN" flag that is set when
-        # the sensed temperature is equal or overshooting the setpoint. and un-set when
-        # the sensed temperature is 1C or greater from satisfying the setpoint.
-        # It also seems to have a "FAR_FROM_TARGET_RAMP_UP" flag that is set when sensed
-        # is more than 3C from the setpoint (2C from stable), and un-set (when???)
-        # Both sequences of step-up and step-down return values are crafted to avoid leaving
-        # this flag set by returning a positive value before returning to the "stable" value,
-        # otherwise it will not be possible to maintain equilibrium with stable compressor
-        # speed.
-
-        # Sequence to increment speed by +1 with final value = 0 and no flags set.
-        # Rules:
-        # - Each value change increases/decreases speed by 1
-        # - value >= 2 sets "Ramp up" flag
-        # - don't know how to clear the "Ramp up" flag!
-        # - value <= -1 sets "Ramp down" flag
-        # - value >= 1 clears "Ramp down" flag
-        step_up_sequence = [1, 2, 0]
-        if self.prev_step > 0:
-            rval = ac_stable_threshold + step_up_sequence[self.prev_step]
-            self.prev_step += 1
-            if self.prev_step >= len(step_up_sequence):
-                self.prev_step = 0
-            return rval
-
-        # Sequence to decrement speed by -1, jumping up to +1 to un-set the internal ramp down flag?
-        # For cooling mode, perhaps a simpler sequence of [-1, 1, 0] will be needed to get a single decrement
-        step_down_sequence = [-1, -2, 1, 0]
-        if self.prev_step < 0:
-            rval = ac_stable_threshold + step_down_sequence[-self.prev_step]
-            self.prev_step -= 1
-            if -self.prev_step >= len(step_down_sequence):
-                self.prev_step = 0
-            return rval
-
-        # Begin step up sequence, unless already at max power
-        # FIX: Added 'and self.max_power_counter == 0'
-        # This prevents the stepping logic from intercepting execution when we
-        # should be locked in the high-priority "Max Power" hysteresis loop.
-        if (
-            rval == ac_stable_threshold + 1
-            and self.max_power_counter == 0
-            and self.guesstimated_comp_speed
-            < (compressor_power_increments + compressor_power_safety_margin)
-        ):
-            self.guesstimated_comp_speed = max(
-                compressor_power_safety_margin, self.guesstimated_comp_speed + 1
-            )
-            # Don't perform the increment sequence if jumping to max power
-            if self.guesstimated_comp_speed < (
-                compressor_power_increments + compressor_power_safety_margin
-            ):
-                self.prev_step = 1
-                return ac_stable_threshold + step_up_sequence[0]
-
-        # Begin step down sequence, unless already at min power
-        if rval == ac_stable_threshold - 1 and self.guesstimated_comp_speed > 0:
-            self.max_power_counter = 0
-            self.guesstimated_comp_speed = min(
-                compressor_power_increments,
-                self.guesstimated_comp_speed - 1,
-            )
-            # Don't perform the decrement sequence if dropping to min power
-            if self.guesstimated_comp_speed > 0:
-                self.prev_step = -1
-                return ac_stable_threshold + step_down_sequence[0]
-
-        # Bypass the stepping behaviour for extreme errors above faithful_threshold
-        # in favor of simple hysteresis
-        # Entry: rval >= 3 (Stable + 2)
-        # Stay:  rval >= 1 (Stable + 0) -> Catches rval=1 (Integrator Reset) and rval=2
-        threshold_offset = 0 if self.max_power_counter > 0 else 2
-
-        if rval >= ac_stable_threshold + threshold_offset:
-
-            self.log(
-                f"Hysteresis Active. rval: {rval}, counter: {self.max_power_counter}"
-            )
-
-            # Assume that there is demand for max power (plus lower and upper safety margin)
-            self.guesstimated_comp_speed = (
-                compressor_power_increments + compressor_power_safety_margin
-            )
-            self.max_power_counter += 1
-
-            # FIX: Stronger Output Latching
-            # Instead of just adding 1 (which turns rval=1 into 2),
-            # we latch to the previous value to keep the output stable at 3.
-            # We only allow the value to rise, not fall, while in this mode.
-            return max(rval, self.prev_unsigned_compressed_error)
-
-        # Saturated, just keep demanding a compressor speed increase
-        if rval >= ac_stable_threshold and (
-            self.guesstimated_comp_speed
-            >= compressor_power_increments + compressor_power_safety_margin
-        ):
-            return ac_stable_threshold + 1
-        else:
-            self.max_power_counter = 0
-
-        # Any larger offset should jump to minimum power
-        if rval < ac_stable_threshold - 1:
-            self.guesstimated_comp_speed = 0
-
-        # Saturated, demand absolute minimum power
-        if self.guesstimated_comp_speed <= 0:
-            # Be more conservative for the first 5 minutes after startup to avoid stopping the compressor
-            if self.on_counter < minimum_temp_intervals:
-                rval = min(ac_stable_threshold - 1, rval)
-            else:
-                rval = min(ac_off_threshold + 1, rval)
-
-        if rval < ac_stable_threshold:
-            self.min_power_counter += 1
-            if self.min_power_counter % min_power_time == (min_power_time - 1):
-                # 'blip' the feels like temp to reset the AC's internal timer
-                # and prevent the system from shutting down completely
-                self.prev_unsigned_compressed_error = ac_stable_threshold + 1
-
-            # aircon seems to react to edges
-            # so provide as many as possible to quickly reduce power?
-            rval = max(rval, self.prev_unsigned_compressed_error - 1)
-
-        else:
-            self.min_power_counter = 0
-
-        return rval

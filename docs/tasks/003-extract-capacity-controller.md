@@ -1,6 +1,6 @@
 # 003: Extract MideaCapacityController from actrl.py
 
-Status: ready
+Status: review
 Branch: task/003-extract-capacity-controller
 
 ## Goal
@@ -146,3 +146,58 @@ git diff master -- actrl.py         # manual review per Design "diffable rule"
 ## Log
 
 - 2026-07-02: spec written (Claude Fable), status ready.
+- 2026-07-02: implemented (Claude Fable, implementing agent).
+  - Captured 8 scenario fixtures (`tests/capture_capacity_fixtures.py` ->
+    `tests/fixtures/capacity/*.json`) against the unmodified actrl.py,
+    committed separately before touching actrl.py/control.py (commit
+    2da51c6). Each fixture step records rval + all 8 state values
+    (`on_counter`, `min_power_counter`, `max_power_counter`, `prev_step`,
+    `guesstimated_comp_speed`, `compressor_totally_off`,
+    `prev_unsigned_compressed_error`, `deadband_integral`), driven by a
+    generic `compress`/`set_attr` op sequence that mirrors main()'s
+    bookkeeping between calls (on_counter increment, prev_unsigned_
+    compressed_error assignment) plus explicit external mutations for the
+    defrost-override and ac_min_power-clamp scenarios.
+  - Moved `compress`, `midea_reset_quirks`, `midea_runtime_quirks` and the
+    18 listed constants (interval, global_deadband_ki, soft_delay,
+    soft_ramp, minimum_temp_intervals, compressor_power_increments,
+    compressor_power_safety_margin, min_power_delay, purge_delay,
+    min_power_time, faithful_threshold, desired_on_threshold,
+    eventual_off_threshold, min_power_threshold, immediate_off_threshold,
+    ac_on_threshold, ac_stable_threshold, ac_off_threshold) verbatim to
+    `control.MideaCapacityController` / module level in control.py.
+    actrl.py re-imports the 8 of those still used outside the moved
+    methods (interval, soft_delay, soft_ramp, compressor_power_increments,
+    compressor_power_safety_margin, immediate_off_threshold,
+    ac_stable_threshold, ac_off_threshold); actrl-only derivations of
+    `interval` (max_power_static_pressure_increment_time,
+    off_fan_running_time, target_ramp_proportional, grid_surplus_ki, room
+    PID params) stayed in actrl.py.
+  - `initialize()` now builds `self.capacity = MideaCapacityController(log=self.log)`
+    and applies the persistence/startup logic to `self.capacity.*`. All
+    other touchpoints (main, `_reset_internal_state`, `_handle_mode_change`,
+    `_add_grid_surplus`, `_determine_fan_mode`) rewritten `self.X` ->
+    `self.capacity.X` for the 8 owned attributes; `off_fan_running_counter`
+    (not in the owned-attribute list) stayed on `Actrl`.
+    `self.compress(...)` -> `self.capacity.compress(...)`.
+  - Added `tests/test_capacity.py`: replays every fixture against
+    `control.MideaCapacityController` directly (no actrl import, no
+    hassapi stub), asserting rval and all 8 state values at each step.
+  - `git diff master -- actrl.py` reviewed: consists only of the import
+    block, deleted constant/method blocks, the `self.capacity =`
+    constructor line, and mechanical `self.X` -> `self.capacity.X`
+    substitutions — no other changes.
+
+  Acceptance criteria results:
+  - `uv run pytest`: 23 passed (8 capacity fixture files, 5 control unit
+    tests, 10 cycle golden scenarios — cycle goldens unchanged).
+  - `python3 -c "import control"`: OK, still hassapi-free.
+  - actrl import-with-stubbed-hassapi smoke test: OK ("actrl import OK").
+  - `git diff master -- tests/fixtures/cycles | wc -l`: 0 (never
+    regenerated).
+  - `grep -c "def compress\|def midea" actrl.py`: 0.
+  - `grep -c "def compress\|def midea" control.py`: 3.
+  - `git diff master -- actrl.py`: manually reviewed, matches the
+    Design's diffable rule.
+
+  Nothing ambiguous encountered; no questions.
