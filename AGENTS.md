@@ -10,6 +10,16 @@
 - Commit regularly; avoid noisy commits.
 - Rename/refactor own code: migrate all call sites; no back-compat aliases. Don't accrue self-made tech debt.
 
+## Task Handover
+
+- Delegated implementation work: specs live in `docs/tasks/NNN-slug.md`;
+  convention and template in `docs/tasks/README.md`.
+- Implementers: work on `task/NNN-slug` branches, never master; never touch
+  `appdaemon/`; runnable acceptance criteria define done; blocked → write a
+  question in the task file, set Status `blocked`, commit, stop.
+- Spec authors/reviewers: review diff against spec before merge; implementer
+  does not merge or deploy.
+
 ## Project Documentation
 
 - Keep `docs/` and `README.md` current.

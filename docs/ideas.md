@@ -18,6 +18,9 @@ progress, `[x]` done.
 
 ## 2. Testability refactor
 
+First slice (pure-class extraction + golden fixtures) is spec'd as
+`docs/tasks/001-extract-pure-control-logic.md`.
+
 Extract the pure control logic from the `hass.Hass` classes so it can be
 unit-tested and later driven by a simulator:
 
