@@ -1,6 +1,6 @@
 # 004: Export recorded HA history for simulator calibration
 
-Status: review
+Status: done
 Branch: task/004-history-export-for-calibration
 
 ## Goal
@@ -113,3 +113,12 @@ git grep -iE "WWyy|PASSWORD=" -- . ':!docs/tasks' | grep -v env.example | wc -l 
   which appears to have stopped reporting after 2026-06-29 -- flagged in
   docs/data.md, not a tool bug). All acceptance criteria pass, including
   the secret grep (0 hits). Status review.
+- 2026-07-02: reviewed and merged to master (Claude Fable, supervising).
+  Implemented by a Sonnet 5 subagent. Verified: main checkout untouched,
+  no credentials in any tracked file (the 3 nominal grep hits are a docs
+  cron placeholder, a test fixture string, and a Python kwarg — no real
+  password fragments anywhere), only in-scope files changed, 53+1 tests
+  pass offline on merged master, independent live 2-day export produced
+  73 files with correct long-format rows, re-run skipped all 70
+  entity-filtered files (idempotent), data/ stays out of git status.
+  Status done.

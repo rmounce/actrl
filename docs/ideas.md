@@ -20,8 +20,8 @@ progress, `[x]` done.
 
 Progress: task 001 (pure-class extraction, done), task 002 (headless
 whole-cycle harness + golden scenarios, done), task 003 (capacity controller
-extraction, ready for implementation), task 004 (calibration data export,
-draft). See `docs/tasks/`.
+extraction, done), task 004 (calibration data export, done — see
+`docs/data.md`). See `docs/tasks/`.
 
 Extract the remaining control logic from the `hass.Hass` classes so it can
 be unit-tested and later driven by a simulator:
@@ -78,9 +78,11 @@ be evaluated in simulation instead of live trial on the family.
 
 ### Calibration / cross-check
 
-- Source recorded data from HA (recorder DB and/or InfluxDB — see
-  ai-energy-forecast-slop repo notes) : room temps, damper positions, comp
-  speed estimate, fan mode, static pressure, outdoor conditions, unit power.
+- Source recorded data: `tools/export_history.py` (task 004, done) archives
+  room temps, damper positions, comp speed estimate and other controller
+  state, coil temps, outdoor conditions and power from InfluxDB into
+  gitignored per-day CSVs — schema notes in `docs/data.md`. Raw history is a
+  rolling 30-day window, so run it monthly to accumulate seasonal coverage.
 - Fit RC parameters per room via system identification on periods of known
   input (nightly free-running decay is ideal for envelope parameters; step
   changes in damper position for airflow split).
