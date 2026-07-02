@@ -80,9 +80,19 @@ be evaluated in simulation instead of live trial on the family.
 Progress (2026-07-02): thermal model (`sim/house.py`, task 008 — 24-night
 replay median RMSE 0.14 °C) and unit emulator (`sim/midea_unit.py`, task
 007 — closed-loop tracking vs MideaCapacityController within ±2 increments;
-11 reviewable assumptions in its docstring) done. Remaining: HVAC
-capacity/COP model from `analysis/actron_tables.py` + the fitted efficiency
-shape, then closed-loop assembly with the actrl harness.
+11 reviewable assumptions in its docstring) done.
+
+Progress (2026-07-03): HVAC model (`sim/hvac.py` — power linear in
+increment 665→3055 W, COP = fitted efficiency shape × C_eff 4.8 kWh/K)
+and full closed-loop assembly (`sim/closed_loop.py` — real actrl via the
+golden-test harness → follow-me reports → unit emulator → HVAC → house,
+10 s cycle) done. Assembling it caught a real protocol subtlety: actrl
+transmits `setpoint + mode_sign×demand`, so heat mode reports *below*
+setpoint for more compressor (emulator assumption 11). Compressor spin-up
+lag identified from June power-step transients (`analysis/lag_fit.py`,
+tau ≈ 20 s) and modelled as a first-order lag on electrical power.
+Remaining: whole-day replay validation vs a recorded June day; defrost
+emulation; cooling calibration (needs summer data).
 
 Also (2026-07-02): first-pass system identification on June data done —
 house envelope tau ≈ 30 h, per-room two-node RC fits, and the heating

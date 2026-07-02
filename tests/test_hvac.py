@@ -2,7 +2,7 @@
 
 import pytest
 
-from sim.hvac import Hvac, HvacParams
+from sim.hvac import FirstOrderLag, Hvac, HvacParams
 
 
 @pytest.fixture
@@ -50,3 +50,19 @@ def test_house_q_units(hvac):
 def test_output_tuple_consistent(hvac):
     p_kw, q_kw = hvac.heating_output(7, 5.0)
     assert q_kw == pytest.approx(hvac.cop(p_kw, 5.0) * p_kw, rel=1e-12)
+
+
+def test_first_order_lag_tracks_tau():
+    # tau=20 s at dt=10 s: 1 - exp(-0.5) ~ 0.393 per step; ~95% by 60 s.
+    lag = FirstOrderLag(20.0)
+    assert lag.step(1.0, 10.0) == pytest.approx(0.393, abs=0.001)
+    for _ in range(5):
+        lag.step(1.0, 10.0)
+    assert lag.value == pytest.approx(0.95, abs=0.03)
+    lag.reset()
+    assert lag.value == 0.0
+
+
+def test_first_order_lag_passthrough_when_disabled():
+    lag = FirstOrderLag(0.0, initial=5.0)
+    assert lag.step(2.5, 10.0) == 2.5
