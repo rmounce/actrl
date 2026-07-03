@@ -161,13 +161,18 @@ class ClosedLoop:
         t_out: float,
         updates: dict | None = None,
         pv_kw: float = 0.0,
+        sun_ne: float = 0.0,
+        sun_nw: float = 0.0,
         ctrl_offsets: dict[str, float] | None = None,
     ) -> dict:
         """Advance one 10 s cycle. `updates` = extra world-entity updates
         applied before actrl runs (setpoint changes etc.); `pv_kw` = PV
-        irradiance proxy for the house solar-gain term; `ctrl_offsets` =
-        per-room feels-like minus physical-temperature offsets applied to
-        what the controller reads (see __init__)."""
+        irradiance proxy for the house solar-gain term; `sun_ne`/`sun_nw` =
+        cloud-scaled clear-sky irradiance factors (sim/solar.py) for the
+        orientation-resolved solar-gain term (passed through to
+        House.step); `ctrl_offsets` = per-room feels-like minus
+        physical-temperature offsets applied to what the controller reads
+        (see __init__)."""
         self.cycle += 1
         self.world.cycle = self.cycle
         if ctrl_offsets is not None:
@@ -228,7 +233,7 @@ class ClosedLoop:
 
         q_house = q_kw / self.hvac.params.c_eff_kwh_per_k
         q_rooms = self._room_q(q_house) if q_kw else {r: 0.0 for r in ROOMS}
-        self.house.step(t_out, q_rooms, dt_s=10.0, pv_kw=pv_kw)
+        self.house.step(t_out, q_rooms, dt_s=10.0, pv_kw=pv_kw, sun_ne=sun_ne, sun_nw=sun_nw)
 
         row = {
             "cycle": self.cycle,
