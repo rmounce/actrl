@@ -152,6 +152,41 @@ transient before settling at min power) that the first-order model doesn't
 reproduce — acceptable for energy/comfort questions, revisit if cycling
 behaviour matters.
 
+## Defrost emulation (2026-07-03)
+
+`analysis/defrost_fit.py` characterises the 9 raw June episodes (the
+forced-max-speed signal itself, docs/calibration.md "Defrost" above) rather
+than the padded overhead window used for energy accounting:
+
+- Duration: median 10 min (IQR 5–17 min).
+- Outdoor temp during: median 5.3 °C (IQR 4.3–6.1 °C).
+- Outdoor-unit power during: median 1336 W (IQR 1212–1478 W) — well above
+  min-power draw (~610 W), and the indoor coil measurably cools (median
+  min 14.1 °C vs its normal ~35 °C), consistent with a brief reverse-cycle
+  extracting heat from indoors to melt the outdoor coil.
+- Prior compressor-on time at outdoor temp < 7.5 °C before triggering:
+  median 145 min (IQR 106–353 min, n=8 — small sample, wide spread).
+- Recovery (elevated power after the episode, before settling back to the
+  pre-episode level): median 11 min, but energy above baseline is mostly
+  noise (~0 kWh) except a few clear ~0.2–0.5 kWh cases; not modelled
+  separately (see below).
+
+Modelled as a simple accumulator (`sim.hvac.Defrost`): compressor-on time
+at outdoor temp < 7.5 °C accumulates; crossing the median trigger (145 min)
+starts a defrost lasting the median duration (10 min) at the median power
+(1.35 kW) delivering zero heat. No separate recovery-boost model — actrl's
+own control loop, running live in the closed loop, reacts to the resulting
+temperature dip and drives the compressor back up on its own, which is
+what real recovery amounts to. The trigger condition itself isn't
+identifiable from this data (it's inside the unit's firmware); the
+accumulator is a plausible proxy, not a measured mechanism.
+
+Whole-day replay impact: negligible on room RMSE/bias (episodes are short
+relative to a day), heavy-day energy match tightens further (22nd: −0%→
++3%, wobbling slightly high now that some genuinely-wasted energy is
+added back in; 27th: −14%→−9%). Mild days unaffected — they rarely sustain
+145 min of continuous cold running.
+
 ## Whole-day closed-loop replay (2026-07-03)
 
 `analysis/replay_day.py` replays a recorded local day end-to-end: real

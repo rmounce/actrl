@@ -113,9 +113,16 @@ floor-area based) in sim/closed_loop.py. Concentrated improvement on
 heavy heating days — bed_3/study daytime bias notably better, heavy-day
 energy match −15%/−21%→−0%/−14% — with bed_2 improving the least (still
 the top open question) and mild-day energy over-prediction slightly worse
-(pre-existing solar/internal-gain gap, not new). Remaining: bed_2 daytime
-bias specifically; defrost emulation; cooling calibration (needs summer
-data).
+(pre-existing solar/internal-gain gap, not new). Defrost emulation added
+(`analysis/defrost_fit.py`, 9 June episodes → `sim.hvac.Defrost`): a
+compressor-on-time-at-cold-outdoor accumulator triggers a ~10 min,
+~1.35 kW, zero-heat episode (median observed values); no separate
+recovery model, since actrl's own control loop reacts to the temperature
+dip live in the closed loop. Heavy-day energy match tightens slightly
+further. bed_2's weak solar fit has a leading explanation (neighbour's
+party wall shading its NE window at low winter sun angles — testable once
+summer data arrives). Remaining: bed_2 daytime bias specifically; cooling
+calibration (needs summer data).
 
 Also (2026-07-02): first-pass system identification on June data done —
 house envelope tau ≈ 30 h, per-room two-node RC fits, and the heating

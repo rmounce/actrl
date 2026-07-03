@@ -17,10 +17,19 @@ see docs/calibration.md and analysis/actron_tables.py):
   INTO THE ROOMS (duct losses folded in), which is what the house model
   wants. Winter/heating fit only — cooling uses the rated tables as a
   placeholder until summer data exists.
-- Defrost is NOT modelled here (the emulator doesn't model it either);
-  the ~6% cold-morning energy overhead (docs/calibration.md) must be
-  added externally when comparing simulated vs recorded energy for cold
-  pre-dawn runs.
+- Defrost (analysis/defrost_fit.py, 2026-07-03, 9 June episodes): the
+  trigger isn't separately identifiable from this data (defrost logic
+  lives in the unit's own firmware) so it's modelled as a simple
+  accumulator — compressor-on time at outdoor temp < 7.5 C builds up, and
+  crossing a threshold (median observed gap: ~145 min) starts a defrost.
+  During defrost (median duration ~10 min, median outdoor-unit power
+  ~1.35 kW) the indoor coil measurably cools (the trigger's own detection
+  signal), consistent with a brief reverse-cycle extracting heat from
+  indoors to melt the outdoor coil rather than delivering any — modelled
+  as P = defrost power, Q = 0 for the duration. No separate "recovery
+  boost" is modelled: actrl's own control loop, running live in the
+  closed loop, reacts to the resulting temperature dip and drives the
+  compressor back up on its own, which is what real recovery amounts to.
 - Time delay (electrical): power follows an increment command as a single
   first-order lag with tau ~ 20 s (analysis/lag_fit.py + superposed-epoch
   average of 84 clean +/-1 steps in June: 67% at 10 s, ~90% at 60 s,
@@ -76,6 +85,13 @@ class HvacParams:
     # 0 dead time disables the delay part.
     q_lag_dead_s: float = 15.0
     q_lag_tau_s: float = 180.0
+    # Defrost (analysis/defrost_fit.py): triggers after this much
+    # compressor-on time at outdoor temp < threshold; lasts duration_s at
+    # power_kw delivering zero heat. defrost_trigger_s <= 0 disables it.
+    defrost_cold_threshold_c: float = 7.5
+    defrost_trigger_s: float = 145.0 * 60.0
+    defrost_duration_s: float = 10.0 * 60.0
+    defrost_power_kw: float = 1.35
 
 
 class FirstOrderLag:
@@ -123,6 +139,49 @@ class DeadTimeLag:
     def reset(self, value: float = 0.0) -> None:
         self._buffer = [value] * len(self._buffer)
         self._lag.reset(value)
+
+
+class Defrost:
+    """Tracks frost accumulation and defrost episodes (analysis/defrost_fit.py).
+
+    Call `step` once per cycle with whether the compressor is running and
+    the outdoor temperature; while running at a cold outdoor temp, a timer
+    accumulates. Crossing `trigger_s` starts a defrost episode lasting
+    `duration_s`, during which the caller should treat the HVAC as drawing
+    `power_kw` and delivering zero heat (see `active`). No separate
+    "recovery" phase is modelled — the control loop reacts to the
+    resulting temperature dip on its own.
+    """
+
+    def __init__(self, params: "HvacParams"):
+        self.params = params
+        self._cold_run_s = 0.0
+        self._remaining_s = 0.0
+
+    @property
+    def active(self) -> bool:
+        return self._remaining_s > 0.0
+
+    def step(self, running: bool, t_out: float, dt_s: float) -> bool:
+        p = self.params
+        if self.active:
+            self._remaining_s -= dt_s
+            if self._remaining_s <= 0.0:
+                self._remaining_s = 0.0
+                self._cold_run_s = 0.0
+            return self.active
+        if p.defrost_trigger_s <= 0.0:
+            return False
+        if running and t_out < p.defrost_cold_threshold_c:
+            self._cold_run_s += dt_s
+            if self._cold_run_s >= p.defrost_trigger_s:
+                self._remaining_s = p.defrost_duration_s
+                return True
+        return False
+
+    def reset(self) -> None:
+        self._cold_run_s = 0.0
+        self._remaining_s = 0.0
 
 
 class Hvac:

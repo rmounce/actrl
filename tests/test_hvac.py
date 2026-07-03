@@ -2,7 +2,7 @@
 
 import pytest
 
-from sim.hvac import DeadTimeLag, FirstOrderLag, Hvac, HvacParams
+from sim.hvac import DeadTimeLag, Defrost, FirstOrderLag, Hvac, HvacParams
 
 
 @pytest.fixture
@@ -87,3 +87,42 @@ def test_dead_time_lag_reset():
     lag.reset()
     assert lag.step(1.0) == 0.0
     assert lag.step(1.0) == 0.0
+
+
+def test_defrost_triggers_after_cold_running_time():
+    params = HvacParams(defrost_trigger_s=100.0, defrost_duration_s=30.0)
+    dfr = Defrost(params)
+    triggered = [dfr.step(True, 5.0, 10.0) for _ in range(10)]
+    assert not any(triggered[:9])
+    assert triggered[9]
+    assert dfr.active
+
+
+def test_defrost_does_not_trigger_when_warm_or_off():
+    params = HvacParams(defrost_trigger_s=50.0, defrost_duration_s=30.0)
+    dfr = Defrost(params)
+    for _ in range(20):
+        assert not dfr.step(True, 20.0, 10.0)  # too warm
+    for _ in range(20):
+        assert not dfr.step(False, 2.0, 10.0)  # not running
+
+
+def test_defrost_ends_after_duration_and_resets_accumulator():
+    params = HvacParams(defrost_trigger_s=20.0, defrost_duration_s=20.0)
+    dfr = Defrost(params)
+    dfr.step(True, 5.0, 10.0)
+    assert dfr.step(True, 5.0, 10.0)  # triggers on the 2nd cycle
+    assert dfr.active
+    dfr.step(True, 5.0, 10.0)  # remaining 20s -> 10s
+    assert dfr.active
+    dfr.step(True, 5.0, 10.0)  # remaining 10s -> 0s
+    assert not dfr.active
+    # accumulator reset: needs a fresh full run before triggering again
+    assert not dfr.step(True, 5.0, 10.0)
+
+
+def test_defrost_disabled_when_trigger_s_not_positive():
+    params = HvacParams(defrost_trigger_s=0.0)
+    dfr = Defrost(params)
+    for _ in range(1000):
+        assert not dfr.step(True, 2.0, 10.0)
