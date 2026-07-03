@@ -60,16 +60,27 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class HvacParams:
     max_increment: int = 14
-    # Electrical power [W]: outdoor unit linear in increment.
-    p_outdoor_min_w: float = 610.0
+    # Electrical power [W]: outdoor unit linear in increment. Min draw is
+    # the June mean at speed<=1 including purge/start blips (665 W), not
+    # the idle-observed 610 W — amortising the ~4% blip overhead the sim
+    # doesn't model discretely.
+    p_outdoor_min_w: float = 665.0
     p_outdoor_max_w: float = 2950.0
     # Indoor fan [W], linear in increment (fan mode follows comp speed).
     p_indoor_min_w: float = 55.0
     p_indoor_max_w: float = 105.0
-    # Heating efficiency proxy e(P_kW, Tout) [K/h per kW], docs/calibration.md.
-    e0: float = 1.045
-    e_per_kw: float = -0.101
-    e_per_k: float = 0.0522
+    # Heating efficiency proxy e(P_kW, Tout) [K/h per kW]: the
+    # docs/calibration.md open-loop fit (e0=1.045, per_kw=-0.101,
+    # per_k=0.0522, r2=0.28) scaled by 0.80 — a closed-loop energy refit
+    # (2026-07-03): once orientation solar fixed the room temps, replayed
+    # energy read a uniform ~-24%, i.e. the open-loop e level credits the
+    # unit ~1.3x too much heat per kWh; 0.80 closes the heavy heating days
+    # (22nd +4%, 27th -4%) without moving temperature RMSE. Mild days
+    # retain a ~-30% energy deficit (~0.6 kWh/day) from run-time, not
+    # efficiency — see docs/calibration.md.
+    e0: float = 1.045 * 0.80
+    e_per_kw: float = -0.101 * 0.80
+    e_per_k: float = 0.0522 * 0.80
     e_ref_p_kw: float = 0.7
     e_ref_tout: float = 10.0
     # Effective house thermal capacity [kWh/K], docs/calibration.md anchor.
