@@ -2,7 +2,7 @@
 
 import pytest
 
-from sim.hvac import FirstOrderLag, Hvac, HvacParams
+from sim.hvac import DeadTimeLag, FirstOrderLag, Hvac, HvacParams
 
 
 @pytest.fixture
@@ -66,3 +66,24 @@ def test_first_order_lag_tracks_tau():
 def test_first_order_lag_passthrough_when_disabled():
     lag = FirstOrderLag(0.0, initial=5.0)
     assert lag.step(2.5, 10.0) == 2.5
+
+
+def test_dead_time_lag_holds_during_dead_time():
+    # dead=20s at cycle=10s -> 2 cycles of zero movement, then tau kicks in.
+    lag = DeadTimeLag(dead_s=20.0, tau_s=20.0, cycle_s=10.0)
+    assert lag.step(1.0) == 0.0
+    assert lag.step(1.0) == 0.0
+    assert lag.step(1.0) == pytest.approx(0.393, abs=0.001)
+
+
+def test_dead_time_lag_zero_dead_time_is_plain_lag():
+    lag = DeadTimeLag(dead_s=0.0, tau_s=20.0, cycle_s=10.0)
+    assert lag.step(1.0) == pytest.approx(0.393, abs=0.001)
+
+
+def test_dead_time_lag_reset():
+    lag = DeadTimeLag(dead_s=20.0, tau_s=20.0, cycle_s=10.0)
+    lag.step(1.0)
+    lag.reset()
+    assert lag.step(1.0) == 0.0
+    assert lag.step(1.0) == 0.0

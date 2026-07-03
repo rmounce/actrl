@@ -111,22 +111,46 @@ steps in June:
   13 s samples), so the lag applies to running changes only; power-off
   resets it.
 
-Not yet modelled, but SHOULD be (Ryan, 2026-07-03): a heat-delivery lag on
+**Heat-delivery lag, modelled 2026-07-03** (Ryan's observation): a delay on
 the order of **minutes** between a compressor-speed change (visible in
 power) and the "elbow" in the measured room-temperature trajectory — most
 observable near equilibrium during slow increment/decrement stepping.
-Measurement plan: take the clean ±1 steps found by `analysis/lag_fit.py`,
-superpose the room-temperature *derivative* around each step, and locate
-the elbow (delay + smearing) relative to the power step; model as a
-first-order lag (or dead time + lag) on delivered heat Q, distinct from
-the 20 s electrical lag. This bundles refrigerant/coil dynamics, duct
-transport, and the `*_average_temperature` sensor averaging — they are
-not separately identifiable from this data, and one lumped lag on Q is
-what the control loop actually experiences. Startup/defrost-
-recovery traces show a spin-up boost overshoot (~2.5 kW transient before
-settling at min power) that the first-order model doesn't reproduce —
-acceptable for energy/comfort questions, revisit if cycling behaviour
-matters.
+`analysis/heat_lag_fit.py` takes the clean ±1 steps found by
+`analysis/lag_fit.py`, superposes the room-temperature *derivative* (local
+OLS slope, ~10 s cadence) around each step sign-flipped by step direction,
+and fits `excess(t) = A(1 - exp(-(t-d)/tau))` (dead time `d` + first-order
+lag `tau`) by grid search:
+
+| room    |   n | dead time | tau   | plateau     | r²   |
+|---------|----:|----------:|------:|------------:|-----:|
+| bed_1   | 116 |      120s |   15s | +0.10 K/h   | 0.54 |
+| bed_2   | 116 |      465s |  435s | −0.03 K/h   | 0.12 |
+| bed_3   | 116 |        0s |  510s | +0.21 K/h   | 0.75 |
+| kitchen | 116 |       15s |  180s | +0.65 K/h   | 0.95 |
+| study   | 116 |      420s |   60s | +0.11 K/h   | 0.89 |
+
+Kitchen (the open zone, best house-average proxy) gives by far the cleanest
+fit (r²=0.95) — dead time ~15 s then tau ~180 s (3 min) to the new
+delivered-heat rate. Used that as the lumped Q-delay, applied downstream of
+the 20 s electrical power lag: `HvacParams.q_lag_dead_s = 15.0`,
+`q_lag_tau_s = 180.0`, via `sim.hvac.DeadTimeLag`. This bundles
+refrigerant/coil dynamics, duct transport, and the `*_average_temperature`
+sensor averaging — they are not separately identifiable from this data, and
+one lumped lag on Q is what the control loop actually experiences. Per-room
+fits vary widely (bed_2 essentially flat/uncorrelated, r²=0.12) — that's
+consistent with bed_2's already-known weak/uncertain heat-split share
+(below), not evidence against the lumped model.
+
+Whole-day replay impact (four June days, vs no-Q-lag baseline): negligible
+change to per-room temperature RMSE/bias (the lag is downstream of Q, which
+the RC fit already smooths further), and heavy-day energy match improves
+slightly (22nd: −19%→−15%, 27th: −23%→−21%) since delayed heat delivery
+keeps the compressor running a bit longer for the same demand.
+
+Startup/defrost-recovery traces show a spin-up boost overshoot (~2.5 kW
+transient before settling at min power) that the first-order model doesn't
+reproduce — acceptable for energy/comfort questions, revisit if cycling
+behaviour matters.
 
 ## Whole-day closed-loop replay (2026-07-03)
 

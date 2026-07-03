@@ -21,14 +21,24 @@ see docs/calibration.md and analysis/actron_tables.py):
   the ~6% cold-morning energy overhead (docs/calibration.md) must be
   added externally when comparing simulated vs recorded energy for cold
   pre-dawn runs.
-- Time delay: electrical power follows an increment command as a single
+- Time delay (electrical): power follows an increment command as a single
   first-order lag with tau ~ 20 s (analysis/lag_fit.py + superposed-epoch
   average of 84 clean +/-1 steps in June: 67% at 10 s, ~90% at 60 s,
   settled by ~3 min). Shutdowns are instant cuts in the recorded traces,
   so the lag applies to running changes only — the caller resets it on
-  power-off. Refrigerant/duct heat lag beyond the electrical lag is not
-  separately identifiable from room temps (the 10-min RC fit absorbs it);
-  delivered heat is computed from the LAGGED power.
+  power-off.
+- Time delay (heat delivery): the "elbow" a compressor-speed change
+  produces in room temperature, minutes after the power step, lags
+  further behind (analysis/heat_lag_fit.py, 2026-07-03 — Ryan's
+  observation). Fit as dead time + first-order lag on delivered heat Q
+  from the same clean +/-1 steps, using kitchen (the open zone, best
+  house-average proxy, cleanest fit: r2=0.95): dead time ~15 s, tau
+  ~180 s. This bundles refrigerant/coil dynamics, duct transport, and
+  average_temperature sensor smoothing — not separately identifiable
+  from this data, so it's applied as one lumped lag on Q, downstream of
+  the electrical lag. Per-room fits vary a lot (bed_2 essentially flat,
+  r2=0.12 — consistent with its known weak/uncertain heat-split share)
+  so the model uses the pooled/kitchen number rather than per room.
 
 Stdlib only.
 """
@@ -61,6 +71,11 @@ class HvacParams:
     # Compressor spin-up: first-order lag of electrical power behind the
     # commanded increment [s] (analysis/lag_fit.py). 0 disables.
     lag_tau_s: float = 20.0
+    # Heat-delivery lag: dead time + first-order lag on Q, downstream of the
+    # electrical lag (analysis/heat_lag_fit.py). 0 tau disables the lag part;
+    # 0 dead time disables the delay part.
+    q_lag_dead_s: float = 15.0
+    q_lag_tau_s: float = 180.0
 
 
 class FirstOrderLag:
@@ -81,6 +96,33 @@ class FirstOrderLag:
 
     def reset(self, value: float = 0.0) -> None:
         self.value = value
+
+
+class DeadTimeLag:
+    """Fixed dead time followed by a first-order lag: y tracks target
+    delayed by dead_s and then smoothed with time constant tau_s. Assumes a
+    constant step interval (cycle_s), matching the closed loop's fixed 10 s
+    cycle — the dead time is quantised to whole cycles."""
+
+    def __init__(self, dead_s: float, tau_s: float, cycle_s: float, initial: float = 0.0):
+        self.dead_s = dead_s
+        self.tau_s = tau_s
+        self.cycle_s = cycle_s
+        n_delay = max(0, round(dead_s / cycle_s)) if cycle_s > 0 else 0
+        self._buffer: list[float] = [initial] * n_delay
+        self._lag = FirstOrderLag(tau_s, initial)
+
+    def step(self, target: float) -> float:
+        if self._buffer:
+            self._buffer.append(target)
+            delayed = self._buffer.pop(0)
+        else:
+            delayed = target
+        return self._lag.step(delayed, self.cycle_s)
+
+    def reset(self, value: float = 0.0) -> None:
+        self._buffer = [value] * len(self._buffer)
+        self._lag.reset(value)
 
 
 class Hvac:

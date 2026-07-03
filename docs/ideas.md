@@ -98,9 +98,16 @@ solar/internal gains (night-only RC fit) — bedrooms read 1–2 °C cold in
 the day and mild days overpredict heating energy. Per-room solar-gain
 term fitted and added (`analysis/solar_fit.py` → `RoomParams.solar`,
 driven by `power_pv_5m`): bed_3 daytime RMSE −25–45%, mild-day energy
-error halved. Remaining: bed_2 daytime bias + heavy-day energy deficit
-(both point at the per-room heat-split assumption); defrost emulation;
-cooling calibration (needs summer data).
+error halved. Heat-delivery lag (the minutes-scale "elbow" Ryan flagged,
+distinct from the 20 s electrical lag) identified from the same clean
+±1 steps via room-temperature-derivative superposition
+(`analysis/heat_lag_fit.py`): kitchen gives the cleanest fit (dead time
+15 s, tau 180 s, r²=0.95), wired in as `sim.hvac.DeadTimeLag` downstream
+of the electrical lag — negligible effect on room RMSE, small improvement
+to heavy-day energy match (−19%→−15%, −23%→−21%). Remaining: bed_2
+daytime bias + heavy-day energy deficit (both point at the per-room
+heat-split assumption); defrost emulation; cooling calibration (needs
+summer data).
 
 Also (2026-07-02): first-pass system identification on June data done —
 house envelope tau ≈ 30 h, per-room two-node RC fits, and the heating
