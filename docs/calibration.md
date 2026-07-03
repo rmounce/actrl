@@ -198,6 +198,53 @@ system used. Remaining known gaps, in likely order of value:
   sim misallocates delivered heat, simulated actrl satisfies targets
   sooner than the real house did.
 
+### Heat-split mass assumption fixed with real floor areas (2026-07-03)
+
+Ryan supplied the house's NatHERS energy-efficiency report (EOD-3341,
+Energy and Outdoor Design, 2020), which gives real floor areas and
+construction per room. Two things it settled:
+
+- **Room-size ranking confirmed exactly**: bed_1+WIR 18.9 m² > bed_3
+  14.5 m² > bed_2 12.1 m² > study 8.7 m² — matching Ryan's description and,
+  independently, the tau_out ranking (envelope loss scales with external
+  wall + glazing area, which the report also details per room). All
+  external walls are the same R2.5 insulation, so envelope differences
+  between rooms are down to area, not insulation quality.
+- **bed_2's weak solar-gain fit isn't a missing-window issue**: it has an
+  NE window (2.0×1.5 m, low-e, SHGC 0.45) essentially identical to bed_3's
+  NE window (2.0×1.8 m, same glazing product/SHGC) — yet bed_3's solar fit
+  is 4x stronger (r²=0.45 vs 0.03). Unexplained by the building fabric;
+  likely blinds/curtains or occupancy behaviour, not something fittable
+  from this data.
+
+`_room_q` (sim/closed_loop.py) conflated two different things under one
+weight: the *airflow* split (confirmed correct, duct-count based) and the
+*thermal-mass* fraction used only to convert delivered kW into each room's
+own K/h forcing (each room's actual temperature *response* to that K/h is
+separately, independently fit per room via tau_out/tau_cpl in
+sim/house.py — this weight only affects the heat allocation, not the
+dynamics). Previously all four single-duct rooms used equal mass weight
+(1.0), overstating study's and bed_2's assumed mass by up to ~2x relative
+to bed_1. Decoupled into `AIRFLOW_WEIGHTS` (duct count, unchanged) and a
+new `MASS_WEIGHTS` set from the real floor areas above (bed_1 1.395, bed_2
+0.893, bed_3 1.070, study 0.642, normalised to average 1.0 across the four
+rooms; kitchen left at 2.0 — already close to its living-area floor-area
+ratio of ~2.3x a bedroom, and separately anchored by its own RC fit).
+
+Whole-day replay impact (four June days): concentrated on the heavy
+heating days, as expected (more delivered heat to reallocate). 22nd:
+bed_3 daytime bias −1.59→−1.36 °C, study −1.12→−0.79 °C, bed_2
+−1.77→−1.60 °C; energy match −15%→−0%. 27th: bed_3 −1.51→−1.46 °C, study
+−0.67→−0.57 °C, bed_2 −1.77→−1.68 °C; energy match −21%→−14%. Mild days
+(8th, 15th) barely moved on temperature (little heat being delivered to
+reallocate) but got somewhat worse on energy over-prediction (8th: +41%
+before the heat-delivery lag, +45% after adding it, +57% after this mass
+fix) — consistent with the known, still-open "unlit simulated rooms
+overheat on mild days" solar/internal gain gap, not a regression from this
+change specifically. bed_2 improved the least of the three — still the
+top remaining suspect, now with the size-mass confound removed as an
+explanation.
+
 ## Caveats / next steps
 
 - r² ≈ 0.28 on the efficiency fit — noisy at 10-min resolution even after

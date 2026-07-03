@@ -16,11 +16,24 @@ Wiring, once per 10 s control cycle:
         v                                          |
     sim.house.House.step(t_out, q) -> room temps --'
 
-Heat split assumption: room thermal mass is proportional to its airflow
-weight (kitchen 2.0 = two ducts = biggest room; others 1.0), so
-q_i = q_house * share_i / (w_i / sum_w) where share_i is the room's
-airflow-weighted damper share. With all dampers equal this collapses to
-q_i = q_house for every room.
+Heat split assumption: delivered airflow share and room thermal mass are
+two separate knobs, q_i = q_house * flow_share_i / mass_share_i:
+
+- flow_share_i (AIRFLOW_WEIGHTS): proportional to duct count (kitchen 2.0 =
+  two ducts, others 1.0) — confirmed against the real duct layout
+  (2026-07-03).
+- mass_share_i (MASS_WEIGHTS): each room's fraction of the house's
+  aggregate thermal capacity C_eff, used only to convert delivered kW into
+  that room's own K/h forcing (the room's *dynamics* — how fast a given
+  K/h moves its temperature — are separately, independently fit per room
+  in sim/house.py's tau_out/tau_cpl; this weight only affects the split of
+  incoming heat). For bed_1/bed_2/bed_3/study, set from real floor areas
+  (Energy and Outdoor Design report, EOD-3341, 2020) normalised so their
+  average is 1.0 — previously all four were assumed equal (1.0), which
+  overstated study's and bed_2's mass relative to bed_1/bed_3 by ~2x
+  (docs/calibration.md "Whole-day closed-loop replay"). Kitchen is left at
+  2.0 (its RC fit is separately anchored and already close to the
+  living-area floor-area ratio, ~2.3x a bedroom).
 
 This module imports the test harness (tests/hvac_harness.py) for the
 FakeWorld/HarnessActrl shell — a deliberate reuse of the golden-test
@@ -45,6 +58,10 @@ from sim.hvac import DeadTimeLag, FirstOrderLag, Hvac  # noqa: E402
 from sim.midea_unit import MideaUnit  # noqa: E402
 
 AIRFLOW_WEIGHTS = {"bed_1": 1.0, "bed_2": 1.0, "bed_3": 1.0, "study": 1.0, "kitchen": 2.0}
+# Floor areas [m2] from EOD-3341 (Energy and Outdoor Design, 2020), zones
+# "Bedroom 1 + WIR", "Bedroom 2", "Bedroom 3", "Study"; normalised so the
+# four rooms' average weight is 1.0 (matching the old equal-weight scale).
+MASS_WEIGHTS = {"bed_1": 1.395, "bed_2": 0.893, "bed_3": 1.070, "study": 0.642, "kitchen": 2.0}
 FOLLOW_ME_SERVICE = "esphome/m5atom_send_follow_me"
 UNIT_CLIMATE = "climate.m5atom_climate"
 
@@ -105,13 +122,13 @@ class ClosedLoop:
 
     def _room_q(self, q_house: float) -> dict[str, float]:
         dampers = self._damper_positions()
-        sum_w = sum(AIRFLOW_WEIGHTS.values())
+        sum_mass = sum(MASS_WEIGHTS.values())
         flows = {r: dampers[r] * AIRFLOW_WEIGHTS[r] for r in ROOMS}
         total_flow = sum(flows.values())
         if total_flow <= 0:
             return {r: 0.0 for r in ROOMS}
         return {
-            r: q_house * (flows[r] / total_flow) / (AIRFLOW_WEIGHTS[r] / sum_w)
+            r: q_house * (flows[r] / total_flow) / (MASS_WEIGHTS[r] / sum_mass)
             for r in ROOMS
         }
 
