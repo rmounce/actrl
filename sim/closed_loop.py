@@ -243,6 +243,10 @@ class ClosedLoop:
             "weighted_error": _entity_float(
                 self.world, "input_number.aircon_weighted_error"
             ),
+            "avg_deriv": _entity_float(self.world, "input_number.aircon_avg_deriv"),
+            "meta_integral": _entity_float(
+                self.world, "input_number.aircon_meta_integral"
+            ),
         }
         self.history.append(row)
         return row

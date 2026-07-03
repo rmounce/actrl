@@ -372,6 +372,21 @@ unchanged) matches recorded cycle counts exactly at midday (4/4 starts,
 (more time at min power; was +5/−4%) — cycle texture prioritised, energy
 gap is the open item. Mild days improved too (8th +28%→+22%, 15th +1%).
 
+Bedroom leads refit the same way (2026-07-03, follow-up 2): the 06-27
+early-morning cluster (sim over-revving to increment 11 at 06:40-07:00,
+late warmup start, energy under-read) traced via the controller-eye
+comparison to bed_1: recorded bed_1 sags fast after the 04:32 stop
+(fast node) and retriggers the unit at 05:19, running 79% of 05:00-06:30
+and rising 1.1 K before the target ramp; the sim's bed_1 lead (0.07,
+stop-fit) barely sags, stays off till 06:00, enters the ramp ~0.5 K
+behind, and the deadband integrator winds up to 11. Bedroom leads at 5x
+stop-fit (0.35-0.40, consistent with kitchen's 0.45 — same ducts and
+sensors) fix it: early-window on-fraction 1.00 (rec 0.79), peak increment
+2 (rec 3-5), bed_1 RMSE 0.21. Sharp threshold again (4x behaves like 3x).
+Four-day energy after both refits: 8th +21% (solar gap), 15th -0%, 22nd
+-1%, 27th -11% (now slightly under-revs the morning ramp: above-min 13%
+vs 16%). June-wide scorecard (task 010) is the arbiter from here.
+
 Whole-day replay (pre-refit numbers): improved nearly everywhere. 27th: kitchen RMSE
 0.38→0.33, bed_1 0.20 (was 0.37 pre-feels-like), study 0.38→0.48→0.48…
 energy −2%→−4%; 22nd: study 0.86→0.70, bed_2 1.85→1.66, energy +5%; 8th
