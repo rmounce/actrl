@@ -34,17 +34,28 @@ from sim.house import HouseParams  # noqa: E402
 ROOMS = ["bed_1", "bed_2", "bed_3", "kitchen", "study"]
 OFF_W = 50
 MIN_WINDOW_MIN = 120
+TRIM_HEAD_MIN = 45  # fast-node sag settles (~3 tau) before data is used
 STEP = "10min"
 
 
 def off_windows(df: pd.DataFrame) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
+    """Unit-off windows, with the first TRIM_HEAD_MIN dropped: the room
+    sensors are a fast air node (sim/house.py measured-air lead,
+    2026-07-03) that sags ~0.5 K over the first ~30 min after a compressor
+    stop. Morning stops correlate with rising PV, so untrimmed windows
+    credit that sag *against* the sun — the original kitchen fit came out
+    negative purely from this artefact (it has the largest sag)."""
     off = df["power.outdoor_unit"].fillna(np.inf) < OFF_W
     grp = (off != off.shift()).cumsum()
-    return [
-        (seg.iloc[0], seg.iloc[-1])
-        for _, seg in df.index.to_series().groupby(grp)
-        if off.loc[seg.iloc[0]] and len(seg) >= MIN_WINDOW_MIN
-    ]
+    head = pd.Timedelta(minutes=TRIM_HEAD_MIN)
+    out = []
+    for _, seg in df.index.to_series().groupby(grp):
+        if not off.loc[seg.iloc[0]]:
+            continue
+        w0, w1 = seg.iloc[0] + head, seg.iloc[-1]
+        if (w1 - w0) >= pd.Timedelta(minutes=MIN_WINDOW_MIN):
+            out.append((w0, w1))
+    return out
 
 
 def fit(df: pd.DataFrame) -> None:
