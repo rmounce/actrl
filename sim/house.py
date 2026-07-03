@@ -80,15 +80,20 @@ _DEFAULT_SOLAR = {
 # transients (sag amplitude/decay of the measured temp above the RC
 # trend); bed_3's own fit is solar-contaminated (wrong sign, n=4) and
 # study has no clean events — both take the pooled bedroom prior.
-# Kitchen's lead is instead refit in closed loop (grid search on the
-# 2026-06-22 replay, matching recorded min-power cycle counts/on-fraction
-# and kitchen RMSE): the open-loop stop-fit gave 0.23 but is biased low —
+# The leads are refit in closed loop (grid search on 2026-06-22/27
+# replays, matching recorded min-power cycle counts/on-fractions, morning
+# warmup behaviour and RMSE): the open-loop stop-fit is biased ~2-5x low —
 # its slow-trend subtraction assumes the node settles inside the 45 min
-# window, and its q_pre denominator rides the COP model. 0.45 reproduces
-# the recorded midday cycling exactly (4/4 starts) where 0.40 does not
-# (3/4) — the transition is sharp; the cost is sim energy reading ~7% low
-# (more time at min power). Cycle texture wins: it is what the comfort/
-# tuning work needs the sim to get right.
+# window, and its q_pre denominator rides the COP model. Kitchen 0.45
+# reproduces the recorded midday cycling exactly (4/4 starts) where 0.40
+# does not (3/4); bedroom leads at 5x their stop-fit values (~0.35-0.40,
+# consistent with the kitchen — same ducts/sensors) fix the 06-27 morning
+# warmup (early-window on-fraction 1.00 vs recorded 0.79, peak increment
+# 2 vs recorded 3-5, where the stop-fit values gave 0.44 and 11) and pull
+# the 22nd's energy match to -1%. Both transitions are sharp (bed scale
+# 4x behaves like 3x, 5x flips) — these are loop thresholds, treat the
+# values as a set. Cycle/warmup texture is prioritised over exact energy:
+# it is what the comfort/tuning work needs the sim to get right.
 _DEFAULT_TAU_MEAS = {
     "bed_1": 0.25,
     "bed_2": 0.28,
@@ -97,11 +102,11 @@ _DEFAULT_TAU_MEAS = {
     "study": 0.25,
 }
 _DEFAULT_LEAD = {
-    "bed_1": 0.07,
-    "bed_2": 0.08,
-    "bed_3": 0.08,
+    "bed_1": 0.35,
+    "bed_2": 0.40,
+    "bed_3": 0.40,
     "kitchen": 0.45,
-    "study": 0.08,
+    "study": 0.40,
 }
 
 
