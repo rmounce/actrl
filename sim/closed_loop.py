@@ -113,8 +113,11 @@ class ClosedLoop:
         self.app.initialize()
 
     def _write_room_temps(self):
+        # The real controller reads the real sensors, which are the
+        # measured-air lead node (sim/house.py, docs/tasks/009), not the
+        # bulk RC temperature -- equal when the node is disabled.
         for room in ROOMS:
-            t = self.house.temps[room] + self._ctrl_offsets.get(room, 0.0)
+            t = self.house.temps_measured[room] + self._ctrl_offsets.get(room, 0.0)
             self.world.update(
                 f"sensor.{room}_average_temperature", {"state": f"{t:.2f}"}
             )
@@ -227,6 +230,7 @@ class ClosedLoop:
             "p_kw": p_kw,
             "q_kw": q_kw,
             **{f"T_{r}": self.house.temps[r] for r in ROOMS},
+            **{f"Tm_{r}": self.house.temps_measured[r] for r in ROOMS},
             **{f"damper_{r}": self._damper_positions()[r] for r in ROOMS},
         }
         self.history.append(row)
