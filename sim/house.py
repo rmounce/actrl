@@ -85,6 +85,14 @@ class RoomParams:
     tau_cpl: float
     gain: float
     solar: float = 0.0  # K/h per kW of PV-output proxy (analysis/solar_fit.py)
+    # Measured-air lead node (docs/tasks/009-measured-air-node.md): the
+    # room sensor sits in a small fast air mass that leads the bulk room
+    # temperature while HVAC heat is being delivered, then relaxes back to
+    # the bulk temperature once the unit stops. tau_meas_h == 0.0 disables
+    # the node (Tm == T identically, exact passthrough). Not fitted here --
+    # defaults stay 0.0 until a separate calibration commit lands values.
+    tau_meas_h: float = 0.0
+    lead_h: float = 0.0
 
     @property
     def a(self) -> float:
@@ -141,6 +149,12 @@ class HouseParams:
         """Smallest combined effective time constant across rooms [h]."""
         return min(p.tau_eff for p in self.rooms.values())
 
+    def min_tau_meas(self) -> float | None:
+        """Smallest enabled measured-node time constant across rooms [h],
+        or None if every room has the node disabled (tau_meas_h == 0.0)."""
+        active = [p.tau_meas_h for p in self.rooms.values() if p.tau_meas_h > 0.0]
+        return min(active) if active else None
+
 
 def max_stable_dt_h(params: HouseParams) -> float:
     """Largest step (hours) that satisfies this module's stability guard.
@@ -148,9 +162,17 @@ def max_stable_dt_h(params: HouseParams) -> float:
     Forward Euler for dT/dt = -k*T + const is numerically stable for
     dt < 2/k = 2*tau_eff. We guard well inside that with a dt <= tau_eff/2
     threshold (per room, tightest room wins) so a caller has real margin
-    rather than sitting on the stability boundary.
+    rather than sitting on the stability boundary. The measured-air lead
+    node (tau_meas_h, when enabled) is integrated forward-Euler alongside
+    the bulk state at the same dt, so its own tau/2 threshold is folded in
+    too (rooms with the node disabled, tau_meas_h == 0.0, are excluded --
+    they contribute an exact passthrough, not a fast ODE).
     """
-    return params.min_tau_eff() / 2.0
+    limit_h = params.min_tau_eff() / 2.0
+    min_tau_meas = params.min_tau_meas()
+    if min_tau_meas is not None:
+        limit_h = min(limit_h, min_tau_meas / 2.0)
+    return limit_h
 
 
 class House:
@@ -168,6 +190,12 @@ class House:
         self.params = params
         self._check_dt(dt_s)
         self.temps: dict[str, float] = {room: float(initial_temps[room]) for room in ROOMS}
+        # Measured-air lead node state, initialised equal to the bulk temp
+        # (docs/tasks/009-measured-air-node.md). Disabled rooms
+        # (tau_meas_h == 0.0) are kept exactly equal to self.temps by
+        # step() below -- an exact passthrough, not a small-tau
+        # approximation.
+        self.temps_measured: dict[str, float] = dict(self.temps)
 
     def _check_dt(self, dt_s: float) -> None:
         if dt_s <= 0:
@@ -200,18 +228,34 @@ class House:
         dt_h = dt_s / 3600.0
         q = q or {}
         current = self.temps
+        current_measured = self.temps_measured
         new_temps: dict[str, float] = {}
+        new_temps_measured: dict[str, float] = {}
         for room in ROOMS:
             p = self.params.rooms[room]
             t_i = current[room]
+            q_i = q.get(room, 0.0)
             others_mean = sum(current[r] for r in ROOMS if r != room) / (len(ROOMS) - 1)
             dTdt = (
                 p.a * (t_out - t_i)
                 + p.c * (others_mean - t_i)
                 + p.gain
                 + p.solar * pv_kw
-                + q.get(room, 0.0)
+                + q_i
             )
             new_temps[room] = t_i + dt_h * dTdt
+
+            # Measured-air lead node: a sensor model layered on top of the
+            # (unchanged) bulk state above -- carries no energy, doesn't
+            # feed back into the bulk ODE. tau_meas_h == 0.0 disables it:
+            # exact passthrough (Tm == T identically), not a small-tau
+            # approximation.
+            if p.tau_meas_h > 0.0:
+                tm_i = current_measured[room]
+                dTmdt = ((t_i + p.lead_h * q_i) - tm_i) / p.tau_meas_h
+                new_temps_measured[room] = tm_i + dt_h * dTmdt
+            else:
+                new_temps_measured[room] = new_temps[room]
         self.temps = new_temps
+        self.temps_measured = new_temps_measured
         return self.temps

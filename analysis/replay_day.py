@@ -128,10 +128,14 @@ def report(day: pd.DataFrame, sim: pd.DataFrame) -> None:
     local_hour = day.index.tz_convert(LOCAL_TZ).hour
     night = (local_hour >= 21) | (local_hour < 8)
 
+    # Recorded data *is* the measured signal (the room sensors are the
+    # measured-air lead node, sim/house.py docs/tasks/009), so compare
+    # against Tm_{room} rather than the bulk T_{room} -- equal when the
+    # node is disabled (the current default params).
     print(f"{'room':<10} {'RMSE':>6} {'bias':>6}   {'night RMSE':>10} {'night bias':>10}")
     for r in ROOMS:
         rec = day[f"{r}_average_temperature"].astype(float)
-        err = sim[f"T_{r}"] - rec
+        err = sim[f"Tm_{r}"] - rec
         print(
             f"{r:<10} {np.sqrt((err**2).mean()):6.2f} {err.mean():+6.2f}   "
             f"{np.sqrt((err[night]**2).mean()):10.2f} {err[night].mean():+10.2f}"
