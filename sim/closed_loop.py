@@ -41,7 +41,7 @@ for p in (str(_ROOT), str(_ROOT / "tests")):
 import hvac_harness  # noqa: E402  (tests/hvac_harness.py)
 import actrl  # noqa: E402
 from sim.house import House, HouseParams, ROOMS  # noqa: E402
-from sim.hvac import FirstOrderLag, Hvac  # noqa: E402
+from sim.hvac import DeadTimeLag, FirstOrderLag, Hvac  # noqa: E402
 from sim.midea_unit import MideaUnit  # noqa: E402
 
 AIRFLOW_WEIGHTS = {"bed_1": 1.0, "bed_2": 1.0, "bed_3": 1.0, "study": 1.0, "kitchen": 2.0}
@@ -69,6 +69,11 @@ class ClosedLoop:
         # Compressor spin-up: power tracks the commanded increment with a
         # ~20 s lag (sim/hvac.py docstring); shutdown is an instant cut.
         self._p_lag = FirstOrderLag(self.hvac.params.lag_tau_s)
+        # Heat-delivery lag: delivered Q lags the (already-lagged) power by
+        # a further dead time + first-order lag (sim/hvac.py docstring).
+        self._q_lag = DeadTimeLag(
+            self.hvac.params.q_lag_dead_s, self.hvac.params.q_lag_tau_s, cycle_s=10.0
+        )
         self.cycle = -1
         # Telemetry: one row per cycle.
         self.history: list[dict] = []
@@ -140,9 +145,11 @@ class ClosedLoop:
                 self.unit.mode_sign = 1.0 if unit_mode == "cool" else -1.0
                 self.unit.reset()
                 self._p_lag.reset()
+                self._q_lag.reset()
             if not self.unit.running:
                 self.unit.reset()  # power cycle via climate entity clears state
                 self._p_lag.reset()  # compressor was cut; spin up from zero
+                self._q_lag.reset()
             for r in reports:
                 self.unit.step(r)
             increment = self.unit.comp_speed
@@ -151,14 +158,17 @@ class ClosedLoop:
                 p_kw = self._p_lag.step(p_target, 10.0)
             else:
                 self._p_lag.reset()  # instant cut, per recorded shutdowns
+                self._q_lag.reset()
                 p_kw = 0.0
-            q_kw = self.hvac.cop(p_kw, t_out) * p_kw if p_kw > 0 else 0.0
+            q_target = self.hvac.cop(p_kw, t_out) * p_kw if p_kw > 0 else 0.0
+            q_kw = self._q_lag.step(q_target)
             if unit_mode == "cool":
                 q_kw = -q_kw  # placeholder until a cooling calibration exists
         else:
             self.unit.running = False
             self.unit.comp_speed = 0
             self._p_lag.reset()
+            self._q_lag.reset()
             increment = 0
             p_kw, q_kw = 0.0, 0.0
 
