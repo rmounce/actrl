@@ -120,6 +120,14 @@ main output — the baseline the tuning phase will be scored against).
   efficiency-proxy level e (r²=0.28 fit) is too high, and/or unmodelled
   electrical overheads (90-min min-power purge spikes, start blips —
   visible as abovemin_rec 3.8% vs sim 0.2%). Next calibration target.
+- 2026-07-03 (after energy refit, commit 4a40f51 — e level x0.80, min
+  draw 665 W): THE STANDING TUNING-PHASE BASELINE. Medians: kit_rmse
+  0.344, kit_bias −0.001, rms_all 0.679, energy_pct −0.036 median /
+  −0.054 mean, on_frac 0.182 vs 0.184, abovemin 0.027 vs 0.038, starts
+  5.0 vs 6.0, on_min 67.5 vs 55.7, off_min 188.7 vs 164.4. Known
+  residuals: mild-day energy ~−30% (~0.6 kWh/day, run-time-decision
+  degeneracy, not efficiency); sim on-runs ~20% longer / off-runs ~15%
+  longer than recorded.
 - 2026-07-03: implemented `analysis/scorecard.py` (import-reuses
   `load_day`/`replay` from `analysis/replay_day.py`, unmodified). All
   existing tests pass (`uv run pytest`: 159 passed, 1 skipped, unchanged).
