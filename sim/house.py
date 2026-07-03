@@ -75,6 +75,28 @@ _DEFAULT_SOLAR = {
     "kitchen": 0.0,
     "study": 0.042,
 }
+# Measured-air lead node, fitted by analysis/fast_node_fit.py (2026-07-03)
+# from superposed no-sun unit-stop transients (sag amplitude/decay of the
+# measured temp above the RC trend). Kitchen is the strong, well-determined
+# case (n=5 no-sun events, r2=0.94; n=12 incl. sunlit gives the same
+# numbers): its two ducts dump supply air near the sensors. bed_1/bed_2 fit
+# weaker but coherent. bed_3's own fit is solar-contaminated (wrong sign,
+# n=4) and study has no clean events — both take the pooled bedroom prior;
+# same duct/sensor physics, no reason to differ in kind.
+_DEFAULT_TAU_MEAS = {
+    "bed_1": 0.25,
+    "bed_2": 0.28,
+    "bed_3": 0.25,
+    "kitchen": 0.21,
+    "study": 0.25,
+}
+_DEFAULT_LEAD = {
+    "bed_1": 0.07,
+    "bed_2": 0.08,
+    "bed_3": 0.08,
+    "kitchen": 0.23,
+    "study": 0.08,
+}
 
 
 @dataclass(frozen=True)
@@ -117,6 +139,8 @@ def _default_rooms() -> dict[str, RoomParams]:
             tau_cpl=_DEFAULT_TAU_CPL[room],
             gain=_DEFAULT_GAIN[room],
             solar=_DEFAULT_SOLAR[room],
+            tau_meas_h=_DEFAULT_TAU_MEAS[room],
+            lead_h=_DEFAULT_LEAD[room],
         )
         for room in ROOMS
     }
