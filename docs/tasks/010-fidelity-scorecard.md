@@ -95,6 +95,19 @@ main output — the baseline the tuning phase will be scored against).
 ## Log
 
 - 2026-07-03: spec written (Claude Fable), status ready.
+- 2026-07-03 (post-merge, Claude Fable): re-ran the full scorecard on
+  master AFTER the bedroom-lead refit (8633ef7) — this is the standing
+  tuning-phase baseline (per-day CSV kept out of the repo; medians):
+  kit_rmse 0.407, kit_bias −0.017, rms_all 1.057, energy_pct median
+  +0.002 / mean +0.107, on_frac 0.246 vs 0.184, abovemin 0.006 vs 0.038,
+  starts 9.5 vs 6.0, on_min 45.1 vs 55.7, off_min 98.0 vs 164.4.
+  The bedroom refit barely moves June-wide medians (its wins are on the
+  heavy days: 22nd energy −7%→−1%); the dominant remaining error is
+  mild-day over-heating (sim rooms read cold without solar/internal
+  gains → extra cycling: sim ~9-10 starts vs recorded 3-6 on light
+  days, energy up to +86%). Next calibration target: daytime
+  solar/internal gains, incl. revisiting kitchen's clamped-to-zero solar
+  term.
 - 2026-07-03: implemented `analysis/scorecard.py` (import-reuses
   `load_day`/`replay` from `analysis/replay_day.py`, unmodified). All
   existing tests pass (`uv run pytest`: 159 passed, 1 skipped, unchanged).
