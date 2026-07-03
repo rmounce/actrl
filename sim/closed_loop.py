@@ -54,7 +54,7 @@ for p in (str(_ROOT), str(_ROOT / "tests")):
 import hvac_harness  # noqa: E402  (tests/hvac_harness.py)
 import actrl  # noqa: E402
 from sim.house import House, HouseParams, ROOMS  # noqa: E402
-from sim.hvac import DeadTimeLag, FirstOrderLag, Hvac  # noqa: E402
+from sim.hvac import DeadTimeLag, Defrost, FirstOrderLag, Hvac  # noqa: E402
 from sim.midea_unit import MideaUnit  # noqa: E402
 
 AIRFLOW_WEIGHTS = {"bed_1": 1.0, "bed_2": 1.0, "bed_3": 1.0, "study": 1.0, "kitchen": 2.0}
@@ -91,6 +91,10 @@ class ClosedLoop:
         self._q_lag = DeadTimeLag(
             self.hvac.params.q_lag_dead_s, self.hvac.params.q_lag_tau_s, cycle_s=10.0
         )
+        # Defrost: periodic zero-heat episodes at cold outdoor temps
+        # (sim/hvac.py docstring); not reset alongside the lags below since
+        # frost accumulation is a slower, independent process.
+        self._defrost = Defrost(self.hvac.params)
         self.cycle = -1
         # Telemetry: one row per cycle.
         self.history: list[dict] = []
@@ -179,6 +183,11 @@ class ClosedLoop:
                 p_kw = 0.0
             q_target = self.hvac.cop(p_kw, t_out) * p_kw if p_kw > 0 else 0.0
             q_kw = self._q_lag.step(q_target)
+            if unit_mode == "heat" and self._defrost.step(self.unit.running, t_out, 10.0):
+                p_kw = self.hvac.params.defrost_power_kw
+                q_kw = 0.0
+                self._p_lag.reset(p_kw)  # resume post-defrost from this level
+                self._q_lag.reset(0.0)
             if unit_mode == "cool":
                 q_kw = -q_kw  # placeholder until a cooling calibration exists
         else:
