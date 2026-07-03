@@ -289,6 +289,45 @@ change specifically. bed_2 improved the least of the three — still the
 top remaining suspect, now with the size-mass confound removed as an
 explanation.
 
+### Controller input is feels-like, not average temperature (fixed 2026-07-03)
+
+Found while chasing why the sim started ~80 min late on the cold night of
+the 27th (recorded unit: min-power run 02:24–04:32 with the 90-min purge
+at 03:54; simulated unit: nothing until 03:44). Production actrl actuates
+on per-room **apparent temperature** ("feels like",
+`packages/aircon.yaml`): `feels_like = T + 0.33*wvp − 4.0` with
+`wvp = RH/100 · 6.105 · e^(17.27T/(237.7+T))` — and the room setpoints in
+the frontend/archive are in feels-like units too. At winter indoor
+humidity (~55–60% RH) that's a roughly constant **−0.4..−0.5 K** offset
+below average_temperature, so a replay feeding raw average temps gives the
+simulated controller ~0.45 K of headroom the real one never had: late
+starts, lower on-fraction, under-run energy on heavy days. (Recorded
+bed_2 on the 27th: average 16.50 °C ≡ feels-like 16.05 °C at the 16.0
+setpoint — exactly the observed 02:23 trigger.)
+
+Fix: per-room `average_humidity` was in InfluxDB but not exported — added
+to `tools/export_entities.json` (June backfilled) and `calib.py` (same
+resampling rule as temperature). `ClosedLoop.step()` takes per-room
+`ctrl_offsets` applied only to what the controller reads (the house model
+still simulates physical temperature); `analysis/replay_day.py` computes
+the offset from *recorded* temp+RH, treating vapour pressure as exogenous
+(the sim doesn't model moisture).
+
+Whole-day replay impact (all four days improved or neutral): 27th energy
+−9%→−2%, night start now 02:40 vs recorded 02:24 (was 03:44), bed_1 RMSE
+0.37→0.20, study 0.70→0.38, bed_3 1.91→1.65; 8th energy +57%→+33%; 15th
++5%; 22nd +3%→+5%. The morning modulation window on the 27th (the
+transient-fidelity spot-check that surfaced all this) now tracks the
+recorded ramp within ~0.2 K instead of lagging flat for ~90 min and
+overshooting; residual: sim peaks at increment 11 vs recorded 9 with a
+~0.4 K overshoot at 09:15, shutting off within minutes of the real unit.
+
+Two caveats: the mild-day energy over-prediction (8th +33%) is now the
+honest remaining solar/internal-gains gap rather than being partially
+masked by the input error; and `wvp` from recorded data means fully
+counterfactual scenarios (no recorded day underneath) need a humidity
+assumption — a fixed −0.45 K offset is a fine approximation for winter.
+
 ## Caveats / next steps
 
 - r² ≈ 0.28 on the efficiency fit — noisy at 10-min resolution even after
