@@ -356,7 +356,23 @@ fits; bed_1's with-sun fit inflates to 0.21, rejected as solar-contaminated).
 bed_3's own fit has the wrong sign (n=4, solar) and study has no clean
 events — both take the pooled bedroom prior (lead 0.08, tau 15 min).
 
-Whole-day replay: improved nearly everywhere. 27th: kitchen RMSE
+Closed-loop refit of the kitchen lead (2026-07-03, follow-up): Ryan
+observed the sim still cycling at roughly half the recorded frequency at
+min power on the 22nd (mean on 52 vs 29 min, off 68 vs 35; same
+on-fraction). The controller-eye demand signal (aircon_weighted_error,
+now in sim telemetry) swings over the same 0..0.9 band in both but at
+half speed in *both* directions — the driving room (kitchen, argmax in
+both) has its sensor amplitude ~2x under-modelled. The open-loop stop-fit
+is biased low (trend subtraction assumes the node settles inside the
+45 min window; q_pre rides the COP model), so the kitchen lead was refit
+by closed-loop grid search on the 22nd's replay: lead 0.45 (tau 0.21 h
+unchanged) matches recorded cycle counts exactly at midday (4/4 starts,
+26%/26% on-fraction) and nearly in the evening (6/7); 0.40 does not (3/4)
+— the transition is sharp. Cost: sim energy reads −7/−8% on heavy days
+(more time at min power; was +5/−4%) — cycle texture prioritised, energy
+gap is the open item. Mild days improved too (8th +28%→+22%, 15th +1%).
+
+Whole-day replay (pre-refit numbers): improved nearly everywhere. 27th: kitchen RMSE
 0.38→0.33, bed_1 0.20 (was 0.37 pre-feels-like), study 0.38→0.48→0.48…
 energy −2%→−4%; 22nd: study 0.86→0.70, bed_2 1.85→1.66, energy +5%; 8th
 +33%→+28%; 15th +5%→+2%. The 06-27 modulation-window ramp now tracks

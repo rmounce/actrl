@@ -66,6 +66,14 @@ FOLLOW_ME_SERVICE = "esphome/m5atom_send_follow_me"
 UNIT_CLIMATE = "climate.m5atom_climate"
 
 
+def _entity_float(world, entity_id: str) -> float:
+    """State of a numeric world entity, NaN when unset/non-numeric."""
+    try:
+        return float(world.entities[entity_id]["state"])
+    except (KeyError, TypeError, ValueError):
+        return float("nan")
+
+
 class ClosedLoop:
     """One assembled simulation run."""
 
@@ -232,6 +240,9 @@ class ClosedLoop:
             **{f"T_{r}": self.house.temps[r] for r in ROOMS},
             **{f"Tm_{r}": self.house.temps_measured[r] for r in ROOMS},
             **{f"damper_{r}": self._damper_positions()[r] for r in ROOMS},
+            "weighted_error": _entity_float(
+                self.world, "input_number.aircon_weighted_error"
+            ),
         }
         self.history.append(row)
         return row
