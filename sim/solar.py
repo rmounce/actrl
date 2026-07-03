@@ -40,6 +40,7 @@ def sun_position(ts: datetime) -> tuple[float, float]:
     )
     tst = frac_h * 60.0 + eqtime + 4.0 * LON  # true solar time [min]
     ha = math.radians(tst / 4.0 - 180.0)  # hour angle
+    ha = (ha + math.pi) % (2 * math.pi) - math.pi  # wrap to (-pi, pi]
     lat = math.radians(LAT)
     sin_elev = math.sin(lat) * math.sin(decl) + math.cos(lat) * math.cos(decl) * math.cos(ha)
     elev = math.asin(max(-1.0, min(1.0, sin_elev)))

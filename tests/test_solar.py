@@ -29,25 +29,15 @@ def test_winter_solstice_solar_noon_geometry():
 
 
 def test_ne_irradiance_peaks_in_the_morning():
-    """A NE-facing (45 deg) vertical surface should see more direct beam in
-    the local morning than in the local afternoon, on a winter day.
-
-    Deviation from the spec's literal "09:00 vs 15:00" wording: the ported
-    formula (unchanged from analysis/solar_orient_fit.py, verified to match
-    it bit-for-bit -- see docs/tasks/011-orientation-solar.md Log) computes
-    the hour angle as an un-wrapped degrees value (`tst/4 - 180`, no mod
-    360). At Adelaide's longitude/timezone offset this pushes exactly
-    09:00 local into the wrong (>180 deg, "afternoon") branch throughout
-    June, reading 0.0 there every day of the month (verified by scanning
-    all of June) while 15:00 reads a small positive value -- an artifact
-    of the reference formula's hour-angle wrapping, not of the sun's real
-    position (confirmed against the pandas original, which reproduces the
-    same 09:00 dip). 09:30 sits just past that artifact and clearly shows
-    the intended "NE peaks in the morning" shape, so it's used here
-    instead; this doesn't touch the out-of-scope analysis file or its
-    fitted coefficients, which were fit against the exact same formula."""
-    morning = vertical_irradiance(_adelaide(2026, 6, 21, 9, 30), AZ_NE)
+    """A NE-facing vertical surface catches the morning beam and is dark
+    by mid-afternoon (Adelaide winter sun: rise ~61 deg ENE, set ~299 deg
+    WNW). The hour angle is wrapped to (-pi, pi] (fix 2026-07-03: the
+    original unwrapped formula pushed pre-~09:45-local times into the
+    wrong azimuth branch, zeroing the NE basis for most of the morning)."""
+    sunrise_side = vertical_irradiance(_adelaide(2026, 6, 21, 8, 0), AZ_NE)
+    morning = vertical_irradiance(_adelaide(2026, 6, 21, 9, 0), AZ_NE)
     afternoon = vertical_irradiance(_adelaide(2026, 6, 21, 15, 0), AZ_NE)
+    assert sunrise_side > 0.0
     assert morning > afternoon
 
 

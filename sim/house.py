@@ -86,18 +86,18 @@ _DEFAULT_SOLAR = {
 # solar.md and docs/calibration.md). Driven by House.step's sun_ne/sun_nw
 # kwargs (cloud-scaled irradiance factors, 0..1) rather than pv_kw.
 _DEFAULT_S_NE = {
-    "bed_1": 0.298,
-    "bed_2": 0.577,
-    "bed_3": 1.354,
-    "kitchen": 0.403,
-    "study": 0.271,
+    "bed_1": 0.265,
+    "bed_2": 0.672,
+    "bed_3": 1.277,
+    "kitchen": 0.355,
+    "study": 0.259,
 }
 _DEFAULT_S_NW = {
-    "bed_1": 0.010,
-    "bed_2": 0.000,
-    "bed_3": 0.000,
-    "kitchen": 0.000,
-    "study": 0.082,
+    "bed_1": 0.024,
+    "bed_2": 0.0,
+    "bed_3": 0.0,
+    "kitchen": 0.0,
+    "study": 0.084,
 }
 # Measured-air lead node. tau_meas and the bedroom leads fitted by
 # analysis/fast_node_fit.py (2026-07-03) from superposed no-sun unit-stop
