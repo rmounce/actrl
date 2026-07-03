@@ -104,10 +104,18 @@ distinct from the 20 s electrical lag) identified from the same clean
 (`analysis/heat_lag_fit.py`): kitchen gives the cleanest fit (dead time
 15 s, tau 180 s, r²=0.95), wired in as `sim.hvac.DeadTimeLag` downstream
 of the electrical lag — negligible effect on room RMSE, small improvement
-to heavy-day energy match (−19%→−15%, −23%→−21%). Remaining: bed_2
-daytime bias + heavy-day energy deficit (both point at the per-room
-heat-split assumption); defrost emulation; cooling calibration (needs
-summer data).
+to heavy-day energy match (−19%→−15%, −23%→−21%). Heat-split mass
+assumption fixed using real floor areas from the house's NatHERS energy
+report (bed_1 18.9 m², bed_3 14.5 m², bed_2 12.1 m², study 8.7 m² —
+previously all assumed equal): decoupled `_room_q`'s airflow split
+(duct-count based, confirmed correct) from its thermal-mass split (now
+floor-area based) in sim/closed_loop.py. Concentrated improvement on
+heavy heating days — bed_3/study daytime bias notably better, heavy-day
+energy match −15%/−21%→−0%/−14% — with bed_2 improving the least (still
+the top open question) and mild-day energy over-prediction slightly worse
+(pre-existing solar/internal-gain gap, not new). Remaining: bed_2 daytime
+bias specifically; defrost emulation; cooling calibration (needs summer
+data).
 
 Also (2026-07-02): first-pass system identification on June data done —
 house envelope tau ≈ 30 h, per-room two-node RC fits, and the heating
