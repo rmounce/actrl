@@ -328,6 +328,46 @@ masked by the input error; and `wvp` from recorded data means fully
 counterfactual scenarios (no recorded day underneath) need a humidity
 assumption — a fixed −0.45 K offset is a fine approximation for winter.
 
+### Measured-air lead node (added 2026-07-03, task 009)
+
+Even after the feels-like fix, both spot-check windows showed the sim
+lagging then overshooting where the recorded trace rises quickly and
+levels off. Cross-correlation showed zero *phase* lag — the mismatch is
+magnitude: at matched compressor speed the sim heated the kitchen sensor
+2–4x slower than recorded (e.g. 0.67 vs 2.65 K/h at speed 8). The damper
+split matched, and the recorded rise is physically impossible for the bulk
+mass (3.18 K/h x kitchen's mass share implies more heat than the unit's
+entire thermal output). The sensors read a small fast air mass, not the
+RC bulk: superposed unit-stop events (12 clean, kitchen damper >50%) sag
+at ~2 K/h for ~10 min then relax onto the single-RC decay (~0.5 K/h) by
+~40 min.
+
+Model (docs/tasks/009, implemented by a Sonnet subagent, reviewed/merged):
+a per-room sensor node layered on the untouched bulk ODE —
+`dTm/dt = ((T + lead_h*q) − Tm)/tau_meas_h`. Carries no energy; controller
+and all recorded-data comparisons use Tm; `tau_meas_h=0` is an exact
+passthrough (regression-gated bit-identical to the pre-task replay).
+
+Fit (`analysis/fast_node_fit.py`, superposed no-sun stop events, slow
+trend subtracted, exp fit by grid search): kitchen tau ~13 min, lead
+0.23 h, r2=0.94 (n=5; n=12 incl. sunlit gives the same) — its two ducts
+dump supply air near the sensors. bed_1 0.07 / bed_2 0.08 h leads (weaker
+fits; bed_1's with-sun fit inflates to 0.21, rejected as solar-contaminated).
+bed_3's own fit has the wrong sign (n=4, solar) and study has no clean
+events — both take the pooled bedroom prior (lead 0.08, tau 15 min).
+
+Whole-day replay: improved nearly everywhere. 27th: kitchen RMSE
+0.38→0.33, bed_1 0.20 (was 0.37 pre-feels-like), study 0.38→0.48→0.48…
+energy −2%→−4%; 22nd: study 0.86→0.70, bed_2 1.85→1.66, energy +5%; 8th
++33%→+28%; 15th +5%→+2%. The 06-27 modulation-window ramp now tracks
+recorded within ~0.1–0.3 K at matched increments (8–9 both, was pushing
+to 11), and the rate-by-speed gap at speeds 7–8 closed from 3–4x to
+~1.3x. Remaining shape gaps: the sim over-increments early in that window
+(9–11 vs recorded 3–5 around 06:40–07:00), and it reaches target and cuts
+off ~08:30 where the real unit tapered 6→1 until 09:30 (~0.4 K late
+overshoot) — candidate next targets, likely controller-state rather than
+plant-model effects.
+
 ## Caveats / next steps
 
 - r² ≈ 0.28 on the efficiency fit — noisy at 10-min resolution even after

@@ -6,6 +6,7 @@ of the ODE dT_i/dt = a_i*(T_out-T_i) + c_i*(T_others_i-T_i) + g_i + q_i(t).
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 
 import pytest
 
@@ -153,10 +154,16 @@ def _symmetric_params_meas(
 
 
 def test_disabled_measured_node_is_exact_passthrough():
-    """tau_meas_h == 0.0 (the default) disables the node: temps_measured
-    must equal temps exactly (bit-identical), even under many mixed steps
-    with nonzero, time-varying q."""
-    params = HouseParams()  # default calibration.md params, tau_meas_h=0.0 everywhere
+    """tau_meas_h == 0.0 disables the node: temps_measured must equal temps
+    exactly (bit-identical), even under many mixed steps with nonzero,
+    time-varying q. (Defaults now carry fitted enabled values, so disable
+    explicitly.)"""
+    params = HouseParams(
+        rooms={
+            room: replace(p, tau_meas_h=0.0, lead_h=0.0)
+            for room, p in HouseParams().rooms.items()
+        }
+    )
     house = House(params, {room: 20.0 for room in ROOMS}, dt_s=10)
 
     for i in range(500):
