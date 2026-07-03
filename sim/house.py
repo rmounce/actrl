@@ -63,17 +63,41 @@ _DEFAULT_GAIN = {
     "kitchen": 0.20,
     "study": 0.02,
 }
-# Solar gain [K/h per kW of PV-output proxy], fitted by analysis/solar_fit.py
-# (2026-07-03) on unit-off residuals against Solcast power_pv_5m. Kitchen's
-# raw fit came out slightly negative (coupling-term cross-talk from sunlit
-# bed_3, not physics) and it already replays at ~0.4 C RMSE, so it is
-# clamped to zero. Zero PV input (the default) reproduces the night fit.
+# Solar gain [K/h per kW of PV-output proxy], originally fitted by
+# analysis/solar_fit.py (2026-07-03) on unit-off residuals against Solcast
+# power_pv_5m. Superseded by the orientation-resolved s_ne/s_nw terms below
+# (docs/tasks/011-orientation-solar.md, 2026-07-03): the whole-house PV
+# proxy peaks at noon and cannot represent NE-window morning beam vs
+# NW-window afternoon beam, which the per-room replay-bias profiles showed
+# mattered (bed_2/bed_3 ran 3-4.6 K cold at 09:00-12:00). Zeroed here; the
+# `solar`/`pv_kw` machinery is kept in place (inert by default) rather than
+# removed, in case a whole-house-scale diffuse/internal-gain term is wanted
+# later.
 _DEFAULT_SOLAR = {
-    "bed_1": 0.031,
-    "bed_2": 0.029,
-    "bed_3": 0.133,
+    "bed_1": 0.0,
+    "bed_2": 0.0,
+    "bed_3": 0.0,
     "kitchen": 0.0,
-    "study": 0.042,
+    "study": 0.0,
+}
+# Orientation-resolved clear-sky solar terms [K/h at clear-sky full sun on
+# that face], fitted by analysis/solar_orient_fit.py (trajectory-space fit
+# against unit-off residuals, 2026-07-03; see docs/tasks/011-orientation-
+# solar.md and docs/calibration.md). Driven by House.step's sun_ne/sun_nw
+# kwargs (cloud-scaled irradiance factors, 0..1) rather than pv_kw.
+_DEFAULT_S_NE = {
+    "bed_1": 0.298,
+    "bed_2": 0.577,
+    "bed_3": 1.354,
+    "kitchen": 0.403,
+    "study": 0.271,
+}
+_DEFAULT_S_NW = {
+    "bed_1": 0.010,
+    "bed_2": 0.000,
+    "bed_3": 0.000,
+    "kitchen": 0.000,
+    "study": 0.082,
 }
 # Measured-air lead node. tau_meas and the bedroom leads fitted by
 # analysis/fast_node_fit.py (2026-07-03) from superposed no-sun unit-stop
@@ -117,7 +141,11 @@ class RoomParams:
     tau_out: float
     tau_cpl: float
     gain: float
-    solar: float = 0.0  # K/h per kW of PV-output proxy (analysis/solar_fit.py)
+    solar: float = 0.0  # K/h per kW of PV-output proxy (analysis/solar_fit.py); superseded, kept inert
+    # Orientation-resolved clear-sky solar terms [K/h at clear-sky full sun],
+    # driven by House.step's sun_ne/sun_nw kwargs (docs/tasks/011).
+    s_ne: float = 0.0
+    s_nw: float = 0.0
     # Measured-air lead node (docs/tasks/009-measured-air-node.md): the
     # room sensor sits in a small fast air mass that leads the bulk room
     # temperature while HVAC heat is being delivered, then relaxes back to
@@ -150,6 +178,8 @@ def _default_rooms() -> dict[str, RoomParams]:
             tau_cpl=_DEFAULT_TAU_CPL[room],
             gain=_DEFAULT_GAIN[room],
             solar=_DEFAULT_SOLAR[room],
+            s_ne=_DEFAULT_S_NE[room],
+            s_nw=_DEFAULT_S_NW[room],
             tau_meas_h=_DEFAULT_TAU_MEAS[room],
             lead_h=_DEFAULT_LEAD[room],
         )
@@ -251,13 +281,21 @@ class House:
         q: dict[str, float] | None = None,
         dt_s: float = 10.0,
         pv_kw: float = 0.0,
+        sun_ne: float = 0.0,
+        sun_nw: float = 0.0,
     ) -> dict[str, float]:
         """Advance the model by dt_s seconds; returns the updated temps dict.
 
         q: optional per-room heat input [K/h], defaults to 0 for all rooms
         (free-running).
         pv_kw: PV-output irradiance proxy [kW] driving per-room solar gain
-        (0 = night / not modelled, reproducing the pre-solar behaviour).
+        (0 = night / not modelled, reproducing the pre-solar behaviour);
+        superseded by sun_ne/sun_nw (see RoomParams.s_ne/s_nw), kept inert
+        by default (_DEFAULT_SOLAR == 0).
+        sun_ne, sun_nw: cloud-scaled clear-sky irradiance factors (0..1) on
+        the house's NE/NW vertical faces (sim/solar.py), driving each
+        room's s_ne/s_nw orientation-resolved solar gain. Defaults of 0
+        reproduce the pre-orientation-solar behaviour exactly.
         """
         self._check_dt(dt_s)
         dt_h = dt_s / 3600.0
@@ -276,6 +314,7 @@ class House:
                 + p.c * (others_mean - t_i)
                 + p.gain
                 + p.solar * pv_kw
+                + p.s_ne * sun_ne + p.s_nw * sun_nw
                 + q_i
             )
             new_temps[room] = t_i + dt_h * dTdt
