@@ -11,8 +11,10 @@ def hvac():
 
 
 def test_power_endpoints(hvac):
-    # Anchors: ~665 W total at min, ~3055 W total at max (defaults).
-    assert hvac.power_kw(0) == pytest.approx(0.665, abs=0.001)
+    # Anchors: ~720 W total at min (665 W outdoor mean at speed<=1 incl.
+    # purge/blip amortisation, 2026-07-03 energy refit + 55 W fan),
+    # ~3055 W total at max (defaults).
+    assert hvac.power_kw(0) == pytest.approx(0.720, abs=0.001)
     assert hvac.power_kw(14) == pytest.approx(3.055, abs=0.001)
 
 
@@ -24,9 +26,10 @@ def test_power_monotonic_and_clamped(hvac):
 
 
 def test_cop_matches_calibration_point(hvac):
-    # At the fit reference (P=0.7 kW, Tout=10 C): e = e0 = 1.045,
-    # COP = 1.045 * 4.8 ~ 5.0 (docs/calibration.md).
-    assert hvac.cop(0.7, 10.0) == pytest.approx(1.045 * 4.8, rel=1e-9)
+    # At the fit reference (P=0.7 kW, Tout=10 C): e = e0 = 1.045 * 0.80
+    # (open-loop fit level scaled by the 2026-07-03 closed-loop energy
+    # refit), COP = e0 * 4.8 ~ 4.0.
+    assert hvac.cop(0.7, 10.0) == pytest.approx(1.045 * 0.80 * 4.8, rel=1e-9)
 
 
 def test_cop_falls_with_power_and_cold(hvac):
