@@ -265,3 +265,53 @@ def test_measured_node_stability_guard_rejects_excessive_dt():
     ok_dt_s = (limit_h * 0.5) * 3600
     house = House(params, {room: 20.0 for room in ROOMS}, dt_s=ok_dt_s)
     house.step(t_out=15.0, dt_s=ok_dt_s)  # should not raise
+
+
+# --- Orientation-resolved solar gains (docs/tasks/011-orientation-solar.md) -
+
+
+def test_constant_sun_ne_produces_analytic_steady_state_offset():
+    """With s_ne enabled on every room (s_nw at 0) and a constant sun_ne
+    factor, the house settles to T = T_out + s_ne*sun_ne*tau -- the same
+    constant-forcing fixed point as the existing constant-q test, just
+    driven through the s_ne*sun_ne term instead of q."""
+    tau = 12.0
+    s_ne = 0.25
+    sun_ne_val = 0.6
+    t_out = 10.0
+    params = HouseParams(
+        rooms={
+            room: RoomParams(tau_out=tau, tau_cpl=4.0, gain=0.0, s_ne=s_ne, s_nw=0.0)
+            for room in ROOMS
+        }
+    )
+    house = House(params, {room: 22.0 for room in ROOMS}, dt_s=10)
+
+    steps = round(8 * tau * 3600 / 30)  # 8 time constants
+    for _ in range(steps):
+        house.step(t_out=t_out, dt_s=30, sun_ne=sun_ne_val, sun_nw=0.0)
+
+    expected = t_out + s_ne * sun_ne_val * tau
+    for room in ROOMS:
+        assert house.temps[room] == pytest.approx(expected, abs=0.05)
+
+
+def test_zero_s_ne_s_nw_ignores_sun_kwargs():
+    """Regression: with every room's s_ne/s_nw explicitly zeroed, supplying
+    nonzero sun_ne/sun_nw to step() must not perturb the trajectory at all
+    -- it must match a run without those kwargs, bit for bit."""
+    params = HouseParams(
+        rooms={
+            room: replace(p, s_ne=0.0, s_nw=0.0) for room, p in HouseParams().rooms.items()
+        }
+    )
+    initial = {room: 18.0 + i for i, room in enumerate(ROOMS)}
+    house_with_sun = House(params, dict(initial), dt_s=10)
+    house_without_sun = House(params, dict(initial), dt_s=10)
+
+    for i in range(500):
+        q = {room: 0.05 * ((i + hash(room)) % 7 - 3) for room in ROOMS}
+        t_out = 5.0 + (i % 11)
+        house_with_sun.step(t_out=t_out, q=q, dt_s=10, sun_ne=0.7, sun_nw=0.4)
+        house_without_sun.step(t_out=t_out, q=q, dt_s=10)
+        assert house_with_sun.temps == house_without_sun.temps

@@ -35,6 +35,7 @@ for p in (str(_ROOT), str(_ROOT / "tests")):
 
 from scenarios import base_world, room_climates  # noqa: E402
 from sim.closed_loop import ClosedLoop, ROOMS  # noqa: E402
+from sim.solar import AZ_NE, AZ_NW, vertical_irradiance  # noqa: E402
 
 LOCAL_TZ = ZoneInfo("Australia/Adelaide")
 CYCLES_PER_MIN = 6  # 10 s control cycles
@@ -42,10 +43,21 @@ CYCLES_PER_MIN = 6  # 10 s control cycles
 
 def load_day(parquet: Path, date: str) -> pd.DataFrame:
     df = pd.read_parquet(parquet)
-    start = pd.Timestamp(date, tz=LOCAL_TZ)
-    end = start + pd.Timedelta("1D")
     if df.index.tz is None:
         df.index = df.index.tz_localize("UTC")
+    # Cloudiness (recorded PV / per-minute-of-day PV clear-sky envelope,
+    # analysis/solar_orient_fit.cloudiness) must be computed from the FULL
+    # parquet before the day is sliced out below -- the envelope is a max
+    # over the whole archive's minute-of-day buckets, so slicing first would
+    # make a single day's own (possibly cloudy) minute its own ceiling.
+    pv = df["power_pv_5m"].fillna(0).clip(lower=0)
+    mod = df.index.tz_convert("UTC").hour * 60 + df.index.tz_convert("UTC").minute
+    env = pv.groupby(mod).transform("max").replace(0, np.nan)
+    df = df.copy()
+    df["_cloudiness"] = (pv / env).clip(0, 1).fillna(0)
+
+    start = pd.Timestamp(date, tz=LOCAL_TZ)
+    end = start + pd.Timedelta("1D")
     day = df[(df.index >= start) & (df.index < end)]
     if len(day) < 24 * 60:
         raise SystemExit(f"incomplete day: {len(day)} minutes in archive")
@@ -90,6 +102,13 @@ def replay(day: pd.DataFrame) -> pd.DataFrame:
     loop = build_loop(day)
     tout = day["temperature_adelaide"].ffill().values
     pv = (day["power_pv_5m"].fillna(0).clip(lower=0) / 1000.0).values
+    cloudiness = day["_cloudiness"].values
+    sun_ne = np.array(
+        [vertical_irradiance(ts, AZ_NE) * c for ts, c in zip(day.index, cloudiness)]
+    )
+    sun_nw = np.array(
+        [vertical_irradiance(ts, AZ_NW) * c for ts, c in zip(day.index, cloudiness)]
+    )
     offsets = feels_like_offsets(day)
     sp = day["climate.m5atom_climate.temperature"].ffill().values
     lows = {r: day[f"climate.{r}_aircon.target_temp_low"].ffill().values for r in ROOMS}
@@ -115,6 +134,8 @@ def replay(day: pd.DataFrame) -> pd.DataFrame:
                 t_out=float(tout[m]),
                 updates=updates,
                 pv_kw=float(pv[m]),
+                sun_ne=float(sun_ne[m]),
+                sun_nw=float(sun_nw[m]),
                 ctrl_offsets={r: float(offsets[r][m]) for r in ROOMS},
             )
         )
