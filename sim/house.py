@@ -75,14 +75,20 @@ _DEFAULT_SOLAR = {
     "kitchen": 0.0,
     "study": 0.042,
 }
-# Measured-air lead node, fitted by analysis/fast_node_fit.py (2026-07-03)
-# from superposed no-sun unit-stop transients (sag amplitude/decay of the
-# measured temp above the RC trend). Kitchen is the strong, well-determined
-# case (n=5 no-sun events, r2=0.94; n=12 incl. sunlit gives the same
-# numbers): its two ducts dump supply air near the sensors. bed_1/bed_2 fit
-# weaker but coherent. bed_3's own fit is solar-contaminated (wrong sign,
-# n=4) and study has no clean events — both take the pooled bedroom prior;
-# same duct/sensor physics, no reason to differ in kind.
+# Measured-air lead node. tau_meas and the bedroom leads fitted by
+# analysis/fast_node_fit.py (2026-07-03) from superposed no-sun unit-stop
+# transients (sag amplitude/decay of the measured temp above the RC
+# trend); bed_3's own fit is solar-contaminated (wrong sign, n=4) and
+# study has no clean events — both take the pooled bedroom prior.
+# Kitchen's lead is instead refit in closed loop (grid search on the
+# 2026-06-22 replay, matching recorded min-power cycle counts/on-fraction
+# and kitchen RMSE): the open-loop stop-fit gave 0.23 but is biased low —
+# its slow-trend subtraction assumes the node settles inside the 45 min
+# window, and its q_pre denominator rides the COP model. 0.45 reproduces
+# the recorded midday cycling exactly (4/4 starts) where 0.40 does not
+# (3/4) — the transition is sharp; the cost is sim energy reading ~7% low
+# (more time at min power). Cycle texture wins: it is what the comfort/
+# tuning work needs the sim to get right.
 _DEFAULT_TAU_MEAS = {
     "bed_1": 0.25,
     "bed_2": 0.28,
@@ -94,7 +100,7 @@ _DEFAULT_LEAD = {
     "bed_1": 0.07,
     "bed_2": 0.08,
     "bed_3": 0.08,
-    "kitchen": 0.23,
+    "kitchen": 0.45,
     "study": 0.08,
 }
 
