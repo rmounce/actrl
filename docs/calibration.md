@@ -399,6 +399,52 @@ off ~08:30 where the real unit tapered 6→1 until 09:30 (~0.4 K late
 overshoot) — candidate next targets, likely controller-state rather than
 plant-model effects.
 
+### Orientation-resolved solar gains (fitted 2026-07-03, task 011)
+
+The June-wide scorecard (task 010) showed the dominant remaining error is
+mild-day over-heating: sim rooms read cold daytime and the controller
+heats a house that was coasting on sun (energy to +86%, sim ~9-10
+starts/day vs recorded 3-6 on light days). Hourly replay-bias profiles
+localise it: bed_2 runs up to −4.6 K and bed_3 −3.1 K at 09:00–12:00 on
+sunny days, decaying through the afternoon — a large *morning* gain the
+model misses entirely.
+
+Root cause is the solar basis function, not the coefficients. The
+whole-house PV proxy (roughly north array) peaks at noon; a NE window's
+direct beam peaks mid-morning and dies by midday. Regressed against the
+noon-peaked proxy, bed_2's morning spike washes out to a tiny slope with
+r²=0.02 (its "weak solar fit" was never weak sun), and the kitchen's fit
+comes out *negative* (its morning gains anti-correlate with the noon
+proxy inside off-windows) — which is why it was clamped to zero. A
+trajectory-space refit against the same proxy (analysis/
+solar_refit_openloop.py — simulate all rooms jointly so the coupling
+term sees *simulated*, not recorded, neighbours) converges right back to
+the old values, confirming the basis, not the fit method, is at fault.
+
+Fix (analysis/solar_orient_fit.py): two clear-sky direct-beam bases per
+room — vertical NE face (morning) and NW face (afternoon); Adelaide's
+winter sun tracks sunrise ~61° (ENE) → north → sunset ~299° (WNW), so
+SE/SW glazing gets no direct winter beam at all (bed_1's large SW glazing
+included — its winter gain must arrive otherwise). Each basis scaled by
+a cloudiness index (recorded PV / per-minute-of-day June PV envelope).
+Joint trajectory-space fit, head-trimmed unit-off windows, converged in
+2 iterations:
+
+| room    | s_ne [K/h @ full sun] | s_nw  |
+|---------|----------------------:|------:|
+| bed_1   | 0.298 | 0.010 |
+| bed_2   | 0.577 | 0.000 |
+| bed_3   | 1.354 | 0.000 |
+| kitchen | 0.403 | 0.000 |
+| study   | 0.271 | 0.082 |
+
+bed_2 at less than half bed_3's gain despite near-identical NE windows
+quantifies the neighbour party-wall shading hypothesis as *partial*
+shading. All NW terms ≈ 0 in winter (no afternoon beam to fit) — refit
+against summer data when it exists. Wired into the sim by task 011
+(sim/solar.py + RoomParams.s_ne/s_nw; the old PV-proxy `solar` term is
+zeroed and superseded).
+
 ## Caveats / next steps
 
 - r² ≈ 0.28 on the efficiency fit — noisy at 10-min resolution even after
