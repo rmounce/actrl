@@ -1,6 +1,6 @@
 # 010: June-wide simulator fidelity scorecard
 
-Status: ready
+Status: review
 Branch: task/010-fidelity-scorecard
 
 ## Background (read first)
@@ -95,3 +95,115 @@ main output — the baseline the tuning phase will be scored against).
 ## Log
 
 - 2026-07-03: spec written (Claude Fable), status ready.
+- 2026-07-03: implemented `analysis/scorecard.py` (import-reuses
+  `load_day`/`replay` from `analysis/replay_day.py`, unmodified). All
+  existing tests pass (`uv run pytest`: 159 passed, 1 skipped, unchanged).
+
+  Subset spot-check (`--days 2026-06-22,2026-06-27`) matches
+  `analysis/replay_day.py --date <day>` exactly for kitchen RMSE/bias,
+  rms_all (mean of the 5 rooms' RMSEs), energy_pct, on_frac, abovemin —
+  e.g. 06-22: kit_rmse 0.36/bias +0.08, energy sim 10.77 vs rec 11.59
+  kWh (-7%), on_frac sim 48%/rec 51%, abovemin sim 10%/rec 13%, all
+  reproduced by the scorecard row.
+
+  While building the full-June run, found `load_day` only checks row
+  *count* (>= 1440), not column completeness. Several June days have
+  full row counts but mid-day archive outages (setpoint/humidity
+  columns entirely NaN for hours) that `ffill` can't repair — these
+  either silently produced garbage (non-finite) metrics or crashed the
+  replay loop on a later day (NaN propagating into the emulator's
+  setpoint arithmetic). Added a broader per-day try/except in
+  `scorecard.py` (still a one-line notice + skip, same graceful-skip
+  contract as `load_day`'s SystemExit) that also catches replay
+  exceptions and rejects non-finite metrics — `analysis/replay_day.py`
+  itself was not touched.
+
+  Full June run (`uv run python analysis/scorecard.py --parquet
+  /home/saltspork/actrl/data/processed/june.parquet --out
+  /tmp/scorecard_june.csv`), ~30 min runtime, 24/31 days scored
+  (2026-06-01, 02, 03, 12, 13, 17 skipped for the archive-gap reasons
+  above; 2026-07-01 skipped as an out-of-range partial day). Per-day
+  rows and summary block below (verbatim from the run):
+
+  ```
+  date            kit_rmse    kit_bias     rms_all  energy_pct on_frac_sim on_frac_rec abovemin_sim abovemin_rec  starts_sim  starts_rec  on_min_sim  on_min_rec off_min_sim off_min_rec
+  2026-06-01  skipped: incomplete day: 870 minutes in archive
+  2026-06-02  skipped: non-finite metric (archive gap not caught by load_day)
+  2026-06-03  skipped: cannot convert float NaN to integer
+  2026-06-04  0.37 -0.01 0.96 +0.52 0.31 0.18 0.02 0.02 10 6 44.90 43.50 90.09 168.43
+  2026-06-05  0.38 +0.03 0.98 +0.27 0.33 0.22 0.05 0.06 9 6 52.56 52.83 96.70 160.43
+  2026-06-06  0.60 -0.33 1.28 +0.36 0.23 0.14 0.00 0.01 9 3 37.56 69.33 110.20 308.00
+  2026-06-07  0.61 -0.27 1.27 +0.04 0.24 0.19 0.00 0.05 6 3 56.50 89.67 157.29 292.75
+  2026-06-08  0.54 -0.25 1.10 +0.22 0.16 0.12 0.00 0.01 6 3 38.17 55.67 173.00 318.25
+  2026-06-09  0.35 -0.04 1.01 -0.23 0.13 0.14 0.02 0.03 4 3 45.75 66.00 251.40 310.50
+  2026-06-10  0.65 -0.32 0.96 +0.22 0.09 0.06 0.00 0.00 4 3 33.75 30.33 261.00 337.25
+  2026-06-11  0.57 -0.32 1.21 -0.04 0.15 0.16 0.08 0.07 2 2 111.50 112.50 405.67 405.00
+  2026-06-12  skipped: non-finite metric (archive gap not caught by load_day)
+  2026-06-13  skipped: non-finite metric (archive gap not caught by load_day)
+  2026-06-14  0.42 -0.09 1.27 -0.14 0.31 0.29 0.06 0.09 9 7 49.67 59.71 99.30 127.75
+  2026-06-15  0.34 -0.01 0.68 +0.01 0.17 0.15 0.01 0.01 7 4 35.86 55.75 148.62 243.40
+  2026-06-16  0.67 -0.51 0.53 -0.08 0.03 0.02 0.00 0.00 1 1 39.00 28.00 700.50 706.00
+  2026-06-17  skipped: non-finite metric (archive gap not caught by load_day)
+  2026-06-18  0.52 -0.16 1.06 +0.97 0.14 0.06 0.00 0.00 7 2 28.14 40.50 155.38 453.00
+  2026-06-19  0.33 -0.05 1.04 +0.52 0.24 0.14 0.00 0.01 9 6 38.00 34.00 109.80 176.57
+  2026-06-20  0.33 -0.03 1.25 +0.34 0.38 0.26 0.00 0.01 10 8 55.40 46.38 88.60 118.78
+  2026-06-21  0.46 +0.17 1.13 -0.01 0.47 0.38 0.11 0.15 10 8 67.50 69.00 76.50 98.67
+  2026-06-22  0.36 +0.08 1.12 -0.07 0.48 0.51 0.10 0.13 11 16 63.00 45.75 67.91 41.65
+  2026-06-23  0.36 +0.12 0.87 -0.08 0.42 0.39 0.06 0.10 9 7 67.78 80.57 92.22 109.50
+  2026-06-24  0.38 -0.02 1.05 -0.12 0.39 0.42 0.09 0.14 9 9 63.11 67.22 87.20 83.50
+  2026-06-25  0.41 -0.00 1.09 -0.07 0.36 0.38 0.08 0.12 9 7 57.22 77.57 102.78 112.12
+  2026-06-26  0.33 +0.01 1.23 -0.04 0.36 0.33 0.08 0.12 8 9 65.12 52.56 102.11 96.70
+  2026-06-27  0.34 +0.07 1.05 -0.08 0.38 0.42 0.13 0.16 8 9 67.50 67.11 100.00 83.60
+  2026-06-28  0.37 +0.07 1.25 -0.11 0.26 0.24 0.00 0.06 10 6 37.40 57.17 96.91 156.71
+  2026-06-29  0.36 +0.10 0.79 +0.18 0.22 0.16 0.00 0.01 10 6 31.40 39.50 102.36 171.86
+  2026-06-30  0.34 +0.07 0.78 +0.20 0.23 0.17 0.00 0.01 10 9 33.00 27.22 100.91 119.50
+  2026-07-01  skipped: incomplete day: 570 minutes in archive
+
+  24 day(s) scored
+
+  summary (median over scored days):
+    kit_rmse     0.371
+    kit_bias     -0.020
+    rms_all      1.057
+    energy_pct   -0.000
+    on_frac_sim  0.249
+    on_frac_rec  0.184
+    abovemin_sim 0.017
+    abovemin_rec 0.038
+    starts_sim   9.000
+    starts_rec   6.000
+    on_min_sim   47.708
+    on_min_rec   55.708
+    off_min_sim  102.237
+    off_min_rec  164.429
+    energy_pct (mean) +0.116
+
+  sim vs recorded (median):
+    on_frac    sim 0.249  rec 0.184
+    abovemin   sim 0.017  rec 0.038
+    starts     sim 9.000  rec 6.000
+    on_min     sim 47.708  rec 55.708
+    off_min    sim 102.237  rec 164.429
+  ```
+
+  Takeaway vs the 4-day hand-picked validation in docs/calibration.md:
+  kitchen RMSE/bias generalise well across the month (median 0.37 °C,
+  -0.02 bias — line up with the 0.34-0.40 °C the 4-day set showed).
+  Median energy_pct is ~0 but the mean is +12% and swings widely day to
+  day (-23% to +97%) — the mild-day over-prediction noted in
+  docs/calibration.md (unmodelled solar/internal gains making the sim's
+  unlit rooms call for more heat than the real house needed) shows up
+  across most of June, not just the two mild days originally checked.
+  Cycle texture also diverges: sim runs shorter/more frequent on-cycles
+  (median on_min 48 vs recorded 56) and shorter off-cycles (102 vs 164)
+  with more starts (9 vs 6) — a modulation/hysteresis difference to
+  watch when this scorecard is used to score controller tuning.
+
+  `git diff a5ffaad -- tests/fixtures analysis/replay_day.py sim` is
+  empty (0 lines): this branch touches only `analysis/scorecard.py` and
+  this task file. `git diff master -- ...` is nonzero only because
+  master advanced past this branch's base (a5ffaad) with an unrelated
+  commit, 8633ef7 "Refit bedroom measured-air leads in closed loop",
+  touching `sim/` — not anything from this task.
+
+  Status: review.
