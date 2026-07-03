@@ -108,6 +108,18 @@ main output — the baseline the tuning phase will be scored against).
   days, energy up to +86%). Next calibration target: daytime
   solar/internal gains, incl. revisiting kitchen's clamped-to-zero solar
   term.
+- 2026-07-03 (after task 011 + hour-angle fix, commit 229c006): full
+  scorecard re-run, the new standing baseline. Medians: kit_rmse 0.342,
+  kit_bias +0.023, rms_all 0.677 (was 1.057), energy_pct −0.253 median /
+  −0.241 mean (was ~0/+0.107 — sign flipped, see below), on_frac 0.165
+  vs 0.184, abovemin 0.002 vs 0.038, starts 5.5 vs 6.0 (was 9.5 vs 6.0),
+  on_min 54.2 vs 55.7, off_min 181.2 vs 164.4. Temperatures and cycle
+  texture are now well-matched June-wide; the remaining error is a
+  strikingly *uniform* −24% energy under-read: with room temps right,
+  the sim delivers ~1.3x too much heat per kWh. Candidates: the
+  efficiency-proxy level e (r²=0.28 fit) is too high, and/or unmodelled
+  electrical overheads (90-min min-power purge spikes, start blips —
+  visible as abovemin_rec 3.8% vs sim 0.2%). Next calibration target.
 - 2026-07-03: implemented `analysis/scorecard.py` (import-reuses
   `load_day`/`replay` from `analysis/replay_day.py`, unmodified). All
   existing tests pass (`uv run pytest`: 159 passed, 1 skipped, unchanged).
