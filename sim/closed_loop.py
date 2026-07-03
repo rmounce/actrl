@@ -227,6 +227,7 @@ class ClosedLoop:
             "p_kw": p_kw,
             "q_kw": q_kw,
             **{f"T_{r}": self.house.temps[r] for r in ROOMS},
+            **{f"damper_{r}": self._damper_positions()[r] for r in ROOMS},
         }
         self.history.append(row)
         return row
