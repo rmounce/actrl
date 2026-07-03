@@ -68,10 +68,29 @@ def build_loop(day: pd.DataFrame) -> ClosedLoop:
     return ClosedLoop(world, temps, setpoint=setpoint)
 
 
+def feels_like_offsets(day: pd.DataFrame) -> dict[str, np.ndarray]:
+    """Per-room (feels_like - average_temperature) offset per minute.
+
+    Production actrl actuates on the apparent temperature
+    (packages/aircon.yaml): feels_like = T + 0.33*wvp - 4.0, with
+    wvp = RH/100 * 6.105 * exp(17.27*T/(237.7+T)). The offset is computed
+    from the *recorded* temp+humidity — vapour pressure is treated as
+    exogenous (the sim doesn't model moisture), so the sim's controller
+    sees T_sim + offset. Typically ~ -0.4..-0.5 K at winter indoor RH."""
+    out = {}
+    for r in ROOMS:
+        t = day[f"{r}_average_temperature"].astype(float).ffill()
+        rh = day[f"{r}_average_humidity"].astype(float).ffill()
+        wvp = rh / 100.0 * 6.105 * np.exp(17.27 * t / (237.7 + t))
+        out[r] = (0.33 * wvp - 4.0).fillna(0.0).values
+    return out
+
+
 def replay(day: pd.DataFrame) -> pd.DataFrame:
     loop = build_loop(day)
     tout = day["temperature_adelaide"].ffill().values
     pv = (day["power_pv_5m"].fillna(0).clip(lower=0) / 1000.0).values
+    offsets = feels_like_offsets(day)
     sp = day["climate.m5atom_climate.temperature"].ffill().values
     lows = {r: day[f"climate.{r}_aircon.target_temp_low"].ffill().values for r in ROOMS}
     highs = {r: day[f"climate.{r}_aircon.target_temp_high"].ffill().values for r in ROOMS}
@@ -91,7 +110,14 @@ def replay(day: pd.DataFrame) -> pd.DataFrame:
                 for r in ROOMS
             },
         }
-        rows.append(loop.step(t_out=float(tout[m]), updates=updates, pv_kw=float(pv[m])))
+        rows.append(
+            loop.step(
+                t_out=float(tout[m]),
+                updates=updates,
+                pv_kw=float(pv[m]),
+                ctrl_offsets={r: float(offsets[r][m]) for r in ROOMS},
+            )
+        )
     loop.close()
 
     sim = pd.DataFrame(rows[CYCLES_PER_MIN - 1 :: CYCLES_PER_MIN], index=day.index)

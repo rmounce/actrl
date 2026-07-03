@@ -77,6 +77,14 @@ def _build_column_specs() -> dict[tuple[str, str, str], tuple[str, str]]:
     for entity in _M5ATOM_TEMPS:
         specs[("sensor__temperature", entity, "value")] = (entity, "temperature")
 
+    # Per-room humidity: continuous averaged signal like the room temps
+    # (same sensors), so it shares the temperature resampling rule. Needed
+    # to reconstruct feels_like = T + 0.33*wvp - 4.0 (packages/aircon.yaml),
+    # the signal production actrl actually actuates on.
+    for room in _ROOM_TEMPS:
+        entity = f"{room}_average_humidity"
+        specs[("sensor__humidity", entity, "value")] = (entity, "temperature")
+
     for room in _DAMPERS:
         specs[("cover__damper", room, "current_position")] = (f"damper.{room}", "state")
 

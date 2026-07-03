@@ -16,6 +16,17 @@
     ]
   },
 
+  "sensor__humidity": {
+    "rp": "rp_raw",
+    "entities": [
+      "bed_1_average_humidity",
+      "bed_2_average_humidity",
+      "bed_3_average_humidity",
+      "kitchen_average_humidity",
+      "study_average_humidity"
+    ]
+  },
+
   "cover__damper": {
     "rp": "rp_raw",
     "entities": ["bed_1", "bed_2", "bed_3", "kitchen", "study"]

@@ -96,6 +96,15 @@ class ClosedLoop:
         # frost accumulation is a slower, independent process.
         self._defrost = Defrost(self.hvac.params)
         self.cycle = -1
+        # Controller-input offsets: production actrl actuates on per-room
+        # "feels like" (apparent temperature, packages/aircon.yaml: T +
+        # 0.33*wvp - 4.0), not raw average_temperature — and the recorded
+        # room targets are in feels-like units too. The house model
+        # simulates physical temperature; this per-room additive offset
+        # (typically ~ -0.4..-0.5 K at winter indoor humidity) converts it
+        # to what the controller sees. Set via step(ctrl_offsets=...);
+        # empty (the default) reproduces the raw-temperature behaviour.
+        self._ctrl_offsets: dict[str, float] = {}
         # Telemetry: one row per cycle.
         self.history: list[dict] = []
 
@@ -105,7 +114,7 @@ class ClosedLoop:
 
     def _write_room_temps(self):
         for room in ROOMS:
-            t = self.house.temps[room]
+            t = self.house.temps[room] + self._ctrl_offsets.get(room, 0.0)
             self.world.update(
                 f"sensor.{room}_average_temperature", {"state": f"{t:.2f}"}
             )
@@ -137,13 +146,21 @@ class ClosedLoop:
         }
 
     def step(
-        self, t_out: float, updates: dict | None = None, pv_kw: float = 0.0
+        self,
+        t_out: float,
+        updates: dict | None = None,
+        pv_kw: float = 0.0,
+        ctrl_offsets: dict[str, float] | None = None,
     ) -> dict:
         """Advance one 10 s cycle. `updates` = extra world-entity updates
         applied before actrl runs (setpoint changes etc.); `pv_kw` = PV
-        irradiance proxy for the house solar-gain term."""
+        irradiance proxy for the house solar-gain term; `ctrl_offsets` =
+        per-room feels-like minus physical-temperature offsets applied to
+        what the controller reads (see __init__)."""
         self.cycle += 1
         self.world.cycle = self.cycle
+        if ctrl_offsets is not None:
+            self._ctrl_offsets = ctrl_offsets
         self._write_room_temps()
         for eid, entry in (updates or {}).items():
             self.world.update(eid, entry)
