@@ -77,6 +77,7 @@ def sun_position(index: pd.DatetimeIndex) -> tuple[np.ndarray, np.ndarray]:
     )
     tst = frac_h * 60.0 + eqtime + 4.0 * LON  # true solar time [min]
     ha = np.deg2rad(tst / 4.0 - 180.0)  # hour angle
+    ha = (ha + np.pi) % (2 * np.pi) - np.pi  # wrap to (-pi, pi]
     lat = np.deg2rad(LAT)
     sin_elev = np.sin(lat) * np.sin(decl) + np.cos(lat) * np.cos(decl) * np.cos(ha)
     elev = np.arcsin(np.clip(sin_elev, -1, 1))
