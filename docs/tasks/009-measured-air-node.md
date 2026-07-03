@@ -1,6 +1,6 @@
 # 009: Measured-air lead node — fast sensor dynamics per room
 
-Status: ready
+Status: review
 Branch: task/009-measured-air-node
 
 ## Background (read first)
@@ -106,3 +106,37 @@ git diff master -- tests/fixtures | wc -l    # expect 0
 ## Log
 
 - 2026-07-03: spec written (Claude Fable), status ready.
+- 2026-07-03: implemented (Claude Fable).
+  - `sim/house.py`: added `RoomParams.tau_meas_h`/`lead_h` (default 0.0),
+    `HouseParams.min_tau_meas()`, extended `max_stable_dt_h` to fold in the
+    measured-node tau/2 threshold when any room has it enabled, added
+    `House.temps_measured` state (initialised == `temps`) and the layered
+    `Tm` Euler update in `step()` per the spec's exact ODE (no feedback into
+    the bulk state).
+  - `sim/closed_loop.py`: `_write_room_temps` now presents
+    `house.temps_measured[room] + ctrl_offset`; telemetry rows gain
+    `Tm_{room}` columns alongside `T_{room}`.
+  - `analysis/replay_day.py`: per-room RMSE/bias now compares recorded
+    `{room}_average_temperature` against `Tm_{room}`; CSV output keeps both
+    `T_{room}` and `Tm_{room}` column sets (verified via `--out`).
+  - `tests/test_house.py`: added the four spec'd tests (disabled-passthrough,
+    steady-state offset, post-stop exponential decay, stability-guard
+    extension). The steady-state/decay tests needed tau_out chosen >>
+    tau_meas_h and a long (8*tau_out) warm-up so the bulk state is genuinely
+    at its own fixed point before checking the node's textbook relations —
+    otherwise the node chases a still-moving bulk target and the 1%
+    tolerance isn't meaningful; the decay test also needed lead_h >>
+    tau_meas_h to keep the (tau_meas_h * q) bulk-derivative-jump
+    contamination (from q instantaneously dropping to 0) under 1% of the
+    signal. See test docstrings/comments for the derivation.
+  - Acceptance runs: `uv run pytest` → 159 passed, 1 skipped (same skip as
+    baseline; +4 net new tests vs the pre-task 155 passed). `python3 -c
+    "import sim.house"` → OK (stdlib only). Regression gate: captured
+    master (a8c1fae) baseline output of
+    `analysis/replay_day.py --date 2026-06-22 --parquet
+    /home/saltspork/actrl/data/processed/june.parquet` before any changes,
+    re-ran after — `diff` against the baseline is empty (bit-identical: all
+    per-room RMSE/bias, energy %, on-fractions match exactly), confirming
+    the disabled defaults are an exact no-op. `git diff master --
+    tests/fixtures | wc -l` → 0 (no golden fixtures touched).
+  - No deviations from the spec. Status → review.

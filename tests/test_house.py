@@ -133,3 +133,128 @@ def test_missing_room_in_initial_temps_raises():
     incomplete = {room: 20.0 for room in ROOMS if room != "study"}
     with pytest.raises(ValueError):
         House(params, incomplete, dt_s=10)
+
+
+# --- Measured-air lead node (docs/tasks/009-measured-air-node.md) ---------
+
+
+def _symmetric_params_meas(
+    tau_out: float, tau_cpl: float, gain: float, tau_meas_h: float = 0.0, lead_h: float = 0.0
+) -> HouseParams:
+    """Like _symmetric_params, with the measured-node fields exposed."""
+    return HouseParams(
+        rooms={
+            room: RoomParams(
+                tau_out=tau_out, tau_cpl=tau_cpl, gain=gain, tau_meas_h=tau_meas_h, lead_h=lead_h
+            )
+            for room in ROOMS
+        }
+    )
+
+
+def test_disabled_measured_node_is_exact_passthrough():
+    """tau_meas_h == 0.0 (the default) disables the node: temps_measured
+    must equal temps exactly (bit-identical), even under many mixed steps
+    with nonzero, time-varying q."""
+    params = HouseParams()  # default calibration.md params, tau_meas_h=0.0 everywhere
+    house = House(params, {room: 20.0 for room in ROOMS}, dt_s=10)
+
+    for i in range(500):
+        q = {room: 0.05 * ((i + hash(room)) % 7 - 3) for room in ROOMS}  # varying, some negative
+        t_out = 5.0 + (i % 11)
+        pv = 0.3 if i % 4 == 0 else 0.0
+        house.step(t_out=t_out, q=q, dt_s=10, pv_kw=pv)
+        assert house.temps_measured == house.temps
+
+
+def test_measured_node_steady_state_offset():
+    """Constant q, enabled node: Tm - T converges to lead_h * q within 1%
+    once both the (much faster) measured node and the bulk state have
+    settled. tau_meas_h is chosen much shorter than tau_out so "T" itself
+    is genuinely at its own fixed point (dT/dt == 0) by the time we check
+    the offset -- otherwise Tm is chasing a still-moving target and never
+    reaches the textbook Tm - T == lead_h * q relation."""
+    tau_meas_h = 0.1  # hours (6 min) -- short so the test runs fast
+    tau_out = 20.0  # hours -- >> tau_meas_h, so it's the binding settling time
+    lead_h = 2.0
+    q_val = 0.5  # K/h
+    t_out = 10.0
+    params = _symmetric_params_meas(
+        tau_out=tau_out, tau_cpl=8.0, gain=0.0, tau_meas_h=tau_meas_h, lead_h=lead_h
+    )
+    house = House(params, {room: 18.0 for room in ROOMS}, dt_s=10)
+
+    q = {room: q_val for room in ROOMS}
+    steps = round(8 * tau_out * 3600 / 10)  # 8 bulk time constants -- settles both states
+    for _ in range(steps):
+        house.step(t_out=t_out, q=q, dt_s=10)
+
+    expected_offset = lead_h * q_val
+    for room in ROOMS:
+        offset = house.temps_measured[room] - house.temps[room]
+        assert offset == pytest.approx(expected_offset, rel=0.01)
+
+
+def test_measured_node_decays_exponentially_after_stop():
+    """After q returns to 0, (Tm - T) decays toward 0 as
+    exp(-t/tau_meas_h), matched within 1% over a 2-tau window.
+
+    tau_out is chosen much longer than tau_meas_h so the bulk state is
+    essentially static over the short (2 * tau_meas_h) decay window -- the
+    node's own decay dominates, isolating exp(-t/tau_meas_h) from the
+    bulk's own (much slower) relaxation."""
+    tau_meas_h = 0.1  # hours
+    tau_out = 20.0  # hours -- >> tau_meas_h, keeps T ~static during the decay window
+    # lead_h large relative to q_val*tau_meas_h: switching q off perturbs
+    # the bulk's own derivative by -q_val instantly (a*(t_out-T) alone,
+    # independent of tau_out), which leaks a ~q_val*tau_meas_h contaminant
+    # into (Tm - T)'s decay. Keeping lead_h*q_val >> q_val*tau_meas_h (i.e.
+    # lead_h >> tau_meas_h) makes that leak << 1% of the signal so the
+    # decay reads as the clean single exponential the node's own ODE
+    # predicts in isolation.
+    lead_h = 50.0
+    q_val = 0.5
+    t_out = 10.0
+    dt_s = 10.0
+    params = _symmetric_params_meas(
+        tau_out=tau_out, tau_cpl=8.0, gain=0.0, tau_meas_h=tau_meas_h, lead_h=lead_h
+    )
+    house = House(params, {room: 18.0 for room in ROOMS}, dt_s=dt_s)
+
+    q_on = {room: q_val for room in ROOMS}
+    # Run to (near) full steady state first (bulk + node) so the decay
+    # starts from a known, settled offset.
+    for _ in range(round(8 * tau_out * 3600 / dt_s)):
+        house.step(t_out=t_out, q=q_on, dt_s=dt_s)
+
+    start_offset = {room: house.temps_measured[room] - house.temps[room] for room in ROOMS}
+
+    q_off = {room: 0.0 for room in ROOMS}
+    hours_elapsed = 0.0
+    for _ in range(round(2 * tau_meas_h * 3600 / dt_s)):
+        house.step(t_out=t_out, q=q_off, dt_s=dt_s)
+        hours_elapsed += dt_s / 3600.0
+        for room in ROOMS:
+            expected_offset = start_offset[room] * math.exp(-hours_elapsed / tau_meas_h)
+            actual_offset = house.temps_measured[room] - house.temps[room]
+            assert actual_offset == pytest.approx(expected_offset, abs=0.01 * abs(start_offset[room]))
+
+
+def test_measured_node_stability_guard_rejects_excessive_dt():
+    """The Euler stability guard is extended to reject dt_h > tau_meas_h/2
+    when the measured node is enabled, even if the bulk tau_out/tau_cpl
+    would otherwise allow a larger step."""
+    tau_meas_h = 0.01  # hours (36 s) -- deliberately tiny to trigger the guard
+    params = _symmetric_params_meas(
+        tau_out=500.0, tau_cpl=500.0, gain=0.0, tau_meas_h=tau_meas_h, lead_h=1.0
+    )
+    limit_h = max_stable_dt_h(params)
+    assert limit_h == pytest.approx(tau_meas_h / 2.0)  # measured node is the binding constraint
+
+    too_big_dt_s = (limit_h + 0.001) * 3600
+    with pytest.raises(ValueError):
+        House(params, {room: 20.0 for room in ROOMS}, dt_s=too_big_dt_s)
+
+    ok_dt_s = (limit_h * 0.5) * 3600
+    house = House(params, {room: 20.0 for room in ROOMS}, dt_s=ok_dt_s)
+    house.step(t_out=15.0, dt_s=ok_dt_s)  # should not raise
