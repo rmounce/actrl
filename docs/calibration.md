@@ -210,12 +210,21 @@ construction per room. Two things it settled:
   wall + glazing area, which the report also details per room). All
   external walls are the same R2.5 insulation, so envelope differences
   between rooms are down to area, not insulation quality.
-- **bed_2's weak solar-gain fit isn't a missing-window issue**: it has an
-  NE window (2.0×1.5 m, low-e, SHGC 0.45) essentially identical to bed_3's
-  NE window (2.0×1.8 m, same glazing product/SHGC) — yet bed_3's solar fit
-  is 4x stronger (r²=0.45 vs 0.03). Unexplained by the building fabric;
-  likely blinds/curtains or occupancy behaviour, not something fittable
-  from this data.
+- **bed_2's weak solar-gain fit (r²=0.03 vs bed_3's 0.45) isn't a
+  missing-window issue**: it has an NE window (2.0×1.5 m, low-e, SHGC
+  0.45) essentially identical to bed_3's NE window (2.0×1.8 m, same
+  glazing product/SHGC). Ryan's leading explanation (2026-07-03): the
+  neighbouring party wall (bed_2's NW wall, and kitchen's — confirmed a
+  true party wall, unlike bed_1's/bed_3's genuinely-external NW walls)
+  extends past bed_2's frontage and may shade its NE window, especially
+  from the low winter sun the June fit was measured against — a taller/
+  forward obstruction blocks a low sun far more than a high one, and an
+  intermittently-shaded window regressed against a smooth PV proxy would
+  wash out to a weak, noisy fit rather than a moderately smaller one,
+  matching what's observed. Testable prediction: bed_2's solar
+  correlation should strengthen in summer (higher sun angle clears the
+  obstruction) — re-run `analysis/solar_fit.py` once summer data
+  accumulates (same export timer as the cooling-calibration work).
 
 `_room_q` (sim/closed_loop.py) conflated two different things under one
 weight: the *airflow* split (confirmed correct, duct-count based) and the
