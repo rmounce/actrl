@@ -179,3 +179,44 @@ def test_summarize_medians_nan_safe():
     assert summary["time_in_band"] == pytest.approx(0.9)
     # nanmedian over [10.0, 30.0] (NaN excluded) = 20.0
     assert summary["rise_time_med"] == pytest.approx(20.0)
+
+
+def test_statctrl_style_ramp_merges_to_one_event():
+    # statctrl ramps +0.1 K every 3 minutes (non-consecutive rise minutes):
+    # 16.0 -> 16.6 over 6 rises starting at minute 30. One event, targeting
+    # the final 16.6, anchored at the first rise minute.
+    n = 240
+    df = _frame(n, low=16.0, high=24.0, feels=15.0)
+    low = df["low_a"].to_numpy().copy()
+    for k in range(6):
+        low[30 + 3 * k :] = 16.0 + 0.1 * (k + 1)
+    df["low_a"] = low
+    feels = df["feels_a"].to_numpy().copy()
+    feels[90:] = 16.7  # reaches the 16.6 target at minute 90
+    df["feels_a"] = feels
+
+    scores = score_day(df, rooms=ROOMS)
+    assert scores["rise_events"] == 1
+    assert scores["rise_events_unmet"] == 0
+    assert scores["rise_time_med"] == pytest.approx(60.0)  # minute 30 -> 90
+
+
+def test_overshoot_rise_max_measures_peak_above_event_target():
+    # Step 18 -> 19 at minute 10; feels reaches 19 at minute 40, peaks at
+    # 19.8 at minute 60, sags back. overshoot_rise_max = 0.8 even though
+    # the band high (22) is never crossed (overshoot_max stays 0).
+    n = 240
+    df = _frame(n, low=18.0, high=22.0, feels=18.5)
+    low = df["low_a"].to_numpy().copy()
+    low[10:] = 19.0
+    df["low_a"] = low
+    feels = df["feels_a"].to_numpy().copy()
+    feels[:40] = 18.5
+    feels[40:60] = np.linspace(19.0, 19.8, 20)
+    feels[60:] = 19.2
+    df["feels_a"] = feels
+
+    scores = score_day(df, rooms=ROOMS)
+    assert scores["rise_events"] == 1
+    assert scores["overshoot_rise_max"] == pytest.approx(0.8)
+    assert scores["overshoot_max"] == pytest.approx(0.0)

@@ -21,6 +21,12 @@ import pandas as pd
 DEFAULT_ROOMS = ("bed_1", "bed_2", "bed_3", "study", "kitchen")
 
 RISE_STEP_K = 0.3  # minimum net low-band increase to count as a rise event
+# statctrl ramps schedule changes +0.1 K every ~3 min rather than stepping,
+# so rise minutes within this gap of each other merge into one event.
+RISE_GAP_MIN = 15
+# after a rise event first reaches its target, look this far ahead for the
+# overshoot peak above the stepped-to low.
+OVERSHOOT_WINDOW_MIN = 120
 OSC_PROMINENCE_K = 0.15  # oscillation-scan prominence threshold (analysis/oscillation_scan.py)
 OSC_SMOOTH_WIN = 3  # minutes, moving-average window before extrema counting
 
@@ -58,32 +64,32 @@ def _extrema_count(values: np.ndarray, min_prominence: float) -> int:
 def _rise_events(low: np.ndarray, feels: np.ndarray) -> list[tuple[int, float]]:
     """(event_start_minute, target_low) pairs for room-r rise events.
 
-    A rise event is a maximal run of consecutive strictly-increasing `low`
-    minutes (a schedule step-up, possibly ramped over several minutes)
-    whose net rise (last value in the run minus the value immediately
-    before the run) is >= RISE_STEP_K, and where the room hadn't already
-    reached the new target when the run started (`feels` at the run's
-    first minute is below the run's final, stepped-to value). The event is
-    anchored at the run's first minute and targets the run's final value
-    (the low once it stops rising) -- this is what merges a multi-minute
-    ramp into a single event instead of one event per minute.
+    A rise event is a group of low-band increases whose members are within
+    RISE_GAP_MIN minutes of each other (statctrl ramps schedule changes
+    +0.1 K every ~3 min rather than stepping, so a morning warmup is many
+    small non-consecutive rises -- gap-tolerant grouping merges them into
+    one event; a single >= RISE_STEP_K step is the degenerate one-member
+    group). The event counts when its net rise (low after the group's last
+    rise minus low just before its first) is >= RISE_STEP_K and the room
+    hadn't already reached the final target when the group started
+    (`feels` at the first rise minute is below the stepped-to value). The
+    event is anchored at the group's first rise minute and targets the
+    group's final value.
     """
     n = len(low)
+    rise_idx = [i for i in range(1, n) if low[i] > low[i - 1]]
     events: list[tuple[int, float]] = []
-    i = 1
-    while i < n:
-        if low[i] > low[i - 1]:
-            run_start = i
-            before = low[i - 1]
-            j = i
-            while j + 1 < n and low[j + 1] > low[j]:
-                j += 1
-            target = low[j]
-            if target - before >= RISE_STEP_K and feels[run_start] < target:
-                events.append((run_start, float(target)))
-            i = j + 1
-        else:
-            i += 1
+    k = 0
+    while k < len(rise_idx):
+        j = k
+        while j + 1 < len(rise_idx) and rise_idx[j + 1] - rise_idx[j] <= RISE_GAP_MIN:
+            j += 1
+        start = rise_idx[k]
+        before = low[start - 1]
+        target = low[rise_idx[j]]
+        if target - before >= RISE_STEP_K and feels[start] < target:
+            events.append((start, float(target)))
+        k = j + 1
     return events
 
 
@@ -112,7 +118,13 @@ def score_day(df: pd.DataFrame, rooms=DEFAULT_ROOMS) -> dict:
       rise_events_unmet. rise_events counts every detected event
       (met + unmet).
     - overshoot_max: max over rooms/minutes of (feels - high) clipped >= 0,
-      the day's single worst hard overshoot [K].
+      the day's single worst hard overshoot [K]. In heating season the
+      heat_cool band is wide, so this is usually 0 -- the tuning-relevant
+      number is overshoot_rise_max.
+    - overshoot_rise_max: max over met rise events of the peak
+      (feels - event target) within OVERSHOOT_WINDOW_MIN minutes of first
+      reaching the target [K] -- how far the room shoots past a schedule
+      step-up before settling. 0.0 when there are no met events.
     - osc_per_h: oscillation count of the kitchen feels-like trace,
       restricted to unit-on minutes (p_kw > 0), after a 3-minute moving
       average, normalised per running hour (0 when there are no running
@@ -128,6 +140,7 @@ def score_day(df: pd.DataFrame, rooms=DEFAULT_ROOMS) -> dict:
     rise_events_total = 0
     rise_events_unmet = 0
     overshoot_max = 0.0
+    overshoot_rise_max = 0.0
 
     for r in rooms:
         feels = df[f"feels_{r}"].to_numpy(dtype=float)
@@ -151,6 +164,11 @@ def score_day(df: pd.DataFrame, rooms=DEFAULT_ROOMS) -> dict:
                 rise_events_unmet += 1
             else:
                 all_rise_times.append(rt)
+                reach = start + int(rt)
+                window = feels[reach : reach + OVERSHOOT_WINDOW_MIN]
+                overshoot_rise_max = max(
+                    overshoot_rise_max, float(np.max(window - target))
+                )
 
     on = df["p_kw"].to_numpy(dtype=float) > 0
     # osc_per_h is specifically the kitchen trace (the room with the
@@ -182,6 +200,7 @@ def score_day(df: pd.DataFrame, rooms=DEFAULT_ROOMS) -> dict:
         "rise_time_med": float(np.median(all_rise_times)) if all_rise_times else float("nan"),
         "rise_events_unmet": int(rise_events_unmet),
         "overshoot_max": float(overshoot_max),
+        "overshoot_rise_max": float(overshoot_rise_max),
         "osc_per_h": float(osc_per_h),
         "energy_kwh": float(np.sum(p_kw) / 60.0),
         "starts": starts,
