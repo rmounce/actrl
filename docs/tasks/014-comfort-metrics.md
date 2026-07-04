@@ -1,7 +1,7 @@
 # Task 014: Comfort metrics + controller-config override layer (tuning phase 1)
 
 ## Status
-review
+done
 
 Branch: task/014-comfort-metrics
 
