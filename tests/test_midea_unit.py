@@ -44,9 +44,12 @@ def test_ordinary_step_changes_speed_by_delta():
     assert u.comp_speed == 1
     u.step(SETPOINT + 1)  # no change -> no step
     assert u.comp_speed == 1
-    u.step(SETPOINT + 0)  # -1 change -> -1 speed
+    # Task 013: a report exactly at setpoint (SETPOINT + 0) now holds
+    # regardless of delta, so use a nonzero error to keep testing ordinary
+    # delta-stepping (still sign-capped: -2 change -> -1 speed).
+    u.step(SETPOINT - 1)  # -2 change -> -1 speed
     assert u.comp_speed == 0
-    u.step(SETPOINT + 1)  # +1 change -> +1 speed
+    u.step(SETPOINT + 1)  # +2 change -> +1 speed
     assert u.comp_speed == 1
 
 
@@ -57,6 +60,47 @@ def test_ordinary_step_caps_at_one_regardless_of_jump_magnitude():
     u.step(SETPOINT + 5)  # a big single-cycle jump
     assert u.comp_speed == 1
     assert u.ramp_up_flag is False
+
+
+def test_step_down_sequence_nets_minus_one():
+    """Task 013: actrl's crafted step-down sequence (`[-1, -2, +1, 0]`
+    offsets from stable, i.e. reported errors `[0, -1, 2, 1]`) nets -1 under
+    sign-of-delta stepping plus the at-setpoint-holds rule, matching
+    `guesstimated_comp_speed`'s dead-reckoning of the same sequence
+    (previously netted -2 before this task, doubling the emulated taper
+    rate in closed-loop replay)."""
+    u = MideaUnit(setpoint=SETPOINT)
+    # Prime directly to "stable" (comp_speed 8, prev_reported_error 1)
+    # rather than via a warm-up step, to make the starting state explicit.
+    u.comp_speed = 8
+    u._prev_reported_error = 1
+    for rval in (0, -1, 2, 1):
+        u.step(SETPOINT + rval)
+    assert u.comp_speed == 7
+
+
+def test_step_up_sequence_nets_plus_one():
+    """Mirror-image of test_step_down_sequence_nets_minus_one: the step-up
+    sequence (`[+1, +2, 0]` offsets from stable, i.e. reported errors
+    `[2, 3, 1]`) nets +1, unchanged by the at-setpoint-holds rule (none of
+    its reports are exactly at setpoint)."""
+    u = MideaUnit(setpoint=SETPOINT)
+    u.comp_speed = 8
+    u._prev_reported_error = 1
+    for rval in (2, 3, 1):
+        u.step(SETPOINT + rval)
+    assert u.comp_speed == 9
+
+
+def test_at_setpoint_report_holds_speed():
+    """Task 013: a report exactly at setpoint holds compressor speed (no
+    ordinary step), regardless of the preceding delta -- the old rule would
+    have stepped -1 here (delta 0 - 1 = -1)."""
+    u = MideaUnit(setpoint=SETPOINT)
+    u.comp_speed = 5
+    u._prev_reported_error = 1
+    u.step(SETPOINT)  # reported_error == 0 -> hold
+    assert u.comp_speed == 5
 
 
 def test_ramp_up_flag_latches_and_ignores_holds():
