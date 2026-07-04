@@ -152,6 +152,17 @@ main output — the baseline the tuning phase will be scored against).
   Remaining residuals: mild-day energy ~-30% (run-decision degeneracy);
   sim taper still ends ~30 min early on 06-22 (plant-side, rooms warm
   slightly faster through the descent).
+- 2026-07-04 NEGATIVE RESULT (do not re-chase): hypothesis that the
+  early taper end came from e(P) overcrediting heat at low power was
+  tested by pivoting the e slope at 1.8 kW (b in {-0.04, 0, +0.04,
+  +0.08} vs current -0.081) over 06-22/06-21/06-30/06-09 closed-loop.
+  Rejected: 06-30 (overcast low-speed control day) energy blew out
+  +3% -> +14..+28% with the morning run stretching 08:00 -> ~10:50 at
+  every rotation, while the taper days' morning end barely moved
+  (09:12 -> ~09:10) — so min-power heat is NOT globally overestimated,
+  and the 06-22 late-morning "sim warms at min power where real house
+  held flat" signature is most likely a day-specific unmodelled loss
+  (school-morning occupancy/ventilation). Params left unchanged.
 - 2026-07-03: implemented `analysis/scorecard.py` (import-reuses
   `load_day`/`replay` from `analysis/replay_day.py`, unmodified). All
   existing tests pass (`uv run pytest`: 159 passed, 1 skipped, unchanged).
