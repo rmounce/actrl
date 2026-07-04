@@ -1,7 +1,7 @@
 # Task 012: Clearable ramp-up latch + slow latched climb in MideaUnit
 
 ## Status
-Spec ready for implementation.
+done
 
 ## Background
 
@@ -107,4 +107,33 @@ attempt it.
 
 ## Log
 
-(implementer: append a short completion note here — what changed, test results)
+- 2026-07-04 (implementer): Implemented as specced in `sim/midea_unit.py`:
+  added `ramp_up_period_cycles` (default 18) constructor param + internal
+  `_ramp_up_period_counter`; added a clear rule at the top of `step()` that
+  drops `ramp_up_flag` and the debounce streak/counter when
+  `reported_error <= ramp_down_set_threshold`; while latched, the ordinary
+  delta-stepping rule now runs on every cycle except the one every
+  `ramp_up_period_cycles` where the latch climb (`ramp_flag_rate`) fires
+  instead. Rewrote Assumptions table row 3 with the new choice + sources.
+  Updated `docs/actrl.md`'s ramp-up bullet to describe the clear-on-decrement
+  + slow-climb behaviour.
+  Tests: replaced `test_ramp_up_flag_latches_and_never_clears` with
+  `test_ramp_up_flag_latches_and_ignores_holds` and
+  `test_ramp_up_flag_clears_on_decrement_demand`; added
+  `test_latched_climb_rate_is_slow`. Also had to adjust two pre-existing
+  tests whose numbers assumed the old fast (every-cycle) latched climb:
+  `test_speed_bounds_0_and_max` (increased the iteration count so the
+  latch has enough cycles to actually reach max_speed under the new slow
+  climb) and `test_ramp_up_flag_clears_on_decrement_demand`'s setup (now
+  builds speed up via non-latching bursts first, like the neighbouring
+  ramp-down test, so there is meaningful speed for the post-clear
+  decrement to reduce — the original ordering left speed at 0 both before
+  and after the clear, making the "speed can now reduce" assertion
+  vacuously true/false). `test_ramp_down_flag_ramps_speed_toward_zero_regardless_of_reports`
+  needed no changes (confirmed the new clear rule doesn't interact: +2
+  never hits the ramp-down clear threshold).
+  Results: `uv run pytest tests/test_midea_unit.py -q` → 23 passed.
+  `uv run pytest -q` → 166 passed, 1 skipped (full suite, golden fixtures
+  untouched, `test_closed_loop_tracking` passed without modification).
+  `git diff --stat` against base 9dac191 touches only sim/midea_unit.py,
+  tests/test_midea_unit.py, docs/actrl.md, and this spec file's Log/Status.

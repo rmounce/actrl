@@ -98,7 +98,12 @@ The Midea controller, fed follow-me temperatures, behaves like a stepper:
 
 - Each 1 °C change of reported error steps compressor speed by ±1 increment
   (~14 increments to saturation).
-- `reported >= setpoint + 2` sets a **ramp-up flag** (unknown how to clear).
+- `reported >= setpoint + 2` sets a **ramp-up flag**. Closed-loop replay
+  against recorded data (2026-06-22 06:20–09:20 taper, 2026-07-04) shows it
+  clears on a decrement-demand report (`reported <= setpoint − 1`, i.e. the
+  step-down sequence's leading elements) — the real unit follows a
+  step-down sequence back down instead of redlining forever. The latched
+  climb itself is slow, ~1 increment per 3–6 min (not every 10 s cycle).
 - `reported <= setpoint − 1` sets a **ramp-down flag**; `>= +1` clears it.
 - Step sequences are crafted to end with no flags set:
   step up = `[+1, +2, 0]`, step down = `[−1, −2, +1, 0]` (offsets from
