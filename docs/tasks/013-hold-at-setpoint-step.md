@@ -1,7 +1,7 @@
 # Task 013: Hold-at-setpoint stepping rule in MideaUnit
 
 ## Status
-Spec ready for implementation.
+done
 
 ## Background
 
@@ -102,4 +102,23 @@ attempt it.
 
 ## Log
 
-(implementer: append a short completion note here — what changed, test results)
+- 2026-07-04 (implementer): Added the at-setpoint-holds rule to the ordinary
+  delta-stepping branch in `sim/midea_unit.py` `step()` — when
+  `reported_error == 0` the ordinary step is skipped (comp_speed held);
+  `_prev_reported_error` still updates every cycle as before. Rewrote
+  Assumption 1's "Choice made" cell to document the combined rule and cite
+  the -1 net (was -2) for the crafted step-down sequence. Added
+  `test_step_down_sequence_nets_minus_one`, `test_step_up_sequence_nets_plus_one`,
+  and `test_at_setpoint_report_holds_speed` to `tests/test_midea_unit.py`;
+  adjusted `test_ordinary_step_changes_speed_by_delta` to use a nonzero
+  error (SETPOINT - 1) instead of an at-setpoint report so it still tests
+  ordinary sign-capped delta-stepping. `test_ordinary_step_caps_at_one_...`
+  needed no change (never fed an at-setpoint report). Updated
+  `docs/actrl.md`'s capacity-control bullet with the at-setpoint-holds note.
+  `test_closed_loop_tracking` was not modified and passed unchanged (8/8
+  fixtures). Results: `uv run pytest tests/test_midea_unit.py -q` — 26
+  passed; `uv run pytest -q` — 169 passed, 1 skipped (pre-existing skip,
+  unrelated). `git diff --stat` against base commit
+  40b469e370fd276da1726187a6e389ad423399c6 touches only sim/midea_unit.py,
+  tests/test_midea_unit.py, docs/actrl.md, and this spec file. No
+  deviations from spec.

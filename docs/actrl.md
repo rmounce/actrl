@@ -97,7 +97,10 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
 The Midea controller, fed follow-me temperatures, behaves like a stepper:
 
 - Each 1 °C change of reported error steps compressor speed by ±1 increment
-  (~14 increments to saturation).
+  (~14 increments to saturation). A report exactly at setpoint holds speed
+  (no step): this is what makes the step-down sequence net −1 rather than
+  −2 (observed via closed-loop replay vs the 2026-06-22 recorded taper,
+  2026-07-04).
 - `reported >= setpoint + 2` sets a **ramp-up flag**. Closed-loop replay
   against recorded data (2026-06-22 06:20–09:20 taper, 2026-07-04) shows it
   clears on a decrement-demand report (`reported <= setpoint − 1`, i.e. the
