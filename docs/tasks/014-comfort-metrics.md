@@ -1,7 +1,9 @@
 # Task 014: Comfort metrics + controller-config override layer (tuning phase 1)
 
 ## Status
-Spec ready for implementation.
+review
+
+Branch: task/014-comfort-metrics
 
 ## Background
 
@@ -142,4 +144,31 @@ CLI: `uv run python analysis/tune.py --days 2026-06-21,2026-06-22,...
 
 ## Log
 
-(implementer: append a short completion note here — what changed, test results)
+- 2026-07-04 (implementer): Added `analysis/comfort.py` (`score_day`/
+  `summarize` pure metric functions: time_in_band, deg_min_below/above,
+  rise events with ramp-merging + unmet tracking, overshoot_max, kitchen
+  osc_per_h, energy_kwh, starts, abovemin_frac), `analysis/ctrl_overrides.py`
+  (setattr/restore context manager over `actrl`/`control` module globals,
+  typo-guarded, ValueError on unknown module prefix), and `analysis/tune.py`
+  (CLI gluing `--set` overrides + `replay_day.load_day/replay` +
+  `comfort.score_day` into a per-day table + summary, `--out` CSV with a
+  trailing median row). Added `tests/test_comfort.py` (17 synthetic-data
+  cases covering all metrics incl. the ramped-step-up merge and NaN-safe
+  summarize) and `tests/test_ctrl_overrides.py` (apply/restore incl. across
+  an exception, unknown-module ValueError, missing-attr AttributeError with
+  partial-restore, and int/float type preservation for both direct
+  ctrl_overrides values and `analysis.tune.parse_overrides`'s string
+  parsing).
+  - One implementation note not spelled out verbatim in the spec: `score_day`
+    treats a missing `feels_kitchen` column (possible when a test scores
+    fewer rooms than the full house) the same as "no running minutes" for
+    `osc_per_h` (returns 0.0) rather than raising -- real `tune.py` usage
+    always includes kitchen.
+  - Acceptance commands run: `uv run pytest tests/test_comfort.py
+    tests/test_ctrl_overrides.py -q` -> 17 passed; `uv run pytest -q` ->
+    186 passed, 1 skipped (pre-existing skip, unrelated to this task);
+    `uv run python -c "import analysis.tune"` -> clean, no output/errors,
+    no data access. `analysis/tune.py`'s real-data path (`--days` against
+    `data/processed/june.parquet`) was NOT exercised in this worktree (no
+    `data/` archive here, per spec) -- only smoke-tested via the import.
+  - Status: review.
