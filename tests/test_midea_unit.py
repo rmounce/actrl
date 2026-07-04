@@ -25,7 +25,10 @@ SETPOINT = 24
 
 def test_speed_bounds_0_and_max():
     u = MideaUnit(setpoint=SETPOINT, max_speed=5)
-    for _ in range(20):
+    # Task 012: the latched ramp-up climb is slow (1 increment per
+    # ramp_up_period_cycles), so give it enough cycles to actually reach
+    # max_speed via the latch rather than the old fast-climb cadence.
+    for _ in range(u.ramp_up_debounce_cycles + u.ramp_up_period_cycles * u.max_speed + 5):
         u.step(SETPOINT + 5)  # push far above max
     assert u.comp_speed == 5
 
@@ -56,24 +59,61 @@ def test_ordinary_step_caps_at_one_regardless_of_jump_magnitude():
     assert u.ramp_up_flag is False
 
 
-def test_ramp_up_flag_latches_and_never_clears():
+def test_ramp_up_flag_latches_and_ignores_holds():
+    """Task 012: once latched, reports that hold/step within actrl's
+    observed deep-demand band (0..+1) do not clear the flag, and speed never
+    decreases while latched -- it only climbs, at the slow latched rate."""
     u = MideaUnit(setpoint=SETPOINT, max_speed=14)
     # Sustain reported_error >= threshold for the full debounce window.
     for _ in range(u.ramp_up_debounce_cycles):
         u.step(SETPOINT + 2)
     assert u.ramp_up_flag is True
 
-    # Subsequent reports that would ordinarily bring speed down do not
-    # clear the flag or stop the ramp toward max.
-    speed_before = u.comp_speed
-    u.step(SETPOINT - 5)
+    u.step(SETPOINT + 1)  # transient step into the hold band
     assert u.ramp_up_flag is True
-    assert u.comp_speed >= speed_before  # still ramping up, not down
+    speed_at_hold_start = u.comp_speed
+    speed_before = speed_at_hold_start
 
-    for _ in range(50):
-        u.step(SETPOINT - 5)
-    assert u.comp_speed == u.max_speed
+    for _ in range(3 * u.ramp_up_period_cycles):
+        u.step(SETPOINT + 1)  # constant report -> ordinary delta is 0
+        assert u.ramp_up_flag is True
+        assert u.comp_speed >= speed_before
+        speed_before = u.comp_speed
+
+    # The slow latched climb still advances speed over this window even
+    # though ordinary delta-stepping contributed nothing (delta stayed 0).
+    assert u.comp_speed > speed_at_hold_start
+
+
+def test_ramp_up_flag_clears_on_decrement_demand():
+    """Task 012: recorded data (2026-06-22 taper) shows the real unit
+    follows a step-down sequence back down, so a single decrement-demand
+    report (<= ramp_down_set_threshold) clears the ramp-up latch."""
+    u = MideaUnit(setpoint=SETPOINT, max_speed=14)
+    # Build up some speed first via brief "burst" excursions (2, 3, 1 -- the
+    # same shape as control.py's crafted step-up sequence) that don't
+    # sustain 3 consecutive cycles above the ramp-up threshold, so the flag
+    # doesn't latch here -- mirrors test_ramp_down_flag_ramps_speed_toward_zero.
+    for _ in range(5):
+        u.step(SETPOINT + 2)
+        u.step(SETPOINT + 3)
+        u.step(SETPOINT + 1)
+    assert u.ramp_up_flag is False
+    assert u.comp_speed == 5
+
+    for _ in range(u.ramp_up_debounce_cycles):
+        u.step(SETPOINT + 2)
     assert u.ramp_up_flag is True
+    speed_before = u.comp_speed
+
+    u.step(SETPOINT - 1)  # decrement-demand report clears the latch
+    assert u.ramp_up_flag is False
+    assert u.comp_speed <= speed_before
+
+    speed_before2 = u.comp_speed
+    for _ in range(5):
+        u.step(SETPOINT - 5)
+    assert u.comp_speed < speed_before2  # ordinary stepping can reduce speed now
 
 
 def test_ramp_up_does_not_latch_on_transient_step_sequence_spike():
@@ -87,6 +127,22 @@ def test_ramp_up_does_not_latch_on_transient_step_sequence_spike():
         u.step(SETPOINT + 3)
         u.step(SETPOINT + 1)
     assert u.ramp_up_flag is False
+
+
+def test_latched_climb_rate_is_slow():
+    """Task 012: the latched ramp-up climb is ~1 increment per 3-6 min
+    observed (2026-06-22 taper), i.e. once per `ramp_up_period_cycles`
+    intervals, not once per 10 s interval."""
+    u = MideaUnit(setpoint=SETPOINT, max_speed=14)
+    for _ in range(u.ramp_up_debounce_cycles):
+        u.step(SETPOINT + 2)
+    assert u.ramp_up_flag is True
+    speed_after_latch = u.comp_speed  # near 0: debounce window only nets +1
+
+    for _ in range(2 * u.ramp_up_period_cycles):
+        u.step(SETPOINT + 2)  # constant report while latched -> delta 0
+
+    assert u.comp_speed == speed_after_latch + 2
 
 
 def test_ramp_down_flag_sets_and_clears():
