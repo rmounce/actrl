@@ -129,7 +129,7 @@ main output — the baseline the tuning phase will be scored against).
   degeneracy, not efficiency); sim on-runs ~20% longer / off-runs ~15%
   longer than recorded.
 - 2026-07-04 (after task 012 — clearable ramp-up latch + slow latched
-  climb, merge 5202a57): THE STANDING TUNING-PHASE BASELINE. Medians:
+  climb, merge 5202a57): standing baseline (superseded same day). Medians:
   kit_rmse 0.332 (was 0.344), kit_bias −0.001, rms_all 0.679,
   energy_pct −0.036 median / −0.063 mean, on_frac 0.182 vs 0.184,
   abovemin 0.027 vs 0.038, starts 5.0 vs 6.0, on_min 68.1 vs 55.7,
@@ -139,6 +139,19 @@ main output — the baseline the tuning phase will be scored against).
   Known residuals unchanged, plus: sim tapers ~2x faster than the real
   unit after a deep-demand ramp (reaches 0 ~1 h early on 06-22) — next
   candidate, likely deadband-integrator pacing vs the real unit's.
+- 2026-07-04 (after task 013 — hold-at-setpoint stepping rule, merge
+  e59a807): THE STANDING TUNING-PHASE BASELINE. The 2x-fast taper was
+  Assumption 1's step-down sequence netting -2 vs the real unit's -1
+  (actrl guess and emulated speed diverged ~1 per sequence); at-setpoint
+  reports now hold, sequence nets -1. Medians: kit_rmse 0.340, rms_all
+  0.654 (was 0.679), energy_pct -0.025 median / -0.057 mean, abovemin
+  0.049 vs 0.038, on_frac 0.178 vs 0.184, starts 5 vs 6. No day's
+  kit_rmse regressed >0.05. 06-22 taper now ends 08:50 (was 08:15,
+  recorded 09:20); 06-21 peak increment 11 (was 13, recorded ~10),
+  morning overshoot vs recorded peak: 06-22 +0.33 K, 06-21 +0.51 K.
+  Remaining residuals: mild-day energy ~-30% (run-decision degeneracy);
+  sim taper still ends ~30 min early on 06-22 (plant-side, rooms warm
+  slightly faster through the descent).
 - 2026-07-03: implemented `analysis/scorecard.py` (import-reuses
   `load_day`/`replay` from `analysis/replay_day.py`, unmodified). All
   existing tests pass (`uv run pytest`: 159 passed, 1 skipped, unchanged).
