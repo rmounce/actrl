@@ -27,7 +27,7 @@ entity in the real system, out of scope here -- see Assumption 8).
 |---|-------------------------------------|-------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|---------------------------|
 | 1 | Magnitude of ordinary stepping      | "Each +-1C *change* of reported error steps speed by +-1 increment"          | Each interval's report change contributes at most +-1 to comp_speed regardless of magnitude (sign of the delta only), not a magnitude-proportional step. Verified against the recorded fixtures: the crafted step-up sequence (`[+1, +2, 0]` offsets, 3 transitions) nets exactly +1 with this rule, matching `guesstimated_comp_speed`'s observed +1-per-event growth in cold_start.json/on_counter_clamp.json. The crafted step-down sequence (`[-1, -2, +1, 0]` offsets, 4 transitions -- one longer) nets -2 instead of the true -1 under this rule; that known one-increment overshoot on decrement events is inside the +-2 tracking tolerance and is documented rather than chased with sequence-specific pattern matching (which would require the emulator to know control.py's internals, defeating the point of an independent emulator). | n/a                       |
 | 2 | Rate while a ramp flag is latched   | "ramps speed toward max/0 ... regardless of subsequent reports" -- no rate given | 1 increment per 10 s interval, same cadence as ordinary stepping, for internal consistency.                          | `ramp_flag_rate`          |
-| 3 | Ramp-up latch debounce              | "reported_error >= +2 sets a latching ramp-up flag" -- but control.py's own step-up sequence (`[+1, +2, 0]` offsets from stable=1, i.e. raw values 2, 3) transiently crosses +2 on *every single* ordinary +1 speed increment. A literal instantaneous latch would mean the unit redlines to max speed the first time the deadband integrator asks for one extra increment, which is inconsistent with the documented goal of sustaining "equilibrium with stable compressor speed" and with control.py's own comment that the sequences are "crafted to avoid leaving this flag set". control.py's raw comment elsewhere gives a looser threshold ("more than 3C from setpoint (2C from stable)") for what looks like the same flag, hinting the +2 number is itself an approximation. | Require reported_error >= threshold for `ramp_up_debounce_cycles` (default 3) *consecutive* intervals before latching. The step-up sequence's spike is only 2 cycles wide (values 2, 3, then drops to 1), so this reconciles routine stepping with the "no known way to clear" latch while still catching genuine sustained excursions (faithful-mode hysteresis, external overrides). | `ramp_up_threshold`, `ramp_up_debounce_cycles` |
+| 3 | Ramp-up latch debounce, clear, and climb rate | "reported_error >= +2 sets a latching ramp-up flag ... no known way to clear" -- but control.py's own step-up sequence (`[+1, +2, 0]` offsets from stable=1, i.e. raw values 2, 3) transiently crosses +2 on *every single* ordinary +1 speed increment, which is inconsistent with the documented goal of sustaining "equilibrium with stable compressor speed". Recorded closed-loop replay data (2026-06-22 06:20-09:20, task 010/012 investigation) shows the real outdoor unit peaking at ~2.5 kW (mid-speed) then tapering smoothly in lockstep with actrl's step-down sequence (`[-1, -2, +1, 0]` offsets) from 07:15-09:20 -- the leading elements reach reported_error -1/-2, and the real unit demonstrably follows them back down, disproving "never clears". The same recording shows the real climb rate is ~1 increment per 3-6 min, not 1 per 10 s cycle -- an unclearable, fast-climbing latch pins the emulator at max speed for hours in closed-loop replay, producing a hard cutoff instead of the observed taper. | Require reported_error >= threshold for `ramp_up_debounce_cycles` (default 3) *consecutive* intervals before latching (unchanged). Once latched, a report at or below `ramp_down_set_threshold` (the same threshold that sets the ramp-down flag, default -1 -- i.e. a decrement-demand report such as the step-down sequence's leading elements) clears the ramp-up flag and the debounce streak. While latched, speed climbs by `ramp_flag_rate` only once every `ramp_up_period_cycles` intervals (default 18, ~3 min at 10 s cycles); on the other latched intervals ordinary delta-stepping still applies rather than being suppressed (observed deep-demand reports hold roughly constant, so delta is usually 0 and speed holds between climbs). | `ramp_up_threshold`, `ramp_up_debounce_cycles`, `ramp_up_period_cycles` |
 | 4 | Ramp-down set/clear                 | "<= -1 sets it, >= +1 clears it" -- fully specified, and control.py's step-down sequence (raw values 0, -1, 2, 1) is self-clearing by design. | Implemented literally, instantaneous, every interval, no debounce needed.                                            | `ramp_down_set_threshold`, `ramp_down_clear_threshold` |
 | 5 | Purge low-speed threshold           | "continuous running below a low-speed threshold" -- threshold not named       | comp_speed <= 2, echoing `compressor_power_safety_margin` (the controller's own notion of a "near minimum" band).     | `purge_speed_threshold`   |
 | 6 | Purge duration                      | "~1 min full-speed purge"                                                     | Exactly 6 intervals (60 s / 10 s).                                                                                    | `purge_duration_cycles`   |
@@ -58,6 +58,9 @@ DEFAULT_SHUTDOWN_AFTER_CYCLES = int(60 * 60 / DEFAULT_INTERVAL_SECONDS)
 
 DEFAULT_RAMP_UP_THRESHOLD = 2
 DEFAULT_RAMP_UP_DEBOUNCE_CYCLES = 3
+# ~3 min at 10 s/interval -- one latched climb increment per period, per the
+# 2026-06-22 recorded taper (see Assumption 3).
+DEFAULT_RAMP_UP_PERIOD_CYCLES = 18
 DEFAULT_RAMP_DOWN_SET_THRESHOLD = -1
 DEFAULT_RAMP_DOWN_CLEAR_THRESHOLD = 1
 DEFAULT_RAMP_FLAG_RATE = 1
@@ -86,6 +89,7 @@ class MideaUnit:
         shutdown_after_cycles=DEFAULT_SHUTDOWN_AFTER_CYCLES,
         ramp_up_threshold=DEFAULT_RAMP_UP_THRESHOLD,
         ramp_up_debounce_cycles=DEFAULT_RAMP_UP_DEBOUNCE_CYCLES,
+        ramp_up_period_cycles=DEFAULT_RAMP_UP_PERIOD_CYCLES,
         ramp_down_set_threshold=DEFAULT_RAMP_DOWN_SET_THRESHOLD,
         ramp_down_clear_threshold=DEFAULT_RAMP_DOWN_CLEAR_THRESHOLD,
         ramp_flag_rate=DEFAULT_RAMP_FLAG_RATE,
@@ -110,6 +114,7 @@ class MideaUnit:
         self.shutdown_after_cycles = shutdown_after_cycles
         self.ramp_up_threshold = ramp_up_threshold
         self.ramp_up_debounce_cycles = ramp_up_debounce_cycles
+        self.ramp_up_period_cycles = ramp_up_period_cycles
         self.ramp_down_set_threshold = ramp_down_set_threshold
         self.ramp_down_clear_threshold = ramp_down_clear_threshold
         self.ramp_flag_rate = ramp_flag_rate
@@ -125,6 +130,7 @@ class MideaUnit:
 
         self._prev_reported_error = 0
         self._ramp_up_streak = 0
+        self._ramp_up_period_counter = 0
 
         # Purge / low-speed clock.
         self.purging = False
@@ -162,6 +168,16 @@ class MideaUnit:
             return
 
         delta = reported_error - self._prev_reported_error
+
+        # --- Ramp-up flag clear rule (Assumption 3, task 012): a decrement-
+        # --- demand report (the same threshold that sets the ramp-down
+        # --- flag) clears the latch and the debounce streak. Recorded data
+        # --- shows the real unit follows a step-down sequence back down, so
+        # --- this must run before the (unchanged) set logic below.
+        if reported_error <= self.ramp_down_set_threshold:
+            self.ramp_up_flag = False
+            self._ramp_up_streak = 0
+            self._ramp_up_period_counter = 0
 
         # --- Ramp-down flag: rule 4, fully specified, no debounce needed. ---
         if reported_error <= self.ramp_down_set_threshold:
@@ -202,9 +218,24 @@ class MideaUnit:
                 # --- plain delta-stepping rule (rule 3 explicitly overrides
                 # --- "subsequent reports" while ramping).
                 if self.ramp_up_flag:
-                    self.comp_speed = min(
-                        self.max_speed, self.comp_speed + self.ramp_flag_rate
-                    )
+                    # Task 012: the latched climb is slow (~1 increment per
+                    # 3-6 min observed, Assumption 3), not every cycle like
+                    # the ramp-down path. On the cycles between climbs,
+                    # ordinary delta-stepping still applies rather than
+                    # being suppressed (in the observed regime actrl holds
+                    # its report roughly constant during deep demand, so
+                    # delta is usually 0 and speed holds).
+                    self._ramp_up_period_counter += 1
+                    if self._ramp_up_period_counter >= self.ramp_up_period_cycles:
+                        self._ramp_up_period_counter = 0
+                        self.comp_speed = min(
+                            self.max_speed, self.comp_speed + self.ramp_flag_rate
+                        )
+                    else:
+                        step = (delta > 0) - (delta < 0)
+                        self.comp_speed = max(
+                            0, min(self.max_speed, self.comp_speed + step)
+                        )
                 elif self.ramp_down_flag:
                     self.comp_speed = max(
                         0, self.comp_speed - self.ramp_flag_rate
