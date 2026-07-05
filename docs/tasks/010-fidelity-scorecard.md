@@ -152,6 +152,19 @@ main output — the baseline the tuning phase will be scored against).
   Remaining residuals: mild-day energy ~-30% (run-decision degeneracy);
   sim taper still ends ~30 min early on 06-22 (plant-side, rooms warm
   slightly faster through the descent).
+- 2026-07-05 (after kitchen heat-split refit, MASS_WEIGHTS["kitchen"]
+  2.0 -> 2.6, analysis/kitchen_split_refit.py): THE STANDING BASELINE.
+  Refit against recorded damper authority (kitchen was credited ~13
+  damper points too much heat per opening — docs/calibration.md
+  "Multi-zone damper fidelity"). Medians: kit_rmse 0.332 (was 0.340),
+  rms_all 0.649 (was 0.654), energy_pct -0.001 median / -0.002 mean
+  (was -0.025/-0.057 — the mild-day energy deficit largely closed),
+  abovemin 0.055 vs 0.038, on_frac 0.200 vs 0.184, starts 5 vs 6,
+  on_min 59 vs 56, off_min 187 vs 164. Damper fidelity at 2.6: kitchen
+  gated bias -1.5 pts (was -13.5), bed_1 -1.6, handoff n=9 (was 5)
+  median +3 min, bed_1 noise-free move rate 0.34/h (was 0.00 — the
+  over-credited kitchen was distorting morning texture beyond its own
+  bias). on_frac drifted +2 pp high (was -0.6 pp low); watch it.
 - 2026-07-04 NEGATIVE RESULT (do not re-chase): hypothesis that the
   early taper end came from e(P) overcrediting heat at low power was
   tested by pivoting the e slope at 1.8 kW (b in {-0.04, 0, +0.04,

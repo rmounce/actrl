@@ -72,12 +72,15 @@ def handoff_minute(b1: np.ndarray, hours: np.ndarray) -> float:
     return float("nan")
 
 
-def one_day(parquet: Path, date: str) -> list[dict] | None:
+def one_day(parquet: Path, date: str, ctrl_noise: dict | None = None) -> list[dict] | None:
     day = load_day(parquet, date)
     local = day.index.tz_convert(LOCAL_TZ)
     if not double_ramp(day, local):
         return None
-    sim = replay(day)
+    if ctrl_noise is not None:
+        # same deterministic day-distinct seeding as tune.score_one_day
+        ctrl_noise = {**ctrl_noise, "seed": int(date.replace("-", ""))}
+    sim = replay(day, ctrl_noise=ctrl_noise)
     win = (local.hour >= WIN_LO) & (local.hour < WIN_HI)
     hours = (local.hour + local.minute / 60.0)[win].to_numpy()
     # Dampers only actuate while the unit runs (they freeze at their last
@@ -116,6 +119,14 @@ def one_day(parquet: Path, date: str) -> list[dict] | None:
             "damper_bias": float(np.nanmean(simd[both_on] - rec[both_on])),
             "temp_bias": float(np.nanmean(sim_t[both_on] - rec_t[both_on])),
             "overlap_h": n_hours,
+            # whole-day cycle texture, same for every room row -- lets a
+            # plant-side refit (heat-split weights) watch for cycling
+            # regressions in the same replay
+            "sim_starts": int(np.sum(np.diff((np.asarray(sim["p_kw"], float) > 0
+                                              ).astype(int)) == 1)),
+            "rec_starts": int(np.sum(np.diff((day["power.outdoor_unit"].clip(lower=0)
+                                              .to_numpy() > 300).astype(int)) == 1)),
+            "sim_kwh": float(np.asarray(sim["p_kw"], float).sum() / 60.0),
         })
     for row in rows:
         row["handoff_rec"] = handoffs.get("rec", float("nan"))
@@ -128,13 +139,21 @@ def main() -> None:
     ap.add_argument("--days", default=None, help="comma-separated; default June weekdays")
     ap.add_argument("--parquet", default=_ROOT / "data/processed/june.parquet", type=Path)
     ap.add_argument("--csv", type=Path, help="write per-room-day rows")
+    ap.add_argument("--noise-sigma", type=float, default=None,
+                    help="controller-read sensor noise std [K] (measured 10 s "
+                    "floor ~0.012, docs/tuning.md); texture check for whether "
+                    "noise reproduces the recorded damper jitter")
+    ap.add_argument("--noise-tau", type=float, default=15.0,
+                    help="noise correlation time [s] (measured 10-20 s)")
     args = ap.parse_args()
     days = args.days.split(",") if args.days else june_weekdays()
+    ctrl_noise = ({"sigma": args.noise_sigma, "tau_s": args.noise_tau}
+                  if args.noise_sigma else None)
 
     all_rows: list[dict] = []
     for d in days:
         try:
-            rows = one_day(args.parquet, d)
+            rows = one_day(args.parquet, d, ctrl_noise)
         except (SystemExit, Exception) as e:  # noqa: BLE001 -- archive-gap days
             print(f"{d}  skipped: {e}", flush=True)
             continue
