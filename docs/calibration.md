@@ -532,3 +532,51 @@ Net: idea #4's premise (duct loss is real and material) is **supported** —
 roof-space ducting confirmed, ~20% aggregate deficit, ~5 K return
 pre-cooling — but its measurement method is **disproven**; redirect to a
 supply-air sensor before spending more analysis effort here.
+
+## Multi-zone damper fidelity — weekday double-ramp mornings (2026-07-05)
+
+Groundwork for room-PID (damper) tuning: does the sim reproduce how zones
+share supply air? `analysis/damper_fidelity.py`, 14 scoreable June weekday
+mornings where bed_1 AND kitchen ramp together, 05:00–11:00 local,
+compared ONLY on minutes where both the recorded and simulated unit run —
+dampers freeze at their last position when the unit stops, so a
+run-decision timing divergence otherwise reads as hours of fake damper
+error (06-08: sim stopped 45 min before the real unit, so its bed_1
+froze at 100% through the 08:30 target setback that the real controller
+answered by slamming bed_1 shut; ungated stats had bed_1 +22 pts of pure
+artifact).
+
+Gated per-room medians (position pts / moves-per-running-hour):
+
+| room | rec mean | sim mean | rec mv/h | sim mv/h | RMSE | dmp bias | temp bias |
+|---|---|---|---|---|---|---|---|
+| bed_1 | 93.9 | 98.8 | 0.44 | 0.00 | 7.2 | +0.9 | +0.03 |
+| bed_2 | 2.6 | 9.3 | 0.00 | 0.32 | 14.4 | +4.3 | −0.55 |
+| bed_3 | 10.3 | 13.0 | 0.58 | 0.82 | 16.7 | +1.3 | −0.95 |
+| kitchen | 70.5 | 56.0 | 0.52 | 0.52 | 21.0 | −13.1 | −0.02 |
+| study | 7.8 | 6.5 | 0.00 | 0.00 | 19.6 | +2.0 | −0.46 |
+
+bed_1→kitchen morning handoff (bed_1 releases, kitchen takes over,
+~08:40 like clockwork in the record): sim − rec median +0.08 h
+(n=5 mornings where both hand off inside the window; most sim "misses"
+are the unit already off by the setback, per above).
+
+Verdict: **usable for relative room-gain A/Bs, with three caveats.**
+corr(temp_bias, damper_bias) = −0.51 over 68 room-days — the sim opens
+dampers where its rooms read cold, i.e. the controller responds
+consistently and the damper gaps are mostly plant-side temperature gaps.
+
+1. **Kitchen −13 pts while running with ~zero temp bias**: the sim holds
+   kitchen on target with less damper than reality needed — its heat
+   split (AIRFLOW/MASS weights) credits the kitchen too much heat per
+   opening point. Plant-side; treat absolute kitchen-share conclusions
+   cautiously until the split is refit.
+2. **Sim bed_1 never moves off its pin (0.00 vs 0.44 mv/h)**: the
+   noise-free sim lacks whatever jitters the real PID off saturation.
+   Any gain sweep hunting for the instability threshold MUST inject
+   sensor noise (replay ctrl_noise / tune.py --noise-sigma) — hunting is
+   noise-excited, and a noise-free sweep will overestimate the stable
+   gain margin.
+3. **Gate every damper comparison on both-running minutes** (the script
+   does); mild-morning run-decision divergence contaminates anything
+   ungated.
