@@ -91,3 +91,67 @@ Reproduce: `uv run python analysis/tune.py --days <days> --set
 control.global_deadband_ki=0.05 --set actrl.room_ki=0.002`. Raw per-day
 CSVs from these sweeps are session-scratch; the tables above are the
 record.
+
+## Sensor-noise check (2026-07-05)
+
+Measured from quiet archive nights (HVAC off 30+ min, 01:00-05:00, n=6072
+min): all five average_temperature sensors show 0.005-0.007 K residual
+std, white (lag-1 rho ~ 0); humidity noise contributes < 0.001 K to
+feels-like. Two orders of magnitude below control-relevant errors — NOT
+worth modelling in the sim; the noise caveat on the deadband_ki
+recommendation is withdrawn. (The 1-min archive can't see sub-minute
+noise, but the controller's 5-min WMA derivative and minutes-scale
+integrators filter that band regardless.)
+
+## Pre-heat ramp strategy study (2026-07-05, analysis/preheat.py)
+
+Question: statctrl's gentle morning ramp (+0.1 K/3 min, riding near min
+power for its COP) vs starting later at higher power (less time
+accumulating envelope losses). Strategies scored against the identical
+comfort requirement (full target by the recorded ramp-end deadline) over
+00:00-12:00; late = worst room's minutes past deadline.
+
+Cold mornings (06-21 / 06-22 / 06-27), baseline efficiency curve:
+
+| strategy | AM kWh | late min | notes |
+|---|---|---|---|
+| recorded (statctrl) | 7.3 / 8.6 / 8.4 | 27 / 29 / 18 | cheapest everywhere, but late |
+| step150 (faithful blast) | 10.0 / 10.0 / 11.4 | 0 / 0 / 7 | +19-36% energy |
+| step120 | 10.0 / 10.0 / 11.2 | 17 / 16 / 41 | +16-34%, still late |
+| step60 | 8.6 / 9.1 / 9.5 | 56 / 78 / 79 | cheaper but badly late — capacity-bound |
+| ramp0.05x90 | 7.8 / 8.8 / 9.1 | 0 / 31 / 2 | ~on-time for +0.4-0.75 kWh |
+
+Mild/medium days (06-14, 06-20): same ordering, recorded cheapest, late
+steps +40-70% AM energy.
+
+Efficiency-curve bracket (the min-power-COP advantage is the weakly
+identified part of the e(P) fit, r2=0.28): re-ran recorded vs
+step120/step90 on the three cold days with e_per_kw rotated to 0.0 and
++0.04 (min-power advantage removed / reversed). The energy gap narrows
+from ~+30% to +3-12% but NEVER flips — recorded stays cheapest under
+every plausible curve.
+
+Conclusions:
+
+1. **The current gentle-ramp approach is validated** — late-and-hard
+   never wins on energy, even with the COP curve rotated against min
+   power. The physics: a hard warmup pays lower COP at high speed AND
+   still takes 1.5-2.5 h on cold mornings (capacity-bound), so the
+   avoided-losses window is much smaller than intuition suggests, while
+   distribution overshoot during the blast wastes the rest.
+2. **Ryan's cold-morning caveat is real and visible**: aggressive late
+   starts (step60, ramp0.1x60) miss the deadline by 46-79 min on the
+   coldest days — there is no capacity margin for defrost + deep warmup.
+   (Late starts do save ~10 defrost min on 06-22 — less cold running —
+   but nowhere near enough to matter.)
+3. **The actionable tweak is the opposite of the hypothesis**: statctrl
+   is slightly too gentle/late — the worst room lands 18-29 min past the
+   schedule on cold mornings. A modestly faster ramp (~0.05 K/min
+   starting ~90 min before deadline, vs the current ~0.033 K/min) buys
+   punctuality for +0.4-0.75 kWh on cold days; on mild days it costs
+   ~nothing. Alternatively keep the current rate but start it ~30 min
+   earlier on forecast-cold mornings (statctrl adaptive-start territory —
+   NOTE: Ryan trialled and disliked adaptive optimum start before; treat
+   as a suggestion only).
+
+Raw CSVs session-scratch (preheat_*.csv); tables above are the record.
