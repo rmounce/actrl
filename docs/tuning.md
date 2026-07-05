@@ -155,3 +155,43 @@ Conclusions:
    as a suggestion only).
 
 Raw CSVs session-scratch (preheat_*.csv); tables above are the record.
+
+## Noise robustness matrix (2026-07-05, after Ryan's pushback)
+
+Ryan (who hand-tuned the current gains) challenged the "noise is
+irrelevant" call — correctly: the derivative path (5-min WMA slope x10
+horizon), the integer rounding of the transmitted follow-me report, and
+on/off/emission threshold crossings all amplify noise nonlinearly with
+gain, and the 1-min archive can't see the 10 s band the controller
+samples. Synthetic AR(1) controller-read noise (tau 60 s, per-day seeds)
+now injectable via `analysis/tune.py --noise-sigma` (replay_day.replay
+ctrl_noise). Matrix over the 6-day set:
+
+| candidate | sigma K | deg_min_below | overshoot | osc/h | starts | kWh |
+|---|---|---|---|---|---|---|
+| baseline  | 0 / .006 / .02 / .05 | 12.9 / 12.2 / 10.8 / 9.4 | 1.19 / 1.19 / 1.16 / 1.14 | 1.43 / 1.42 / 1.36 / 1.44 | 5.5 / 5.5 / 6 / 7 | 7.02 / 7.01 / 7.04 / 7.01 |
+| dbki_x4   | 0 / .006 / .02 / .05 | 7.9 / 8.9 / 6.9 / 7.5 | 0.98 / 0.97 / 0.94 / 0.95 | 1.41 / 1.41 / 1.34 / **1.75** | 6.5 / 6.5 / 6.5 / 7.5 | 7.02 / 7.02 / 7.06 / 7.16 |
+| combo_xdr | 0 / .006 / .02 / .05 | 10.7 / 10.5 / 9.1 / 6.2 | 0.84 / 0.84 / 0.80 / 0.88 | 1.52 / 1.51 / 1.58 / **1.70** | 6 / 6 / 7 / 7.5 | 7.00 / 6.98 / 7.05 / 7.06 |
+
+Findings:
+
+1. At the measured archive floor (0.006 K) noise changes nothing for any
+   candidate.
+2. Ryan's mechanism is real and visible: at 0.05 K (~8x the floor) the
+   high-gain candidates' oscillation jumps +20-25% (1.41->1.75,
+   1.52->1.70) while baseline's stays flat (1.43->1.44) — the hand-tuned
+   0.0125 deadband_ki is indeed implicitly noise-hardened, and gain
+   increases do buy noise sensitivity. Starts +1-1.5/day at 0.05 for all.
+3. The ranking never flips: the recommended configs beat baseline on
+   every comfort metric at every noise level tested (e.g. combo overshoot
+   0.88 vs baseline 1.14 at sigma 0.05).
+4. Curiosity: mild noise slightly *improves* several metrics for all
+   candidates (deg_min_below falls monotonically for baseline) — dither
+   through the integer report rounding.
+
+Net: recommendation unchanged at plausible noise (<= ~0.02 K), with a
+sharpened caveat — if the real 10 s-band noise is much above ~0.03 K, the
+x4 gain starts paying an oscillation tax. The staged rollout (x2 first,
+watch recorded oscillation) is the right control for exactly this
+unknown. Sub-minute noise could be measured directly by logging one
+room's raw sensor at 10 s for a day before deploying.
