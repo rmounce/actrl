@@ -351,3 +351,45 @@ Deploy considerations, in order:
    thresholds (sim/house.py) — a staged rollout with the controller CI
    gate (analysis/controller_ci.py) plus a day of shadow-mode logging
    (log T_est alongside Tm, act on Tm) is the prudent first step.
+
+## Widened off-thresholds vs the observer (2026-07-05, Ryan's question)
+
+`eventual_off_threshold` −0.5→−1.0 (one line, no structural change) is a
+poor-man's observer on the OFF side: the sensor's "we've overshot" is
+mostly the lead-node exaggeration, so tolerating a bigger apparent
+excursion keeps delivering heat the room actually needed and stretches
+each run. 5-day sums vs the same baseline/observer arms:
+
+| arm | deg_min_below K·min | starts | osc sum | kWh |
+|---|---|---|---|---|
+| baseline | 68.3 | 29 | 6.65 | 35.14 |
+| eventual_off −1.0 | 61.7 | 20 | 4.70 | 35.12 |
+| observer +0.2 K trim | 37.8 | 16 | 4.59 | 39.18 |
+
+- The threshold widening captures **most of the cycling win** (starts
+  −31%, osc −29%) at exactly baseline energy — because run-length, not
+  restart timing, dominates starts/day. But it captures only ~10% of the
+  comfort win: it does nothing in-run (the controller still believes the
+  inflated reading while modulating, so warmups still cut early) and
+  nothing on the restart side (post-stop sag still fires starts early —
+  runs are longer but the gap between them is still fake-triggered).
+- −0.75 and a wider immediate_off (−2.5) sit on the same front:
+  immediate_off −2.5 trims osc further (0.88 median) but its risk case
+  is a real (not fake) overshoot excursion, e.g. solar gain after a long
+  run — the fixed threshold can't tell the difference. That is the
+  structural limit of the approach: one constant approximating a
+  correction that actually varies with compressor power, dampers and
+  time-since-stop.
+- NOT additive with the observer: once the controller reads de-leaded
+  temps, "past target" is real overshoot and the thresholds should stay
+  tight. Widening is the cheap interim step; the observer supersedes it.
+
+Ceiling-fan note (Ryan, 2026-07-05): all rooms EXCEPT study run ceiling
+fans on low reverse via HA automation once the compressor starts. The
+fitted tau_meas/lead constants were calibrated from June data with that
+automation active, so fan mixing is baked into them (it is plausibly WHY
+the sensor pocket couples as fast as it does). Consequences: (a) the
+study's constants are the least trustworthy twice over — no fan AND its
+lead was a pooled bedroom prior (no clean fit events); (b) changing the
+fan automation (speed, delay, which rooms) invalidates the lead fit —
+refit before trusting sim conclusions after any such change.
