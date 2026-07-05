@@ -242,7 +242,7 @@ analysis/comfort.py, the native-cadence raw archive).
   forecast-mild days, bias all discretionary running into the PV window"
   costs ~zero comfort by construction. The sim can bound the comfort cost.
 
-- **Duct losses may be the biggest efficiency lever, and they're
+- `[~]` **Duct losses may be the biggest efficiency lever, and they're
   measurable** (physical, medium). The closed-loop energy refit scaled
   heat-per-kWh by 0.80; some of that is fit error, but if even half is real
   duct/roof-space loss, ~10-20% of every heating kWh is warming the roof.
@@ -250,6 +250,14 @@ analysis/comfort.py, the native-cadence raw archive).
   fan state could estimate coil-side output vs the fitted room-side
   delivery on the same runs, splitting COP error from duct loss. If ducts
   are leaking heat, insulation beats any control change ever tested here.
+  Investigated 2026-07-05 (findings in docs/calibration.md "Duct/roof-space
+  losses"): pathway CONFIRMED (Ryan: unit+ducts in roof space; `inside_temp`
+  ~13 C during heating = roof/return air, 5 K below rooms), but the coil-side
+  balance is DISPROVEN — `inside_coil_inlet_temp` is coil-metal (T2) not
+  supply air (gives impossible COP 8-11). No supply-air sensor exists, so
+  duct loss stays unseparable from COP error (0.80 scale = upper bound).
+  Blocked on hardware: add a supply-air/register temperature probe. Interim
+  sim refinement: feed the COP model the roof-space return temp.
 
 - **Schedule-aware gain scheduling** (tuning, medium). The deadband_ki x4
   comfort win concentrates in transients (warmups/tapers); its noise

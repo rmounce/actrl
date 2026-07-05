@@ -474,3 +474,61 @@ zeroed and superseded).
 - Room-level delivered-heat split (damper positions × fan power → per-room
   airflow share) not yet attempted; needed for the full per-room simulator
   (ideas.md §3) rather than house-level.
+
+## Duct/roof-space losses — investigation (2026-07-05, ideas.md #4)
+
+Question: the closed-loop energy refit scaled heat-per-kWh by 0.80 (~20%
+unaccounted). Idea #4: split COP-model error from real duct loss using the
+m5atom coil sensors + fan state. Result: **the loss pathway is confirmed
+but the proposed coil-side energy balance is not viable with current
+sensors.**
+
+Sensor semantics (June, ~5000 rows with coil data; the four raw `m5atom_*`
+temps have only 11-19% coverage — docs/data.md):
+
+- `m5atom_outside_temp` median 7.0 C during heating ≈ BOM outdoor 7.6 C —
+  a real outdoor-ambient sensor. Confirms these are genuine Midea probes.
+- `m5atom_outside_coil_temp` 5.3 C during heating (evaporator below
+  ambient) — physically sensible.
+- `m5atom_inside_temp` 12.7 C during heating: correlates **0.81 with
+  outdoor**, 0.57 with room mean, sits ~5 K above outdoor and ~5 K below
+  the ~18 C rooms. NOT the follow-me transmitted value (weighted_error is
+  ±1 K while this swings 10-20 C). **Ryan confirmed the indoor unit and
+  ducting run through unconditioned roof space** — so this is the
+  return/roof-space air temperature. The duct-loss pathway is real: return
+  air pre-cools ~5 K (room 18 → coil 13) and supply air loses heat to the
+  same ~13 C roof on the way back to registers.
+- `m5atom_inside_coil_inlet_temp` 31 C during heating. **This is coil-metal
+  temperature (T2), not supply-air temperature** — proven: taking it as
+  supply air with `inside_temp` as return gives air ΔT 17 K, hence apparent
+  COP **8-11** at the fan-curve airflow (440/520/600 l/s min/nom/max,
+  `analysis/actron_tables.py`) — physically impossible. At the observed
+  ~1.18 kW electrical and a plausible COP 3.3-4.0, the *real* supply-return
+  air ΔT is only 5-9 K (Q ≈ 4 kW), i.e. the coil-metal reading overstates
+  the air rise ~2x.
+
+Consequences:
+
+- **No usable supply-air sensor exists**, so coil-side output cannot be
+  measured directly — the fan curve alone doesn't rescue the balance.
+  Duct loss therefore still cannot be cleanly separated from COP-model
+  error; the closed-loop 0.80 scale (~20% deficit) stands as an **upper
+  bound** on duct loss.
+- **Rated-table operating point**: the actron heating table shows capacity
+  *rising* as return-air temp falls (outdoor 7 C: 12.2 kW @ 15 C return vs
+  10.9 kW @ 20 C, COP ~flat at 3.6). The unit runs on ~13 C roof-space
+  return, not 20 C room air, so it sits below even the 15 C row — higher
+  capacity, similar COP, but much of that extra heat just re-warms
+  pre-cooled return air, dragging COP-*to-room* down. sim/hvac.py's COP
+  model could use `inside_temp` (roof return) rather than room temp as the
+  indoor operating point — a concrete refinement, but it re-describes the
+  0.80 deficit rather than splitting it.
+- **To actually quantify duct loss**: add a supply-air temperature probe
+  *in the supply duct/register* (and ideally a true return-air probe in the
+  airstream at the unit). Cheap hardware; without it the split is
+  unobservable. Flagged for the next hardware/data step.
+
+Net: idea #4's premise (duct loss is real and material) is **supported** —
+roof-space ducting confirmed, ~20% aggregate deficit, ~5 K return
+pre-cooling — but its measurement method is **disproven**; redirect to a
+supply-air sensor before spending more analysis effort here.
