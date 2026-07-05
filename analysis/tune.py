@@ -80,15 +80,21 @@ def build_comfort_frame(day: pd.DataFrame, sim: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
-def score_one_day(parquet: Path, date: str, overrides: dict[str, object]) -> dict:
+def score_one_day(
+    parquet: Path, date: str, overrides: dict[str, object], ctrl_noise: dict | None = None
+) -> dict:
     day = load_day(parquet, date)
+    if ctrl_noise is not None:
+        # Deterministic but day-distinct seed so reruns reproduce exactly
+        # while days don't share a noise realisation.
+        ctrl_noise = {**ctrl_noise, "seed": int(date.replace("-", ""))}
     # The override must wrap ClosedLoop construction (actrl builds its PIDs
     # once at initialize()) AND the whole replay (control.py re-reads its
     # globals every cycle) -- see analysis/ctrl_overrides.py docstring.
     # replay_day.replay() does both (it calls build_loop() internally),
     # so wrapping this single call satisfies both requirements.
     with ctrl_overrides(overrides):
-        sim = replay(day)
+        sim = replay(day, ctrl_noise=ctrl_noise)
     frame = build_comfort_frame(day, sim)
     return score_day(frame)
 
@@ -111,8 +117,22 @@ def main() -> None:
         "(repeatable)",
     )
     ap.add_argument("--out", type=Path, help="write per-day metrics CSV (+ a final median row)")
+    ap.add_argument(
+        "--noise-sigma",
+        type=float,
+        default=None,
+        help="synthetic controller-read sensor noise std [K] (measured floor "
+        "~0.006; stress above it -- the sub-minute band is unobserved)",
+    )
+    ap.add_argument(
+        "--noise-tau",
+        type=float,
+        default=60.0,
+        help="noise correlation time [s] for the AR(1) model (<=0 = white per 10 s cycle)",
+    )
     args = ap.parse_args()
 
+    ctrl_noise = {"sigma": args.noise_sigma, "tau_s": args.noise_tau} if args.noise_sigma else None
     overrides = parse_overrides(args.overrides)
     dates = [d.strip() for d in args.days.split(",") if d.strip()]
 
@@ -120,7 +140,7 @@ def main() -> None:
     columns: list[str] | None = None
     for date in dates:
         try:
-            metrics = score_one_day(args.parquet, date, overrides)
+            metrics = score_one_day(args.parquet, date, overrides, ctrl_noise)
         except (SystemExit, Exception) as exc:  # noqa: BLE001
             # Same broadened skip pattern as analysis/scorecard.py: some
             # archived days have full row counts but mid-day column

@@ -98,8 +98,23 @@ def feels_like_offsets(day: pd.DataFrame) -> dict[str, np.ndarray]:
     return out
 
 
-def replay(day: pd.DataFrame) -> pd.DataFrame:
+def replay(day: pd.DataFrame, ctrl_noise: dict | None = None) -> pd.DataFrame:
+    """Replay one loaded day. `ctrl_noise` optionally adds synthetic sensor
+    noise to what the controller reads (and ONLY the controller -- the
+    plant and the recorded comparisons are untouched, same channel as the
+    feels-like offsets): dict(sigma=K, tau_s=seconds, seed=int). Per-room
+    independent AR(1) at the 10 s cycle cadence; tau_s <= 0 gives white
+    noise per cycle. Measured floor (docs/tuning.md 2026-07-05): ~0.006 K
+    white at 1-min cadence; the sub-minute band is unobserved in the
+    archive, so stress-test above the floor rather than trusting it."""
     loop = build_loop(day)
+    noise_state = {r: 0.0 for r in ROOMS}
+    if ctrl_noise:
+        rng = np.random.default_rng(ctrl_noise.get("seed", 0))
+        n_sigma = float(ctrl_noise["sigma"])
+        tau_s = float(ctrl_noise.get("tau_s", 0.0))
+        n_phi = np.exp(-10.0 / tau_s) if tau_s > 0 else 0.0
+        n_scale = n_sigma * np.sqrt(1.0 - n_phi**2)
     tout = day["temperature_adelaide"].ffill().values
     pv = (day["power_pv_5m"].fillna(0).clip(lower=0) / 1000.0).values
     cloudiness = day["_cloudiness"].values
@@ -129,6 +144,9 @@ def replay(day: pd.DataFrame) -> pd.DataFrame:
                 for r in ROOMS
             },
         }
+        if ctrl_noise:
+            for r in ROOMS:
+                noise_state[r] = n_phi * noise_state[r] + n_scale * rng.standard_normal()
         rows.append(
             loop.step(
                 t_out=float(tout[m]),
@@ -136,7 +154,7 @@ def replay(day: pd.DataFrame) -> pd.DataFrame:
                 pv_kw=float(pv[m]),
                 sun_ne=float(sun_ne[m]),
                 sun_nw=float(sun_nw[m]),
-                ctrl_offsets={r: float(offsets[r][m]) for r in ROOMS},
+                ctrl_offsets={r: float(offsets[r][m]) + noise_state[r] for r in ROOMS},
             )
         )
     loop.close()
