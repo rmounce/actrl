@@ -31,9 +31,15 @@ two separate knobs, q_i = q_house * flow_share_i / mass_share_i:
   (Energy and Outdoor Design report, EOD-3341, 2020) normalised so their
   average is 1.0 — previously all four were assumed equal (1.0), which
   overstated study's and bed_2's mass relative to bed_1/bed_3 by ~2x
-  (docs/calibration.md "Whole-day closed-loop replay"). Kitchen is left at
-  2.0 (its RC fit is separately anchored and already close to the
-  living-area floor-area ratio, ~2.3x a bedroom).
+  (docs/calibration.md "Whole-day closed-loop replay"). Kitchen 2.6:
+  refit 2026-07-05 against recorded damper authority (analysis/
+  kitchen_split_refit.py, docs/calibration.md "Multi-zone damper
+  fidelity") — the carried-over 2.0 credited the kitchen ~13 damper
+  points too much heat per opening; 2.6 zeroes the gated damper bias on
+  the double-ramp mornings (kitchen −1.5 / bed_1 −0.5 pts) with room
+  temps and cycle texture unchanged. Physically: the open
+  kitchen/living/dining zone carries more effective mass than the
+  living-area floor ratio alone suggested.
 
 This module imports the test harness (tests/hvac_harness.py) for the
 FakeWorld/HarnessActrl shell — a deliberate reuse of the golden-test
@@ -61,7 +67,7 @@ AIRFLOW_WEIGHTS = {"bed_1": 1.0, "bed_2": 1.0, "bed_3": 1.0, "study": 1.0, "kitc
 # Floor areas [m2] from EOD-3341 (Energy and Outdoor Design, 2020), zones
 # "Bedroom 1 + WIR", "Bedroom 2", "Bedroom 3", "Study"; normalised so the
 # four rooms' average weight is 1.0 (matching the old equal-weight scale).
-MASS_WEIGHTS = {"bed_1": 1.395, "bed_2": 0.893, "bed_3": 1.070, "study": 0.642, "kitchen": 2.0}
+MASS_WEIGHTS = {"bed_1": 1.395, "bed_2": 0.893, "bed_3": 1.070, "study": 0.642, "kitchen": 2.6}
 FOLLOW_ME_SERVICE = "esphome/m5atom_send_follow_me"
 UNIT_CLIMATE = "climate.m5atom_climate"
 

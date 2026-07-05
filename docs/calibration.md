@@ -580,3 +580,38 @@ consistently and the damper gaps are mostly plant-side temperature gaps.
 3. **Gate every damper comparison on both-running minutes** (the script
    does); mild-morning run-decision divergence contaminates anything
    ungated.
+
+## Kitchen heat-split refit + damper texture (2026-07-05, follow-up)
+
+Fixes for the fidelity caveats above, in service of room-PID tuning:
+
+- **MASS_WEIGHTS["kitchen"] 2.0 → 2.6** (`analysis/kitchen_split_refit.py`):
+  grid against gated damper authority on the double-ramp mornings.
+  2.0 (the carried-over equal-mass-era value, never re-derived from the
+  NatHERS floor areas like the bedrooms) credited the kitchen ~13 damper
+  points too much heat per opening. At 2.6: kitchen gated bias −1.5 pts,
+  bed_1 −1.6, kitchen temps still ~0 bias, cycle texture unchanged
+  (starts stable across the whole 2.0–3.5 grid). Physically: the open
+  kitchen/living/dining zone carries ~30% more effective mass than the
+  living-area floor ratio suggested. Side benefits nobody asked for:
+  bed_1→kitchen handoff now reproduced on 9/14 mornings (was 5), bed_1's
+  noise-free damper move rate 0.34/h (was 0.00), and the June scorecard
+  IMPROVED across the board — kit_rmse 0.332 (was 0.340), rms_all 0.649,
+  median energy error −0.1% (was −2.5%; the mild-day deficit largely
+  closed). New standing baseline in docs/tasks/010 Log; controller-CI
+  baseline re-pinned same commit. Watch-for: on_frac now +2 pp high.
+- **Measured-noise damper texture** (fidelity pass --noise-sigma 0.012):
+  measured sensor noise restores part of the recorded damper jitter
+  (bed_1 0.17/h vs recorded 0.40 at the old weight; kitchen exact) but
+  not all of it — residual jitter is unmodelled (damper position
+  feedback quantisation / humidity wiggle candidates). Gain sweeps must
+  inject noise AND still treat margins near pinned zones with ~2x
+  caution.
+- **Rebalance response, current gains** (recorded, scratch analysis):
+  bed_1's ~08:30 setback (−3.3 K demand step) closes its damper in
+  11 min median (n=13) WHILE THE UNIT RUNS — kp-driven, adequate. The
+  27–56 min outliers are all the unit cycling off mid-setback (dampers
+  freeze). So large-step rebalancing is NOT the sluggish regime; the
+  felt sluggishness must live in sub-K imbalances where room_ki does
+  the work — probed by `analysis/rebalance_step.py` (sim injection of a
+  +0.5 K read bias on one zone, latency counted in running minutes).
