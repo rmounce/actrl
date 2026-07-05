@@ -168,6 +168,38 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
   (e.g. exposing learned minutes-per-degree as sensors) — feature trialed
   and deliberately left inert, not a focus area (docs/statctrl.md).
 
+## 5a. Breadth-pass feasibility re-rank (2026-07-05)
+
+Quick tool/data-readiness + payoff probe across §5 before going deep on any
+one. Re-ranked by (payoff x feasibility / effort) for *what to do next*:
+
+1. **Controller CI (#8)** — cheapest concrete deliverable. The tuning
+   harness already replays canonical days + diffs comfort; only needs
+   wiring the 3 days + a standing baseline into a script/CI. Low effort,
+   protects every future control change. **Do first.**
+2. **Bulk-estimator follow-ups (#1)** — equal-comfort re-run is cheap;
+   realizable observer is moderate. Oracle already banked (§tuning.md).
+3. **Mild-day timing → PV window (#3)** — sim-ready, low effort, PV payoff.
+4. **Duct losses (#4)** — *highest physical ceiling*, data present
+   (`m5atom_inside_coil_inlet_temp`/`inside_temp`/`outside_coil_temp`,
+   `power.indoor_unit`). Probe: heating-run supply-return dT median 17 K
+   (supply ~31 C), but the return-path `inside_temp` reads **~12.7 C median
+   while rooms are ~20 C** — the indoor unit's return/plenum appears to sit
+   in a much colder (roof/plenum) space. Either a large plenum/duct loss
+   (idea confirmed, insulation lever) or a sensor-placement quirk — needs
+   airflow + placement interpretation. Moderate-high effort, big upside.
+5. **Heat-banking (#2)** — physics favourable (tau ~30 h), but preheat.py
+   is hardcoded morning-only (before-noon rise group, scored 00-12); needs
+   evening-deadline generalisation. Moderate effort.
+6. **Gain scheduling (#5)** — needs `deadband_ki` to become per-call
+   dynamic in control.py (small change), then a tune.py sweep. Marginal
+   value is *over* the already-banked deadband_ki x2 recommendation, so
+   payoff is the steady-state-noise-avoidance delta specifically.
+7. **Stagger deadlines (#6)** / **defrost shaping (#7)** — both need
+   per-room synth schedules (preheat.py-style); measure defrost incidence
+   in replays first. Medium-low payoff.
+8. **Summer solar (#9)** — BLOCKED on summer data; defer.
+
 ## 5. Hypotheses from the calibration/tuning sessions (2026-07-05, Fable brainstorm)
 
 Ranked roughly by expected payoff. Each is testable with tools that now
