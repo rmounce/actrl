@@ -6,46 +6,46 @@
   ],
   "metrics": {
     "2026-06-22": {
-      "time_in_band": 0.9351388888888887,
-      "deg_min_below": 37.80540506244513,
+      "time_in_band": 0.9416666666666668,
+      "deg_min_below": 33.57347048584272,
       "deg_min_above": 0.0,
       "rise_events": 2,
-      "rise_time_med": 142.0,
+      "rise_time_med": 136.0,
       "rise_events_unmet": 0,
       "overshoot_max": 0.0,
-      "overshoot_rise_max": 1.1571616727697283,
-      "osc_per_h": 1.5,
-      "energy_kwh": 11.715320296187018,
-      "starts": 8,
-      "abovemin_frac": 0.16319444444444445
+      "overshoot_rise_max": 1.1145958254201815,
+      "osc_per_h": 1.732851985559567,
+      "energy_kwh": 11.356341159539282,
+      "starts": 9,
+      "abovemin_frac": 0.1638888888888889
     },
     "2026-06-30": {
-      "time_in_band": 0.9966666666666667,
-      "deg_min_below": 0.4141609418602769,
+      "time_in_band": 0.9973611111111111,
+      "deg_min_below": 0.20634040088482095,
       "deg_min_above": 0.0,
       "rise_events": 2,
-      "rise_time_med": 104.0,
+      "rise_time_med": 102.5,
       "rise_events_unmet": 0,
       "overshoot_max": 0.0,
-      "overshoot_rise_max": 0.7673374878152366,
-      "osc_per_h": 2.4489795918367343,
-      "energy_kwh": 3.656147995716276,
-      "starts": 7,
-      "abovemin_frac": 0.027777777777777776
+      "overshoot_rise_max": 0.8471015813515947,
+      "osc_per_h": 2.968197879858657,
+      "energy_kwh": 3.528187521832126,
+      "starts": 8,
+      "abovemin_frac": 0.02847222222222222
     },
     "2026-06-09": {
-      "time_in_band": 0.9887499999999999,
-      "deg_min_below": 2.658288808648301,
+      "time_in_band": 0.9897222222222222,
+      "deg_min_below": 2.1682985048702683,
       "deg_min_above": 0.0,
       "rise_events": 2,
-      "rise_time_med": 118.0,
+      "rise_time_med": 116.0,
       "rise_events_unmet": 0,
       "overshoot_max": 0.0,
-      "overshoot_rise_max": 0.8805212588527986,
+      "overshoot_rise_max": 0.8767485151984289,
       "osc_per_h": 0.0,
-      "energy_kwh": 1.6815335708380994,
+      "energy_kwh": 1.6142712364332252,
       "starts": 1,
-      "abovemin_frac": 0.02361111111111111
+      "abovemin_frac": 0.01875
     }
   }
 }

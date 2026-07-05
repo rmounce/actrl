@@ -668,3 +668,47 @@ scorecard are unaffected. Candidate fix if it ever matters: refit the
 kitchen lead/flow share against warmup onsets (high-q events) instead of
 only midday cycling; treat as a q-dependent lead or a fan-speed-dependent
 flow split. Logged as a residual, not chased further now.
+
+## Kitchen warmup-onset refit — outcome (2026-07-06)
+
+Follow-up to the residual above; Ryan asked for the lead refit. Model
+gained two optional per-room sensor-node params (sim/house.py, both 0.0 =
+exact pre-existing behaviour): `lead_q_h` (lead_eff = lead·(1+lead_q·q))
+and `tau_q_h` (tau_eff = tau/(1+tau_q·q)). Grid driver:
+`analysis/kitchen_onset_refit.py` (onset gaps on 4 cold mornings + mild
+control day + the 06-22 cycling windows + kitchen RMSE, one replay each).
+
+Result — **sensor physics can only close ~25-35% of the onset gap**:
+
+- lead_q 0.2 ADOPTED: kitchen day RMSE 0.356→0.334, cold onset gaps
+  −20-30% (06-22 +1.01→+0.85), mild-day control −0.07, cycling windows
+  unchanged. Beyond 0.2 the mild-day control overshoots and RMSE
+  degrades without closing the rest. tau_q (faster coupling at high q)
+  moves the gap even less; an increment-dependent kitchen flow share
+  (real heat, not sensor) moves it least and damages bed_1. All three
+  mechanisms bottom out well short of the recorded onset.
+- ROOT CAUSE FOUND (controller-eye, per-room PID outputs now in
+  ClosedLoop telemetry as pid_{room}, matching the archived {room}_pid):
+  the recorded kitchen_pid climbs −1.06→+1.63 across 05:15-06:05 at
+  ~0.05/min while its own error is ~0.2 K — 4x what room_ki can produce.
+  The climb is the renormalization-offset dynamics (actrl adjusts ALL
+  integrals every cycle to pin the max output at full range, plus the
+  top-zone hogging clamp): the kitchen's integral is pumped by bed_1's
+  raw-output decay and by the OTHER zones' states. And those states
+  diverge before the morning starts — at 05:00 recorded study is the
+  pinned top zone (+2.00) with bed_2/bed_3 ~+1, while the sim has bed_3
+  top and bed_2 negative. The onset gap is downstream of overnight
+  multi-zone integral-state divergence, not kitchen physics. Chasing it
+  means matching the sim's overnight zone texture (which rooms call
+  pre-dawn) — a separate investigation; residual stands at ~-0.7 K/h on
+  the coldest mornings, converged by ~07:50.
+
+DISCOVERED PRE-EXISTING REGRESSION (needs its own pass): the 06-22
+midday min-power cycling match that anchored the kitchen lead 0.45
+(4/4 starts, 26%/26% on-fraction, fitted 2026-07-03) no longer holds —
+current sim gives 1 start / 8% on-fraction in 10:00-16:00 (identical at
+kitchen mass 2.0 vs 2.6, so NOT the mass refit; suspects are tasks
+012/013 (ramp latch, hold-at-setpoint) or the e-level 0.80 energy refit,
+all 2026-07-03/04, whose validation tracked whole-June starts but never
+re-checked this window). Whole-June medians still match (starts 5 vs 6).
+The evening window still matches (4|4 at mass 2.6). Flagged, not chased.
