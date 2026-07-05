@@ -225,6 +225,16 @@ analysis/comfort.py, the native-cadence raw archive).
   only the in-run lead, the post-stop sag needs `Tm + tau_meas·dṪm − lead·q`
   with a q proxy; (b) an equal-comfort comparison to isolate the pure
   cycling/energy benefit.
+  Both answered 2026-07-05 (`analysis/observer_bulk_estimator.py`,
+  `analysis/equal_comfort_bulk.py`, findings in docs/tuning.md): (b) at
+  equal energy AND comfort the free benefit is cycling (starts −28%, osc
+  −24%); (a) YES — an observer from controller-observable signals only
+  (quantized Tm + filtered derivative + power-meter/COP/damper q̂) fully
+  recovers the oracle's comfort and beats its cycling; with a +0.2 K warm
+  trim it matches oracle comfort at +2% energy with the fewest starts of
+  any arm (−45% vs baseline). Sim-side validation COMPLETE — remaining
+  work is deployment: port the observer into actrl (per-room tau_meas/lead
+  constants + q̂ path), shadow-mode logging, then the CI gate.
 
 - **Thermal-mass arbitrage / heat banking** (energy, medium-high).
   COP moves ~5%/K of outdoor temp; June days swing 5-10 K; house tau ~30 h,

@@ -284,4 +284,70 @@ sag* — once the compressor cuts, `q→0` so the subtraction is inert and
 the measured derivative (actrl already computes temp derivatives) plus a
 `q` estimate from compressor-speed + damper state. Whether an observer
 built only from controller-observable `q` proxies captures the oracle
-benefit is the key open question before any deploy.
+benefit is the key open question before any deploy. (Answered YES —
+next section.)
+
+## Bulk-state estimator — realizable observer + equal-comfort (2026-07-05, ideas.md #1)
+
+Both open questions from the oracle A/B above are now answered, same 5
+days, same A/B channel.
+
+**(a) Equal-comfort re-run** (`analysis/equal_comfort_bulk.py`): the
+oracle arm additionally reads every room `delta` K warm (equivalent to
+lowering its targets by delta; scoring bands untouched), swept
+delta ∈ {0.1..0.4}. At **delta = +0.2 K the oracle returns to baseline
+energy** (35.86 vs 35.14 kWh summed, +2%) with **~equal comfort**
+(deg_min_below sum 72.4 vs 68.3 K·min — mild days give back a few
+K·min while 06-21 improves; medians alone said −22%, a median artifact)
+and **strictly better cycling** (starts 21 vs 29, osc −24%). Corrected
+framing: at matched energy *and* comfort, the estimator's free benefit
+is the **cycling reduction** (compressor wear + COP-per-kWh), not
+comfort. The comfort win is bought with energy, and the trim delta is
+the dial. (+0.3 is past the knee: comfort degrades with no energy gain.)
+
+**(b) Realizable observer** (`analysis/observer_bulk_estimator.py`):
+`T_est = Tm + tau_meas·dṪm − lead·q̂` from controller-observable signals
+only — Tm quantized to 0.01 K at the 10 s cycle, derivative from a
+first-order-filtered finite difference (tau 120 s; 60/240 both worse,
+sensitivity mild), q̂ from the *previous* cycle's electrical power
+(production reads `power.outdoor_unit`) through the fitted COP model and
+commanded damper shares, with **no knowledge of the q-lag or defrost**.
+tau_meas/lead are the fitted calibration constants.
+
+5-day results (sums; medians in the scripts' output):
+
+| arm | deg_min_below K·min | starts | osc sum | kWh | ΔE |
+|---|---|---|---|---|---|
+| baseline | 68.3 | 29 | 6.65 | 35.14 | — |
+| oracle (true bulk T) | 36.1 | 24 | 5.00 | 38.43 | +9.4% |
+| observer | 36.2 | 20 | 4.68 | 42.45 | +20.8% |
+| **observer +0.2 K trim** | **37.8** | **16** | **4.59** | **39.18** | **+11.5%** |
+
+- The raw observer **fully recovers the oracle's comfort** (36.2 vs 36.1
+  K·min) and beats it on cycling, but runs ~+11% hotter than the oracle:
+  a systematic *cold* bias (filtered derivative lags warmup ramps;
+  defrost-blind q̂ infers heat that was never delivered) makes it heat
+  more.
+- The bias is trimmable with the same warm offset from (a): **observer
+  +0.2 K matches oracle comfort at +2% more energy than the oracle, with
+  the fewest starts of any arm (16 vs baseline 29, −45%)**. It also
+  dominates the raw observer outright.
+- So the answer to the oracle's key open question is **yes**: an observer
+  built only from what production actrl can see captures the full
+  benefit. The estimator idea survives realizability.
+
+Deploy considerations, in order:
+
+1. The comfort/energy split is a policy dial (the trim / effective
+   targets), not a property of the observer — pick the point at deploy
+   time; equal-energy gets the cycling win for free, +11% energy buys
+   cold-time −45%.
+2. Residual +2% vs oracle is mostly the defrost-blind q̂; production
+   could detect defrost from the power signature (~1 kW draw, zero heat)
+   and zero q̂ during it. Untested refinement.
+3. The observer needs per-room `tau_meas`/`lead` constants in actrl and
+   a q̂ path (power sensor + damper shares + COP curve). The sim's
+   fitted values transfer, but sim-fitted lead constants are loop
+   thresholds (sim/house.py) — a staged rollout with the controller CI
+   gate (analysis/controller_ci.py) plus a day of shadow-mode logging
+   (log T_est alongside Tm, act on Tm) is the prudent first step.
