@@ -615,3 +615,25 @@ Fixes for the fidelity caveats above, in service of room-PID tuning:
   felt sluggishness must live in sub-K imbalances where room_ki does
   the work — probed by `analysis/rebalance_step.py` (sim injection of a
   +0.5 K read bias on one zone, latency counted in running minutes).
+
+Probe outcomes (2026-07-05 eve, analysis/rebalance_step.py on 06-22):
+
+- **Evening (19:00) injection: gains DON'T bind.** Latency ~100 running
+  min and settle ~76-86% across room_ki x1..x8 — the shed is blocked by
+  actrl's minimum-airflow inflation loop, not integral speed: with the
+  kitchen the only calling zone, every shed attempt violates min airflow
+  and re-inflates ALL integrals (kitchen first — largest airflow
+  weight). Structural, gain-independent; also means a summer-override
+  zone can stay served whenever it's needed to carry min airflow.
+- **Deep-warmup (07:00) injection: ±0.5 K doesn't bind either** —
+  everyone is saturated 2-3 K below target, so a sub-K bias doesn't
+  reorder authority (and the probe's settle window needs a bounded
+  horizon for morning injections; metric artifact noted).
+- Net: the sub-K contention regime the room gains actually govern
+  BARELY EXISTS in the winter schedule — one dominant zone at a time.
+  The right vehicle for the gain sweep is the synthetic
+  divergent-target scenario (multiple zones held near-target, then
+  biased), which is also the honest summer-override proxy.
+- Noise-texture standard config for sweeps: kitchen 2.6 + ctrl_noise
+  sigma 0.012 K / tau 15 s -> damper move rates within ~±30% of recorded
+  (bed_1 0.33 vs 0.39, kitchen 0.44 vs 0.54, bed_3 0.69 vs 0.49 mv/h).
