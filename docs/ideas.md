@@ -174,7 +174,7 @@ Ranked roughly by expected payoff. Each is testable with tools that now
 exist (closed-loop sim, analysis/tune.py, analysis/preheat.py,
 analysis/comfort.py, the native-cadence raw archive).
 
-- **Bulk-state estimator in the controller** (structural, high confidence).
+- `[~]` **Bulk-state estimator in the controller** (structural, high confidence).
   The room sensors read a fast air node, not the bulk mass (task 009): they
   over-read progress while running (lead_h*q) and sag ~2 K/h for ~10 min
   after every stop — sensor relaxation, not real heat loss. The controller
@@ -183,6 +183,16 @@ analysis/comfort.py, the native-cadence raw archive).
   (already-fitted) lead model inside actrl — control on estimated bulk
   temperature instead of raw sensor — should cut cycling and overshoot in
   one move. The sim can A/B this exactly since it models both nodes.
+  Oracle A/B done 2026-07-05 (`analysis/oracle_bulk_estimator.py`, findings
+  in docs/tuning.md): directionally confirmed but reframed — the real win
+  is cold-time (deg_min_below −58%) and cycling (−31% osc, −1–2 starts/day),
+  NOT overshoot (above-band discomfort is already 0 in heating; the sensor
+  lead was masking chronic under-heating). Costs +9% energy = the
+  previously-missing heat, so it's a comfort/energy rebalance not a free
+  lunch. Open: (a) a *realizable* observer — literal `Tm − lead·q` fixes
+  only the in-run lead, the post-stop sag needs `Tm + tau_meas·dṪm − lead·q`
+  with a q proxy; (b) an equal-comfort comparison to isolate the pure
+  cycling/energy benefit.
 
 - **Thermal-mass arbitrage / heat banking** (energy, medium-high).
   COP moves ~5%/K of outdoor temp; June days swing 5-10 K; house tau ~30 h,

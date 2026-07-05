@@ -226,3 +226,62 @@ At real measured noise the recommendation's margins are intact (combo
 osc +3%, +1 start/day; every comfort advantage preserved). The
 sub-minute-band unknown is CLOSED with data: staged rollout is now
 ordinary prudence, not a necessary control.
+
+## Bulk-state estimator — oracle A/B (2026-07-05, ideas.md #1)
+
+The room sensors read the fast measured-air lead node `Tm`, not the bulk
+mass `T` (task 009): while heating `Tm = T + lead·q` (over-reads
+progress), and after a stop `Tm` sags ~2 K/h toward `T` for ~10 min.
+Idea #1: control on estimated bulk `T` instead of the raw sensor to cut
+cycling and premature satisfaction.
+
+Test is an **oracle upper bound**: feed the controller the true bulk `T`
+(a perfect de-leaded estimator), while comfort is *still* scored on
+`Tm + offset` (the experienced/sensor signal) in both arms — so this
+bounds the best achievable payoff. Only what `_write_room_temps` presents
+to actrl changes; plant/HVAC/scoring untouched. 5 days (06-09 mild, 06-21,
+06-22 cold, 06-27 warmup, 06-30 overcast). `scratchpad`-style driver kept
+at `analysis/oracle_bulk_estimator.py`. Medians:
+
+| metric | baseline | oracle | delta |
+|---|---|---|---|
+| time_in_band | .954 | .984 | +.030 |
+| deg_min_below | 19.6 | 8.3 | **−58%** |
+| deg_min_above / overshoot_max | 0.0 | 0.0 | 0 (never breaches high band) |
+| overshoot_rise_max | 1.11 | 1.62 | +0.52 (within band) |
+| osc_per_h | 1.45 | 1.00 | −31% |
+| starts | 6 | 5 | −1 (−2 on cold days) |
+| abovemin_frac | .158 | .113 | −29% |
+| rise_time_med | 117 | 110 | −7 min |
+| energy_kwh | 9.46 | 10.28 | +9% |
+
+Reading — the idea is directionally right but the framing needs
+correcting. It is **not** "cut cycling AND overshoot for free":
+
+- The real, large win is **cold-time**: `deg_min_below` −58%, concentrated
+  in the high-load rooms (06-22: bed_1 55→33, kitchen 70→48 K·min; the
+  three small rooms were already ~0). The baseline was *chronically
+  under-heating* — the in-run lead faked "arrived" and the controller cut
+  early. Above-band discomfort (`deg_min_above`, `overshoot_max`) is 0 in
+  BOTH arms, so the +0.5 K `overshoot_rise` is just warmer settling inside
+  the wide heat_cool band, not discomfort. In heating season the overshoot
+  worry is a non-issue.
+- **Cycling does improve**: −1–2 starts/day, −31% oscillation, −29% time
+  above min power (→ better COP per delivered kWh).
+- The **+9% energy is real, previously-missing heat**, not inefficiency.
+  Attribution on 06-22: the extra energy lands in the morning warmup
+  window (00–12) while *midday* energy drops (12–18: 0.66→0.46 kWh) as
+  cycling falls. So it's a comfort/energy **rebalance** (less cold, fewer
+  cycles, more kWh), not a Pareto free lunch. A fair equal-comfort
+  comparison would drop the oracle-arm targets to spend the saved cold-time
+  back as energy — untested, the obvious next step.
+
+Realizability caveat (important): the literal "invert the lead model"
+(`T_est = Tm − lead·q`) fixes the *in-run* lead but NOT the *post-stop
+sag* — once the compressor cuts, `q→0` so the subtraction is inert and
+`T_est = Tm`, which still sags. Recovering the full oracle needs a
+*dynamic* observer, `T_est = Tm + tau_meas·dṪm − lead·q`, i.e. it must use
+the measured derivative (actrl already computes temp derivatives) plus a
+`q` estimate from compressor-speed + damper state. Whether an observer
+built only from controller-observable `q` proxies captures the oracle
+benefit is the key open question before any deploy.
