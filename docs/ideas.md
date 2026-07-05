@@ -167,3 +167,84 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
 - Won't do (for now): anything building on statctrl adaptive optimum start
   (e.g. exposing learned minutes-per-degree as sensors) — feature trialed
   and deliberately left inert, not a focus area (docs/statctrl.md).
+
+## 5. Hypotheses from the calibration/tuning sessions (2026-07-05, Fable brainstorm)
+
+Ranked roughly by expected payoff. Each is testable with tools that now
+exist (closed-loop sim, analysis/tune.py, analysis/preheat.py,
+analysis/comfort.py, the native-cadence raw archive).
+
+- **Bulk-state estimator in the controller** (structural, high confidence).
+  The room sensors read a fast air node, not the bulk mass (task 009): they
+  over-read progress while running (lead_h*q) and sag ~2 K/h for ~10 min
+  after every stop — sensor relaxation, not real heat loss. The controller
+  reacts to both artifacts: post-stop sags can retrigger runs early
+  (cycling), and in-run leads cause premature satisfaction. Inverting the
+  (already-fitted) lead model inside actrl — control on estimated bulk
+  temperature instead of raw sensor — should cut cycling and overshoot in
+  one move. The sim can A/B this exactly since it models both nodes.
+
+- **Thermal-mass arbitrage / heat banking** (energy, medium-high).
+  COP moves ~5%/K of outdoor temp; June days swing 5-10 K; house tau ~30 h,
+  so heat stored at 15:00 is substantially still there at 21:00. Hypothesis:
+  shifting the evening comfort load into the warm/solar afternoon (pre-heat
+  1-2 K above target on a decaying schedule) is cheaper per delivered
+  degree-hour than heating at 18:00-21:00, even before PV self-consumption
+  credit. preheat.py generalises directly (evening deadline instead of
+  morning). Connects to the existing grid-surplus target widening.
+
+- **Mild-day timing freedom is a feature** (energy/PV, medium-high).
+  The mild-day "run-decision degeneracy" (sim -41% energy, same comfort)
+  isn't a model bug to fix — it says on mild days run *timing* is nearly
+  free. That's exactly when PV surplus exists. A statctrl rule "on
+  forecast-mild days, bias all discretionary running into the PV window"
+  costs ~zero comfort by construction. The sim can bound the comfort cost.
+
+- **Duct losses may be the biggest efficiency lever, and they're
+  measurable** (physical, medium). The closed-loop energy refit scaled
+  heat-per-kWh by 0.80; some of that is fit error, but if even half is real
+  duct/roof-space loss, ~10-20% of every heating kWh is warming the roof.
+  The m5atom coil temperature entities (inside_coil_inlet, inside_temp) +
+  fan state could estimate coil-side output vs the fitted room-side
+  delivery on the same runs, splitting COP error from duct loss. If ducts
+  are leaking heat, insulation beats any control change ever tested here.
+
+- **Schedule-aware gain scheduling** (tuning, medium). The deadband_ki x4
+  comfort win concentrates in transients (warmups/tapers); its noise
+  sensitivity concentrates in steady state (oscillation tax appears >~0.03 K
+  noise). Hypothesis: high ki only while |weighted_error| or the schedule
+  ramp is active, standard ki in steady state — transient benefits without
+  the steady-state risk margin. Trivial to express in control.py, easy to
+  sweep in tune.py.
+
+- **Stagger the morning room deadlines** (energy/comfort, medium-low).
+  All rooms currently warm up together into the coldest hour (worst COP +
+  defrost accumulation + peak load forces high compressor speeds). One
+  shared compressor means simultaneous deadlines fight each other.
+  Staggering (e.g. bedrooms first, kitchen 30-45 min later, or by room
+  time-constant) flattens demand into the min-power regime the unit is
+  demonstrably most efficient in. preheat.py + per-room synth schedules can
+  test this now.
+
+- **Defrost-aware run shaping** (energy, low-medium). Defrost triggers on
+  accumulated cold-running time (~145 min below 7.5 C) and purges every
+  ~90 min at low speed. On marginal cold mornings, deliberately splitting
+  the warmup into blocks that reset the accumulators (or timing the ramp so
+  defrost lands before the comfort deadline, not at it) might avoid paying
+  defrost during the critical window. The sim models both mechanisms;
+  wholly untested.
+
+- **Controller CI via the sim** (workflow, low effort/high leverage).
+  Every future actrl/control change gets replayed over 3 canonical days
+  (cold 06-22, overcast 06-30, mild 06-09) with comfort metrics diffed
+  against the standing baseline before deploy — the tuning harness already
+  does everything except run in CI. Catches "the new logic cycles the
+  compressor 2x" regressions for ~10 min of compute.
+
+- **Summer flips the solar geometry** (calibration, seasonal note). The NE
+  morning beam that *helps* winter heating becomes a cooling load on summer
+  mornings (bed_2/bed_3 first), and the currently-zero NW terms will
+  activate on summer evenings (sun sets further south, lower, into the
+  glazing). Cooling calibration should expect the bias pattern to invert by
+  orientation and time of day; bed_2's neighbour-wall shading prediction
+  (solar r2 should rise in summer) doubles as a model check.
