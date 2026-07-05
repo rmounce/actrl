@@ -393,3 +393,43 @@ study's constants are the least trustworthy twice over — no fan AND its
 lead was a pooled bedroom prior (no clean fit events); (b) changing the
 fan automation (speed, delay, which rooms) invalidates the lead fit —
 refit before trusting sim conclusions after any such change.
+
+## Room/damper PID gains — divergent-target sweep (2026-07-05, tasks #4/#5)
+
+The summer-override proxy (`analysis/divergent_targets.py`): winter replay
+day, all five zones' targets pinned to (own temp + 0.5 K) from 16:00 —
+sub-K contention the winter schedule never produces — then at 19:00 bed_2
+steps +1 K (wants more) and bed_3 steps −2 K (satisfied). Gains swept with
+the standard texture config (kitchen 2.6, noise 0.012 K/15 s). Three
+evenings (06-21/22/27) + a second seed:
+
+- **Current gains (kp 1.0, ki 0.001) handle K-scale override events
+  well**: the wants-more zone is served in 0–7 running minutes and the
+  satisfied zone sheds −76..−79 damper points, consistently across days
+  and seeds. kp alone covers K-scale steps; the years-old detune did not
+  break the override use case.
+- **Raising gains buys little and hunts**: ki x4 pushes quiet-period
+  damper movement to ~2.5x the recorded envelope (0.99–1.06 vs 0.4–0.5
+  mv/h — the remembered hand-tuning hunting, reproduced in sim); kp x2 +
+  ki x4 gives the best tail tracking (err_all 0.31–0.35 vs 0.35–0.53)
+  and strongest sheds but still idles hot on 2 of 3 days (pre_mv 1.65,
+  2.40); ki x2 is inconsistent day-to-day (06-21: err_all WORSE, 0.66).
+  No robust win anywhere. **Recommendation: leave room_kp/room_ki
+  alone.** The sim confirms the hand-tuned point sits at about the real
+  hunting margin — with sensor noise modelled, there is no free
+  rebalance speed on the table.
+- **The actual structural limit is the minimum-airflow inflation loop**
+  (docs/calibration.md rebalance probes): sub-K sheds are blocked
+  gain-independently because every shed attempt that would violate
+  minimum airflow re-inflates ALL integrals (kitchen first, largest
+  airflow weight). K-scale sheds punch through via kp; sub-K ones never
+  do. If summer sluggishness persists in practice, the lever is that
+  loop's design — e.g. inflating only zones with positive demand, or
+  excluding deeply-satisfied zones — a control-logic change (Ryan's
+  call), not a tuning constant. Sim-testable with this same scenario
+  before any deploy, plus the controller CI gate.
+
+Caveats: winter physics (heating), one scenario shape, 10 s replay
+cadence; cooling-season dynamics unvalidated until the summer archive
+accumulates. The scenario driver is reusable as-is for cooling once
+summer data exists.
