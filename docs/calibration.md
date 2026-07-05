@@ -637,3 +637,34 @@ Probe outcomes (2026-07-05 eve, analysis/rebalance_step.py on 06-22):
 - Noise-texture standard config for sweeps: kitchen 2.6 + ctrl_noise
   sigma 0.012 K / tau 15 s -> damper move rates within ~±30% of recorded
   (bed_1 0.33 vs 0.39, kitchen 0.44 vs 0.54, bed_3 0.69 vs 0.49 mv/h).
+
+## Known residual: kitchen cold-morning warmup onset (2026-07-06, Ryan's catch)
+
+Spotted on the texture-comparison artifact: on 06-22 the sim's kitchen
+damper lags the recorded ramp-up ~30-45 min (06:10 recorded 80% vs sim
+35%) and misses the recorded mid-ramp shed (95→50% across 06:30-07:10).
+Diagnosis:
+
+- The REAL kitchen runs ahead of the statctrl ramp (+0.4 K above the
+  ramping target by 06:20), so its PID sheds; the sim kitchen runs
+  behind and keeps demanding. Damper divergence is downstream of a
+  plant-side warmup-speed gap, not the zone controller.
+- 06:00-07:00 kitchen temp-rise gap (rec − sim) across 10 mornings:
+  ~0 on mild mornings (06-04/05/08: −0.15..−0.01) and large on the
+  coldest (06-22 +1.01, 06-25 +0.59, 06-26 +0.60, 06-29 +0.46 K/h;
+  median +0.28). The gap scales with how hard the unit ramps →
+  high-power warmup physics: the kitchen lead node was fitted on midday
+  MIN-POWER cycling (sim/house.py), and the static damper/airflow split
+  may underweight the kitchen at full fan. (Breakfast internal gains
+  would not correlate with outdoor cold.)
+- NOT caused by the mass 2.6 refit — A/B on 06-22 shows 2.0 was worse
+  in this window (06:10 damper 20% vs 35%; temps equal-slow). The
+  refit's 05:00-11:00 gated means hid the sub-window shape.
+- Converges by ~07:50 (temps and dampers) every morning checked.
+
+Impact: modest — kitchen authority during the first warmup hour reads
+low in sim on cold mornings; whole-morning gated stats and the June
+scorecard are unaffected. Candidate fix if it ever matters: refit the
+kitchen lead/flow share against warmup onsets (high-q events) instead of
+only midday cycling; treat as a q-dependent lead or a fan-speed-dependent
+flow split. Logged as a residual, not chased further now.
