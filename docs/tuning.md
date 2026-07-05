@@ -195,3 +195,34 @@ x4 gain starts paying an oscillation tax. The staged rollout (x2 first,
 watch recorded oscillation) is the right control for exactly this
 unknown. Sub-minute noise could be measured directly by logging one
 room's raw sensor at 10 s for a day before deploying.
+
+## Sub-minute noise band measured directly (2026-07-05)
+
+Ryan asked whether recent live HA data could characterise the noise; it
+turned out the monthly raw export already carries it — HA's InfluxDB
+integration records every state change, and data/raw/ keeps the
+un-resampled stream (~8,900 changes/day per room sensor, median ~8 s
+spacing = the native cadence the controller samples; HA recorder would
+return the identical series).
+
+Controller-eye measurement (10 s ffill grid, 5-min detrend, quiet HVAC-off
+nights, 6 days): sigma_10s = 0.010 (kitchen) to 0.014 K (bed_1/2),
+lag-1 rho 0.1-0.4 (correlation time ~10-20 s), decorrelated by 1 min.
+About 2x the 1-min-archive floor (resampling had averaged it down), and
+2-3x BELOW the ~0.03 K level where the matrix shows high gains paying an
+oscillation tax.
+
+Confirmation run at matched parameters (sigma 0.014, tau 15 s, 6-day set):
+
+| | baseline | combo_xdr |
+|---|---|---|
+| overshoot | 1.16 (noiseless 1.19) | 0.84 (0.84) |
+| rise med | 114 (116) | 105 (106) |
+| deg_min_below | 9.7 (12.9) | 9.4 (10.7) |
+| osc/h | 1.36 (1.43) | 1.57 (1.52) |
+| kWh / starts | 7.02 / 6 (7.02 / 5.5) | 7.09 / 7 (7.00 / 6) |
+
+At real measured noise the recommendation's margins are intact (combo
+osc +3%, +1 start/day; every comfort advantage preserved). The
+sub-minute-band unknown is CLOSED with data: staged rollout is now
+ordinary prudence, not a necessary control.
