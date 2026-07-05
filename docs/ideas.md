@@ -276,12 +276,19 @@ analysis/comfort.py, the native-cadence raw archive).
   defrost during the critical window. The sim models both mechanisms;
   wholly untested.
 
-- **Controller CI via the sim** (workflow, low effort/high leverage).
+- `[x]` **Controller CI via the sim** (workflow, low effort/high leverage).
   Every future actrl/control change gets replayed over 3 canonical days
   (cold 06-22, overcast 06-30, mild 06-09) with comfort metrics diffed
   against the standing baseline before deploy — the tuning harness already
   does everything except run in CI. Catches "the new logic cycles the
   compressor 2x" regressions for ~10 min of compute.
+  Done 2026-07-05: `analysis/controller_ci.py` (+ committed
+  `analysis/ci_baseline.json`, `tests/test_controller_ci.py`). Local
+  pre-deploy gate (data/ is gitignored): replays production actrl/control
+  over the 3 days, **per-day worst-case** diff vs baseline (median hid a
+  cold-day-only regression), exits 1 on any gated metric past threshold.
+  energy/abovemin are info-only (tuning trades them). `--update-baseline`
+  to re-pin after an intended change; `--set` to gate a candidate config.
 
 - **Summer flips the solar geometry** (calibration, seasonal note). The NE
   morning beam that *helps* winter heating becomes a cooling load on summer

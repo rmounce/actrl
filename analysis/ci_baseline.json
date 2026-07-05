@@ -1,0 +1,51 @@
+{
+  "days": [
+    "2026-06-22",
+    "2026-06-30",
+    "2026-06-09"
+  ],
+  "metrics": {
+    "2026-06-22": {
+      "time_in_band": 0.9536111111111112,
+      "deg_min_below": 25.887163630028283,
+      "deg_min_above": 0.0,
+      "rise_events": 2,
+      "rise_time_med": 131.0,
+      "rise_events_unmet": 0,
+      "overshoot_max": 0.0,
+      "overshoot_rise_max": 1.1046024586070189,
+      "osc_per_h": 1.7586206896551726,
+      "energy_kwh": 11.460009596208161,
+      "starts": 9,
+      "abovemin_frac": 0.15833333333333333
+    },
+    "2026-06-30": {
+      "time_in_band": 0.9973611111111111,
+      "deg_min_below": 0.23242111821898917,
+      "deg_min_above": 0.0,
+      "rise_events": 2,
+      "rise_time_med": 104.5,
+      "rise_events_unmet": 0,
+      "overshoot_max": 0.0,
+      "overshoot_rise_max": 0.8269144850438792,
+      "osc_per_h": 2.380952380952381,
+      "energy_kwh": 3.1273831422922997,
+      "starts": 6,
+      "abovemin_frac": 0.021527777777777778
+    },
+    "2026-06-09": {
+      "time_in_band": 0.9873611111111111,
+      "deg_min_below": 2.5749893279011067,
+      "deg_min_above": 0.0,
+      "rise_events": 2,
+      "rise_time_med": 117.0,
+      "rise_events_unmet": 0,
+      "overshoot_max": 0.0,
+      "overshoot_rise_max": 0.8330232096822208,
+      "osc_per_h": 0.0,
+      "energy_kwh": 1.607294205239254,
+      "starts": 1,
+      "abovemin_frac": 0.019444444444444445
+    }
+  }
+}
