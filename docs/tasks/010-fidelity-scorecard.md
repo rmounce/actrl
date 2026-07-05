@@ -165,6 +165,22 @@ main output — the baseline the tuning phase will be scored against).
   median +3 min, bed_1 noise-free move rate 0.34/h (was 0.00 — the
   over-credited kitchen was distorting morning texture beyond its own
   bias). on_frac drifted +2 pp high (was -0.6 pp low); watch it.
+- 2026-07-06 (after kitchen warmup-onset refit, lead_q_h["kitchen"] 0.2,
+  analysis/kitchen_onset_refit.py): THE STANDING BASELINE. A trade,
+  adopted per the texture-over-energy priority: cold-morning kitchen
+  onset gaps −20-30% and cycle texture closer everywhere (on_frac 0.195
+  was 0.200 vs rec 0.184; off_min 172 was 187 vs rec 164; abovemin 0.047
+  was 0.055 vs rec 0.038; starts 5.5 was 5 vs rec 6) at the cost of
+  energy_pct −0.029 median / −0.036 mean (was −0.001/−0.002) and
+  noise-level RMSE upticks (kit_rmse 0.342 was 0.332, rms_all 0.656 was
+  0.649). Damper fidelity: kitchen gated bias −5.2 (was −1.3, still ≪
+  the pre-mass-refit −13.5), handoff n=10 median +4 min, bed_1 −0.6.
+  KNOWN ISSUE flagged in docs/calibration.md: the 06-22 MIDDAY cycling
+  window (4/4 starts, 26%/26% on-frac, the 2026-07-03 kitchen-lead
+  anchor) no longer matches (1|4, 8%|26%) — pre-existing, not from the
+  mass or onset refits (identical at mass 2.0); suspects are tasks
+  012/013 / the e-level refit; whole-June and evening windows still
+  match. Re-anchor midday when next touching unit-emulator behaviour.
 - 2026-07-04 NEGATIVE RESULT (do not re-chase): hypothesis that the
   early taper end came from e(P) overcrediting heat at low power was
   tested by pivoting the e slope at 1.8 kW (b in {-0.04, 0, +0.04,

@@ -132,6 +132,33 @@ _DEFAULT_LEAD = {
     "kitchen": 0.45,
     "study": 0.40,
 }
+# q-sensitivity of the lead amplitude: lead_eff = lead_h * (1 + lead_q_h * q).
+# The constant leads above were fitted on midday MIN-POWER cycling; recorded
+# cold-morning warmup onsets show the kitchen sensor running 0.3-1 K/h ahead
+# of the sim's — a lead that grows with delivered q (docs/calibration.md
+# "kitchen cold-morning warmup onset"). 0.0 = the pre-existing linear model.
+_DEFAULT_LEAD_Q = {
+    "bed_1": 0.0,
+    "bed_2": 0.0,
+    "bed_3": 0.0,
+    # 0.2 fitted 2026-07-06 (analysis/kitchen_onset_refit.py) against the
+    # cold-morning warmup onsets: kitchen day RMSE 0.356->0.334, onset gap
+    # -25%, mild-day control and the 06-22 cycling windows unchanged.
+    # Larger values trade mild-day fidelity away without closing the rest
+    # of the gap -- the remainder is controller integral-state divergence,
+    # not sensor physics (docs/calibration.md "kitchen cold-morning
+    # warmup onset", 2026-07-06 update).
+    "kitchen": 0.2,
+    "study": 0.0,
+}
+# q-sensitivity of the sensor-pocket coupling speed (see RoomParams.tau_q_h).
+_DEFAULT_TAU_Q = {
+    "bed_1": 0.0,
+    "bed_2": 0.0,
+    "bed_3": 0.0,
+    "kitchen": 0.0,
+    "study": 0.0,
+}
 
 
 @dataclass(frozen=True)
@@ -154,6 +181,14 @@ class RoomParams:
     # defaults stay 0.0 until a separate calibration commit lands values.
     tau_meas_h: float = 0.0
     lead_h: float = 0.0
+    # lead_eff = lead_h * (1 + lead_q_h * q_i): the sensor's lead amplitude
+    # grows with delivered heat (0.0 = plain linear lead, exact pre-existing
+    # behaviour). Fitted only where warmup-onset data demanded it.
+    lead_q_h: float = 0.0
+    # tau_eff = tau_meas_h / (1 + tau_q_h * q_i): the sensor pocket couples
+    # faster the harder air is being delivered (high fan). 0.0 = constant
+    # tau, exact pre-existing behaviour.
+    tau_q_h: float = 0.0
 
     @property
     def a(self) -> float:
@@ -182,6 +217,8 @@ def _default_rooms() -> dict[str, RoomParams]:
             s_nw=_DEFAULT_S_NW[room],
             tau_meas_h=_DEFAULT_TAU_MEAS[room],
             lead_h=_DEFAULT_LEAD[room],
+            lead_q_h=_DEFAULT_LEAD_Q[room],
+            tau_q_h=_DEFAULT_TAU_Q[room],
         )
         for room in ROOMS
     }
@@ -326,7 +363,9 @@ class House:
             # approximation.
             if p.tau_meas_h > 0.0:
                 tm_i = current_measured[room]
-                dTmdt = ((t_i + p.lead_h * q_i) - tm_i) / p.tau_meas_h
+                lead_eff = p.lead_h * (1.0 + p.lead_q_h * q_i)
+                tau_eff = p.tau_meas_h / (1.0 + p.tau_q_h * q_i)
+                dTmdt = ((t_i + lead_eff * q_i) - tm_i) / tau_eff
                 new_temps_measured[room] = tm_i + dt_h * dTmdt
             else:
                 new_temps_measured[room] = new_temps[room]

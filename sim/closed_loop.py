@@ -251,6 +251,13 @@ class ClosedLoop:
             **{f"T_{r}": self.house.temps[r] for r in ROOMS},
             **{f"Tm_{r}": self.house.temps_measured[r] for r in ROOMS},
             **{f"damper_{r}": self._damper_positions()[r] for r in ROOMS},
+            # per-room PID outputs as actrl publishes them -- the
+            # controller-eye signal for zone-authority debugging (the
+            # recorded archive has the same series as {room}_pid)
+            **{
+                f"pid_{r}": _entity_float(self.world, f"input_number.{r}_pid")
+                for r in ROOMS
+            },
             "weighted_error": _entity_float(
                 self.world, "input_number.aircon_weighted_error"
             ),
