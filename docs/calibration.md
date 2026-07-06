@@ -792,3 +792,14 @@ sensors are NOT in InfluxDB — only bed_2_door exists there, bed_1_door
 has no recorded data — so no correction is possible from history).
 Overall scatter is wide (IQR spans ~0.7); mild curvature either way
 can't be excluded, only strong concavity (beta ≤ 0.5) is ruled out.
+
+Sensitivity (2026-07-06, sim hook `sim/closed_loop.py DAMPER_FLOW_BETA`,
+default 1.0): replaying at beta 1.25 moves June fidelity medians <=0.01
+on every scorecard metric (worst single-day delta 0.009 — dampers sit at
+0/100 most winter minutes, so beta is invisible there), and the gamma 1.5
+sub-K conclusions reproduce at beta 1.25 with slightly LARGER comfort
+margins (err_all 0.67->0.59 vs 0.67->0.64 at beta 1.0). Verdict: leave
+the sim linear (beta 1.0); the measured curve is too weak an anchor to
+adopt and nothing tested depends on it. Refit from summer data (per-zone
+overrides will give real mid-range damper coverage), together with the
+kitchen MASS_WEIGHT it is degenerate with in winter.

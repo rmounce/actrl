@@ -62,7 +62,10 @@ def make_share(gamma: float):
 
 
 def overrides_for(gamma: float) -> dict:
-    return {} if gamma == 1.0 else {"actrl.damper_share": make_share(gamma)}
+    # Always override explicitly: production's damper_share_gamma is no
+    # longer 1.0 (gamma 1.5 adopted 2026-07-06), so "no override" is NOT
+    # the linear arm.
+    return {"actrl.damper_share": make_share(gamma)}
 
 
 def run_scenario(args) -> None:

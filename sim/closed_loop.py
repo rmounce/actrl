@@ -68,6 +68,13 @@ AIRFLOW_WEIGHTS = {"bed_1": 1.0, "bed_2": 1.0, "bed_3": 1.0, "study": 1.0, "kitc
 # "Bedroom 1 + WIR", "Bedroom 2", "Bedroom 3", "Study"; normalised so the
 # four rooms' average weight is 1.0 (matching the old equal-weight scale).
 MASS_WEIGHTS = {"bed_1": 1.395, "bed_2": 0.893, "bed_3": 1.070, "study": 0.642, "kitchen": 2.6}
+# Damper position -> flow curve exponent (flow share ~ position**BETA).
+# Measured linear-to-mildly-convex, beta median 1.24 IQR [1.05, 1.73] on
+# June data (analysis/damper_flow_fit.py, docs/calibration.md) -- too weak
+# an anchor to adopt, and MASS_WEIGHTS were calibrated at 1.0 (kitchen 2.6
+# absorbs any mid-range curvature), so this stays 1.0 until summer data
+# gives real mid-range coverage. Sensitivity hook only.
+DAMPER_FLOW_BETA = 1.0
 FOLLOW_ME_SERVICE = "esphome/m5atom_send_follow_me"
 UNIT_CLIMATE = "climate.m5atom_climate"
 
@@ -153,6 +160,8 @@ class ClosedLoop:
     def _room_q(self, q_house: float) -> dict[str, float]:
         dampers = self._damper_positions()
         sum_mass = sum(MASS_WEIGHTS.values())
+        if DAMPER_FLOW_BETA != 1.0:
+            dampers = {r: d ** DAMPER_FLOW_BETA for r, d in dampers.items()}
         flows = {r: dampers[r] * AIRFLOW_WEIGHTS[r] for r in ROOMS}
         total_flow = sum(flows.values())
         if total_flow <= 0:
