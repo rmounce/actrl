@@ -467,21 +467,24 @@ price_horizon_h = 8.0
 price_bank_max_k = 1.5
 price_shave_max_k = 0.75
 
-# Forecast-price calibration knots (analysis/fc_calibration.py, fitted on
-# ALL winter data to 2026-07-06, months 5-8, ~3 h lead -- the
-# "insurance-premium" fit, docs/pricing.md "Phase C fork"). All in retail
-# import $/kWh. e_actual = E[actual | forecast] (restores the fat-tail
-# value that predispatch magnitude understates); upside = E[(actual-fc)+]
-# (the insurance term for the warmup chooser's g_lambda). Refresh
-# monthly-ish as data accumulates by re-running fc_calibration.py.
+# Forecast-price calibration knots (analysis/fc_calibration.py --apf-log,
+# fitted 2026-07-07 on the APF forecast log 2025-07-20..2026-07-06, months
+# 5-8, ~3 h lead, all data = "insurance-premium" fit -- docs/pricing.md).
+# The APF (LGBM p50 behind the EMHASS unit_load_cost feed) is the forecast
+# family production actually consumes. All in retail import $/kWh.
+# e_actual = E[actual | forecast]; upside = E[(actual-fc)+] (the insurance
+# term for the warmup chooser's g_lambda). NOTE vs the predispatch fit:
+# the APF never forecasts above ~$0.90 retail, so there is no fat top bin
+# -- high APF forecasts mildly over-predict and spike value lives in the
+# mid-bin upside terms instead. Refresh monthly-ish as data accumulates.
 fc_knots_retail = [
-    0.0967, 0.1699, 0.2261, 0.2752, 0.3423, 0.4790, 0.6393, 0.8964, 5.9483,
+    0.0968, 0.1690, 0.2271, 0.2740, 0.3277, 0.4929, 0.6155, 0.8997,
 ]
 fc_knots_e_actual = [
-    0.1138, 0.1821, 0.2377, 0.2851, 0.3499, 0.4945, 0.6364, 0.8485, 2.9321,
+    0.1041, 0.1772, 0.2445, 0.2865, 0.3824, 0.5906, 0.6474, 0.7632,
 ]
 fc_knots_upside = [
-    0.0236, 0.0190, 0.0237, 0.0241, 0.0286, 0.0631, 0.0415, 0.1041, 0.3369,
+    0.0144, 0.0134, 0.0253, 0.0208, 0.0644, 0.1118, 0.0519, 0.0343,
 ]
 
 # Warmup-start chooser constants (docs/pricing.md "Warmup-start chooser").

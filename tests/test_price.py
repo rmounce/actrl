@@ -30,15 +30,15 @@ import scenarios
 # --- fixture from analysis/warmup_shift.py (see module docstring) ---------
 
 ANALYSIS_COSTS_LOCAL_HH = {
-    1.0: 5.993590795559341,
-    1.5: 5.954305475314154,
-    2.0: 5.913035666288752,
-    2.5: 5.869777581194315,
-    3.0: 5.824527421889915,
-    3.5: 5.777281379341016,
-    4.0: 11.744535195596875,
-    4.5: 17.67964434318826,
-    5.0: 23.582547181671092,
+    1.0: 5.801774916349577,
+    1.5: 5.7628735337935115,
+    2.0: 5.72200705697996,
+    2.5: 5.679171735633492,
+    3.0: 5.63436380873263,
+    3.5: 5.587579504468749,
+    4.0: 11.241580109576164,
+    4.5: 16.865027356787216,
+    5.0: 22.45786265714681,
     5.5: float("inf"),
     6.0: float("inf"),
     6.5: float("inf"),
@@ -123,10 +123,16 @@ def test_price_offset_flat_prices_near_zero():
     assert abs(off) < 0.05
 
 
-def test_price_offset_spike_ahead_banks_to_clamp():
-    # $2/kWh forecast in 3 h vs $0.25 now: E[actual|fc] tail kicks in
+def test_price_offset_spike_ahead_banks():
+    # $2/kWh forecast in 3 h vs $0.25 now. The APF knots clamp at the top
+    # bin (the p50 model never forecasts that high), so the bank is the
+    # top-knot value under retention, not the hard clamp.
     off = price_pressure_offset(0.25, [(3.0, 2.0)])
-    assert off == control.price_bank_max_k
+    expected = control.price_offset_k * (
+        control.fc_knots_e_actual[-1] * math.exp(-3.0 / 20.0) - 0.25
+    )
+    assert off == pytest.approx(expected)
+    assert 0.5 < off < control.price_bank_max_k
 
 
 def test_price_offset_expensive_now_shaves_to_clamp():
@@ -178,13 +184,17 @@ def _run_cycles(world, cycles=3):
 def test_actrl_price_pressure_banks_on_spike_forecast():
     world = _price_world(0.25, [(3.0, 2.0)])
     w, app = _run_cycles(world)
-    # offset metric published and at the bank clamp
+    # offset metric published; expected bank = top-knot value under
+    # retention (see test_price_offset_spike_ahead_banks), inside the
+    # 1.0 K room bound (grid_surplus_max_heating 21 vs target 20)
+    expected = control.price_offset_k * (
+        control.fc_knots_e_actual[-1] * math.exp(-3.0 / 20.0) - 0.25
+    )
     metric = float(w.entities["input_number.aircon_price_pressure"]["state"])
-    assert metric == pytest.approx(control.price_bank_max_k)
-    # heating demand includes the (bounded) bank: targets 20 -> bound 1.0 K
-    # (grid_surplus_max_heating 21), so demand = (20 - 18) + 1.0
+    assert metric == pytest.approx(expected, abs=0.01)
+    # heating demand includes the bank: demand = (20 - 18) + bank
     err = float(w.entities["input_number.aircon_weighted_error"]["state"])
-    assert err == pytest.approx(-(2.0 + 1.0), abs=0.05)
+    assert err == pytest.approx(-(2.0 + min(expected, 1.0)), abs=0.05)
 
 
 def test_actrl_price_pressure_shave_reduces_demand():

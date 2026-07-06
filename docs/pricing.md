@@ -277,12 +277,21 @@ Gate: `input_boolean.statctrl_price_aware`.
    already tariffed and follows whichever price source EMHASS is
    configured with, the same feed the HWC planner consumes; Ryan's call
    2026-07-07, replacing the shelved PD-direct sensor),
-   `sensor.temperature_adelaide`. NOTE the fc calibration knots were
-   fitted on predispatch; the EMHASS feed is currently the LGBM APF — a
-   different forecast family. Acceptable to start (same quantity, same
-   units); the clean fix is refitting fc_calibration against the APF's
-   own log (price_forecast_log.csv in the slop repo) — do this at the
-   first monthly knot refresh.
+   `sensor.temperature_adelaide`. Knots REFIT against the APF's own
+   forecast log 2026-07-07 (fc_calibration.py --apf-log, 4636 pairs
+   2025-07-20..2026-07-06 months 5-8, out/fc_calibration_apf_winter_all
+   .json → control.py constants): the calibration now matches the
+   forecast family production consumes. Behaviour difference vs the
+   predispatch fit: the APF p50 never forecasts above ~$0.90 retail, so
+   there is no fat top bin (predispatch's ≥$1.20 bin realised 2.93) —
+   high APF forecasts mildly OVER-predict (0.80-1.20 bin realises 0.76)
+   and spike value lives in the mid-bin upside terms (0.06-0.11 vs
+   predispatch's 0.03-0.06). Net: the continuous offset banks less
+   aggressively on forecast spikes (top-knot value ≈ +0.8 K vs clamp
+   1.5 K), the warmup chooser's insurance term is fatter mid-range, and
+   the zero-lead live shave is unaffected. Refit monthly-ish as the APF
+   log accumulates (log starts 2025-07-20, so this fit misses May-early-
+   Jul 2025 incl. the 2025-07-02 spike; coverage improves each month).
 3. Enable one gate at a time; watch `input_number.aircon_price_pressure`
    and the statctrl "Price-aware warmup" log lines.
 

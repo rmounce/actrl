@@ -19,9 +19,19 @@ interp knots.
 Validation: fit on pre-2026 data only, report June 2026 performance of
 the same bins.
 
+--apf-log switches the forecast source from the predispatch archive to
+the APF's own forecast log (~/src/ai-energy-forecast-slop/
+price_forecast_log.csv, the LGBM model behind sensor.ai_price_forecast
+and hence the EMHASS unit_load_cost feed production consumes since
+2026-07-07). Same pairing rule (vintage closest to --lead within +-1 h),
+same bins; the log's own backfilled actuals are used (both sides
+wholesale $/kWh there, x1000 to reuse the retailize path). Coverage
+starts 2025-07-20 -- thinner winter tail than predispatch (May-early-Jul
+2025 missing, incl. the 2025-07-02 spike).
+
 Usage:
     uv run python analysis/fc_calibration.py [--start 2025-03-23] [--lead 3]
-        [--out analysis/out/fc_calibration.json]
+        [--out analysis/out/fc_calibration.json] [--apf-log PATH]
 """
 from __future__ import annotations
 
@@ -82,6 +92,29 @@ def day_pairs(ia, d: date, lead_h: float) -> list[dict]:
     return out
 
 
+def apf_pairs(path: Path, start: str, end: str, lead_h: float) -> pd.DataFrame:
+    """(time, fc, actual) wholesale $/MWh pairs from the APF forecast log."""
+    df = pd.read_csv(
+        path,
+        usecols=["forecast_target_time", "forecast_creation_time",
+                 "model_name", "prediction", "actual"],
+        low_memory=False,
+    )
+    df = df[(df.model_name == "price") & df.actual.notna()]
+    df["time"] = pd.to_datetime(df.forecast_target_time, utc=True, format="mixed")
+    created = pd.to_datetime(df.forecast_creation_time, utc=True, format="mixed")
+    df["lead"] = (df.time - created).dt.total_seconds() / 3600.0
+    df = df[(df.lead >= lead_h - 1.0) & (df.lead <= lead_h + 1.0)]
+    df = df[(df.time >= pd.Timestamp(start, tz="UTC"))
+            & (df.time < pd.Timestamp(end, tz="UTC") + pd.Timedelta("1D"))]
+    # per target time, the vintage closest to lead_h (same rule as day_pairs)
+    df = df.loc[(df.lead - lead_h).abs().groupby(df.time).idxmin()]
+    # log stores wholesale $/kWh; x1000 to reuse the $/MWh retailize path
+    return pd.DataFrame({"time": df.time.to_numpy(),
+                         "fc": df.prediction.to_numpy(float) * 1000.0,
+                         "actual": df.actual.to_numpy(float) * 1000.0})
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", default="2025-03-23")
@@ -96,15 +129,21 @@ def main() -> None:
                     help="local-hour window 'a-b' to condition on (e.g. 5-9)")
     ap.add_argument("--months", default=None,
                     help="comma-separated months to condition on (e.g. 5,6,7,8)")
+    ap.add_argument("--apf-log", default=None, type=Path,
+                    help="APF price_forecast_log.csv; replaces the "
+                    "predispatch archive as the forecast source")
     args = ap.parse_args()
-    ia = _influx_args()
 
-    rows = []
-    d = date.fromisoformat(args.start)
-    while d <= date.fromisoformat(args.end):
-        rows.extend(day_pairs(ia, d, args.lead))
-        d += timedelta(days=1)
-    df = pd.DataFrame(rows)
+    if args.apf_log:
+        df = apf_pairs(args.apf_log, args.start, args.end, args.lead)
+    else:
+        ia = _influx_args()
+        rows = []
+        d = date.fromisoformat(args.start)
+        while d <= date.fromisoformat(args.end):
+            rows.extend(day_pairs(ia, d, args.lead))
+            d += timedelta(days=1)
+        df = pd.DataFrame(rows)
     # DST changeover days make the local-time tariff mapping ambiguous;
     # drop them (4 calendar days/year, negligible)
     df = df[~df.time.dt.strftime("%m-%d").isin(["04-05", "04-06", "10-04", "10-05"])]
