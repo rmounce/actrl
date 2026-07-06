@@ -87,7 +87,7 @@
   "cycle": 1,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.03870967741935592"
+   "0.03870967741935617"
   ]
  },
  {
@@ -146,7 +146,7 @@
   "cycle": 1,
   "write": [
    "input_number.bed_1_damper_target",
-   "84.85000000000014"
+   "78.15877968117229"
   ]
  },
  {
@@ -154,14 +154,14 @@
   "service": "cover/set_cover_position",
   "data": {
    "entity_id": "cover.bed_1",
-   "position": 85
+   "position": 80
   }
  },
  {
   "cycle": 1,
   "write": [
    "input_number.kitchen_damper_target",
-   "84.85000000000014"
+   "78.15877968117229"
   ]
  },
  {
@@ -169,7 +169,7 @@
   "service": "cover/set_cover_position",
   "data": {
    "entity_id": "cover.kitchen",
-   "position": 85
+   "position": 80
   }
  },
  {
@@ -276,7 +276,7 @@
   "cycle": 2,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.07612903225806283"
+   "0.0761290322580628"
   ]
  },
  {
@@ -311,14 +311,14 @@
   "cycle": 2,
   "write": [
    "input_number.bed_1_damper_target",
-   "84.69999999999987"
+   "77.95161467217964"
   ]
  },
  {
   "cycle": 2,
   "write": [
    "input_number.kitchen_damper_target",
-   "84.69999999999987"
+   "77.95161467217964"
   ]
  },
  {
@@ -395,7 +395,7 @@
   "cycle": 3,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.11225806451612848"
+   "0.11225806451612874"
   ]
  },
  {
@@ -409,35 +409,35 @@
   "cycle": 3,
   "write": [
    "input_number.bed_2_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 3,
   "write": [
    "input_number.bed_3_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 3,
   "write": [
    "input_number.study_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 3,
   "write": [
    "input_number.bed_1_damper_target",
-   "84.55000000000013"
+   "77.74463302215804"
   ]
  },
  {
   "cycle": 3,
   "write": [
    "input_number.kitchen_damper_target",
-   "84.55000000000013"
+   "77.74463302215804"
   ]
  },
  {
@@ -549,14 +549,14 @@
   "cycle": 4,
   "write": [
    "input_number.bed_1_damper_target",
-   "84.39999999999988"
+   "77.53783489368253"
   ]
  },
  {
   "cycle": 4,
   "write": [
    "input_number.kitchen_damper_target",
-   "84.39999999999988"
+   "77.53783489368253"
   ]
  },
  {
@@ -633,7 +633,7 @@
   "cycle": 5,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.18064516129032546"
+   "0.18064516129032548"
   ]
  },
  {
@@ -647,35 +647,35 @@
   "cycle": 5,
   "write": [
    "input_number.bed_2_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 5,
   "write": [
    "input_number.bed_3_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 5,
   "write": [
    "input_number.study_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 5,
   "write": [
    "input_number.bed_1_damper_target",
-   "84.24999999999989"
+   "77.33122044976385"
   ]
  },
  {
   "cycle": 5,
   "write": [
    "input_number.kitchen_damper_target",
-   "84.24999999999989"
+   "77.33122044976385"
   ]
  },
  {
@@ -752,7 +752,7 @@
   "cycle": 6,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.2129032258064467"
+   "0.21290322580644672"
   ]
  },
  {
@@ -766,35 +766,35 @@
   "cycle": 6,
   "write": [
    "input_number.bed_2_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 6,
   "write": [
    "input_number.bed_3_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 6,
   "write": [
    "input_number.study_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 6,
   "write": [
    "input_number.bed_1_damper_target",
-   "84.09999999999988"
+   "77.12478985384644"
   ]
  },
  {
   "cycle": 6,
   "write": [
    "input_number.kitchen_damper_target",
-   "84.09999999999988"
+   "77.12478985384644"
   ]
  },
  {
@@ -871,7 +871,7 @@
   "cycle": 7,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.24387096774193684"
+   "0.24387096774193676"
   ]
  },
  {
@@ -906,14 +906,14 @@
   "cycle": 7,
   "write": [
    "input_number.bed_1_damper_target",
-   "83.94999999999986"
+   "76.91854326981219"
   ]
  },
  {
   "cycle": 7,
   "write": [
    "input_number.kitchen_damper_target",
-   "83.94999999999986"
+   "76.91854326981219"
   ]
  },
  {
@@ -990,7 +990,7 @@
   "cycle": 8,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.27354838709676776"
+   "0.2735483870967677"
   ]
  },
  {
@@ -1025,14 +1025,14 @@
   "cycle": 8,
   "write": [
    "input_number.bed_1_damper_target",
-   "83.79999999999984"
+   "76.71248086198207"
   ]
  },
  {
   "cycle": 8,
   "write": [
    "input_number.kitchen_damper_target",
-   "83.79999999999984"
+   "76.71248086198207"
   ]
  },
  {
@@ -1109,7 +1109,7 @@
   "cycle": 9,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.3019354838709676"
+   "0.3019354838709675"
   ]
  },
  {
@@ -1144,14 +1144,14 @@
   "cycle": 9,
   "write": [
    "input_number.bed_1_damper_target",
-   "83.64999999999984"
+   "76.50660279511806"
   ]
  },
  {
   "cycle": 9,
   "write": [
    "input_number.kitchen_damper_target",
-   "83.64999999999984"
+   "76.50660279511806"
   ]
  },
  {
@@ -1228,7 +1228,7 @@
   "cycle": 10,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.32903225806451714"
+   "0.32903225806451747"
   ]
  },
  {
@@ -1242,35 +1242,35 @@
   "cycle": 10,
   "write": [
    "input_number.bed_2_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 10,
   "write": [
    "input_number.bed_3_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 10,
   "write": [
    "input_number.study_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 10,
   "write": [
    "input_number.bed_1_damper_target",
-   "83.50000000000011"
+   "76.30090923442539"
   ]
  },
  {
   "cycle": 10,
   "write": [
    "input_number.kitchen_damper_target",
-   "83.50000000000011"
+   "76.30090923442539"
   ]
  },
  {
@@ -1382,14 +1382,14 @@
   "cycle": 11,
   "write": [
    "input_number.bed_1_damper_target",
-   "83.34999999999987"
+   "76.0954003455529"
   ]
  },
  {
   "cycle": 11,
   "write": [
    "input_number.kitchen_damper_target",
-   "83.34999999999987"
+   "76.0954003455529"
   ]
  },
  {
@@ -1466,7 +1466,7 @@
   "cycle": 12,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.3793548387096818"
+   "0.37935483870968173"
   ]
  },
  {
@@ -1480,35 +1480,35 @@
   "cycle": 12,
   "write": [
    "input_number.bed_2_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 12,
   "write": [
    "input_number.bed_3_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 12,
   "write": [
    "input_number.study_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 12,
   "write": [
    "input_number.bed_1_damper_target",
-   "83.19999999999987"
+   "75.89007629459846"
   ]
  },
  {
   "cycle": 12,
   "write": [
    "input_number.kitchen_damper_target",
-   "83.19999999999987"
+   "75.89007629459846"
   ]
  },
  {
@@ -1620,14 +1620,14 @@
   "cycle": 13,
   "write": [
    "input_number.bed_1_damper_target",
-   "83.04999999999988"
+   "75.68493724810753"
   ]
  },
  {
   "cycle": 13,
   "write": [
    "input_number.kitchen_damper_target",
-   "83.04999999999988"
+   "75.68493724810753"
   ]
  },
  {
@@ -1704,7 +1704,7 @@
   "cycle": 14,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.4245161290322607"
+   "0.4245161290322606"
   ]
  },
  {
@@ -1718,35 +1718,35 @@
   "cycle": 14,
   "write": [
    "input_number.bed_2_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 14,
   "write": [
    "input_number.bed_3_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 14,
   "write": [
    "input_number.study_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 14,
   "write": [
    "input_number.bed_1_damper_target",
-   "82.89999999999989"
+   "75.47998337307699"
   ]
  },
  {
   "cycle": 14,
   "write": [
    "input_number.kitchen_damper_target",
-   "82.89999999999989"
+   "75.47998337307699"
   ]
  },
  {
@@ -1823,7 +1823,7 @@
   "cycle": 15,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.44516129032257556"
+   "0.44516129032257545"
   ]
  },
  {
@@ -1858,14 +1858,14 @@
   "cycle": 15,
   "write": [
    "input_number.bed_1_damper_target",
-   "82.74999999999989"
+   "75.27521483695664"
   ]
  },
  {
   "cycle": 15,
   "write": [
    "input_number.kitchen_damper_target",
-   "82.74999999999989"
+   "75.27521483695664"
   ]
  },
  {
@@ -1942,7 +1942,7 @@
   "cycle": 16,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.46451612903225925"
+   "0.4645161290322592"
   ]
  },
  {
@@ -1977,14 +1977,14 @@
   "cycle": 16,
   "write": [
    "input_number.bed_1_damper_target",
-   "82.5999999999999"
+   "75.07063180765151"
   ]
  },
  {
   "cycle": 16,
   "write": [
    "input_number.kitchen_damper_target",
-   "82.5999999999999"
+   "75.07063180765151"
   ]
  },
  {
@@ -2061,7 +2061,7 @@
   "cycle": 17,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.4825806451612926"
+   "0.4825806451612928"
   ]
  },
  {
@@ -2096,14 +2096,14 @@
   "cycle": 17,
   "write": [
    "input_number.bed_1_damper_target",
-   "82.45000000000013"
+   "74.86623445352403"
   ]
  },
  {
   "cycle": 17,
   "write": [
    "input_number.kitchen_damper_target",
-   "82.45000000000013"
+   "74.86623445352403"
   ]
  },
  {
@@ -2215,14 +2215,14 @@
   "cycle": 18,
   "write": [
    "input_number.bed_1_damper_target",
-   "82.2999999999999"
+   "74.66202294339458"
   ]
  },
  {
   "cycle": 18,
   "write": [
    "input_number.kitchen_damper_target",
-   "82.2999999999999"
+   "74.66202294339458"
   ]
  },
  {
@@ -2299,7 +2299,7 @@
   "cycle": 19,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.51483870967742"
+   "0.5148387096774203"
   ]
  },
  {
@@ -2334,14 +2334,14 @@
   "cycle": 19,
   "write": [
    "input_number.bed_1_damper_target",
-   "82.15000000000016"
+   "74.45799744654722"
   ]
  },
  {
   "cycle": 19,
   "write": [
    "input_number.kitchen_damper_target",
-   "82.15000000000016"
+   "74.45799744654722"
   ]
  },
  {
@@ -2418,7 +2418,7 @@
   "cycle": 20,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.529032258064514"
+   "0.5290322580645139"
   ]
  },
  {
@@ -2453,14 +2453,14 @@
   "cycle": 20,
   "write": [
    "input_number.bed_1_damper_target",
-   "81.9999999999999"
+   "74.25415813272669"
   ]
  },
  {
   "cycle": 20,
   "write": [
    "input_number.kitchen_damper_target",
-   "81.9999999999999"
+   "74.25415813272669"
   ]
  },
  {
@@ -2537,7 +2537,7 @@
   "cycle": 21,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.5419354838709717"
+   "0.5419354838709716"
   ]
  },
  {
@@ -2572,14 +2572,14 @@
   "cycle": 21,
   "write": [
    "input_number.bed_1_damper_target",
-   "81.8499999999999"
+   "74.05050517214572"
   ]
  },
  {
   "cycle": 21,
   "write": [
    "input_number.kitchen_damper_target",
-   "81.8499999999999"
+   "74.05050517214572"
   ]
  },
  {
@@ -2691,14 +2691,14 @@
   "cycle": 22,
   "write": [
    "input_number.bed_1_damper_target",
-   "81.69999999999989"
+   "73.84703873548334"
   ]
  },
  {
   "cycle": 22,
   "write": [
    "input_number.kitchen_damper_target",
-   "81.69999999999989"
+   "73.84703873548334"
   ]
  },
  {
@@ -2810,14 +2810,14 @@
   "cycle": 23,
   "write": [
    "input_number.bed_1_damper_target",
-   "81.54999999999988"
+   "73.6437589938888"
   ]
  },
  {
   "cycle": 23,
   "write": [
    "input_number.kitchen_damper_target",
-   "81.54999999999988"
+   "73.6437589938888"
   ]
  },
  {
@@ -2894,7 +2894,7 @@
   "cycle": 24,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.5729032258064461"
+   "0.572903225806446"
   ]
  },
  {
@@ -2929,14 +2929,14 @@
   "cycle": 24,
   "write": [
    "input_number.bed_1_damper_target",
-   "81.3999999999999"
+   "73.4406661189833"
   ]
  },
  {
   "cycle": 24,
   "write": [
    "input_number.kitchen_damper_target",
-   "81.3999999999999"
+   "73.4406661189833"
   ]
  },
  {
@@ -3013,7 +3013,7 @@
   "cycle": 25,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.5806451612903234"
+   "0.5806451612903233"
   ]
  },
  {
@@ -3048,14 +3048,14 @@
   "cycle": 25,
   "write": [
    "input_number.bed_1_damper_target",
-   "81.24999999999989"
+   "73.23776028286213"
   ]
  },
  {
   "cycle": 25,
   "write": [
    "input_number.kitchen_damper_target",
-   "81.24999999999989"
+   "73.23776028286213"
   ]
  },
  {
@@ -3132,7 +3132,7 @@
   "cycle": 26,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.5870967741935504"
+   "0.5870967741935507"
   ]
  },
  {
@@ -3167,14 +3167,14 @@
   "cycle": 26,
   "write": [
    "input_number.bed_1_damper_target",
-   "81.10000000000012"
+   "73.03504165809743"
   ]
  },
  {
   "cycle": 26,
   "write": [
    "input_number.kitchen_damper_target",
-   "81.10000000000012"
+   "73.03504165809743"
   ]
  },
  {
@@ -3251,7 +3251,7 @@
   "cycle": 27,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.5922580645161281"
+   "0.5922580645161282"
   ]
  },
  {
@@ -3286,14 +3286,14 @@
   "cycle": 27,
   "write": [
    "input_number.bed_1_damper_target",
-   "80.94999999999987"
+   "72.83251041773843"
   ]
  },
  {
   "cycle": 27,
   "write": [
    "input_number.kitchen_damper_target",
-   "80.94999999999987"
+   "72.83251041773843"
   ]
  },
  {
@@ -3370,7 +3370,7 @@
   "cycle": 28,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.5961290322580649"
+   "0.5961290322580652"
   ]
  },
  {
@@ -3405,14 +3405,14 @@
   "cycle": 28,
   "write": [
    "input_number.bed_1_damper_target",
-   "80.80000000000011"
+   "72.63016673531752"
   ]
  },
  {
   "cycle": 28,
   "write": [
    "input_number.kitchen_damper_target",
-   "80.80000000000011"
+   "72.63016673531752"
   ]
  },
  {
@@ -3489,7 +3489,7 @@
   "cycle": 29,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.5987096774193524"
+   "0.5987096774193523"
   ]
  },
  {
@@ -3524,15 +3524,31 @@
   "cycle": 29,
   "write": [
    "input_number.bed_1_damper_target",
-   "80.64999999999985"
+   "72.4280107848474"
   ]
+ },
+ {
+  "cycle": 29,
+  "service": "cover/set_cover_position",
+  "data": {
+   "entity_id": "cover.bed_1",
+   "position": 75
+  }
  },
  {
   "cycle": 29,
   "write": [
    "input_number.kitchen_damper_target",
-   "80.64999999999985"
+   "72.4280107848474"
   ]
+ },
+ {
+  "cycle": 29,
+  "service": "cover/set_cover_position",
+  "data": {
+   "entity_id": "cover.kitchen",
+   "position": 75
+  }
  },
  {
   "cycle": 29,
@@ -3608,7 +3624,7 @@
   "cycle": 30,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.6000000000000036"
+   "0.6000000000000038"
   ]
  },
  {
@@ -3643,14 +3659,14 @@
   "cycle": 30,
   "write": [
    "input_number.bed_1_damper_target",
-   "80.49999999999987"
+   "72.22604274082843"
   ]
  },
  {
   "cycle": 30,
   "write": [
    "input_number.kitchen_damper_target",
-   "80.49999999999987"
+   "72.22604274082843"
   ]
  },
  {
@@ -3727,7 +3743,7 @@
   "cycle": 31,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.599999999999996"
+   "0.5999999999999959"
   ]
  },
  {
@@ -3762,14 +3778,14 @@
   "cycle": 31,
   "write": [
    "input_number.bed_1_damper_target",
-   "80.34999999999988"
+   "72.02426277824699"
   ]
  },
  {
   "cycle": 31,
   "write": [
    "input_number.kitchen_damper_target",
-   "80.34999999999988"
+   "72.02426277824699"
   ]
  },
  {
@@ -3881,14 +3897,14 @@
   "cycle": 32,
   "write": [
    "input_number.bed_1_damper_target",
-   "80.19999999999989"
+   "71.82267107257971"
   ]
  },
  {
   "cycle": 32,
   "write": [
    "input_number.kitchen_damper_target",
-   "80.19999999999989"
+   "71.82267107257971"
   ]
  },
  {
@@ -3979,35 +3995,35 @@
   "cycle": 33,
   "write": [
    "input_number.bed_2_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 33,
   "write": [
    "input_number.bed_3_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 33,
   "write": [
    "input_number.study_damper_target",
-   "100.00000000000003"
+   "100.00000000000004"
   ]
  },
  {
   "cycle": 33,
   "write": [
    "input_number.bed_1_damper_target",
-   "80.04999999999991"
+   "71.62126779979522"
   ]
  },
  {
   "cycle": 33,
   "write": [
    "input_number.kitchen_damper_target",
-   "80.04999999999991"
+   "71.62126779979522"
   ]
  },
  {
@@ -4084,7 +4100,7 @@
   "cycle": 34,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.6000000000000005"
+   "0.6000000000000003"
   ]
  },
  {
@@ -4119,14 +4135,14 @@
   "cycle": 34,
   "write": [
    "input_number.bed_1_damper_target",
-   "79.89999999999988"
+   "71.42005313635644"
   ]
  },
  {
   "cycle": 34,
   "write": [
    "input_number.kitchen_damper_target",
-   "79.89999999999988"
+   "71.42005313635644"
   ]
  },
  {
@@ -4203,7 +4219,7 @@
   "cycle": 35,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.6000000000000018"
+   "0.6000000000000021"
   ]
  },
  {
@@ -4238,14 +4254,14 @@
   "cycle": 35,
   "write": [
    "input_number.bed_1_damper_target",
-   "79.75000000000013"
+   "71.21902725922354"
   ]
  },
  {
   "cycle": 35,
   "write": [
    "input_number.kitchen_damper_target",
-   "79.75000000000013"
+   "71.21902725922354"
   ]
  },
  {
@@ -4322,7 +4338,7 @@
   "cycle": 36,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.5999999999999989"
+   "0.599999999999999"
   ]
  },
  {
@@ -4357,14 +4373,14 @@
   "cycle": 36,
   "write": [
    "input_number.bed_1_damper_target",
-   "79.59999999999991"
+   "71.01819034585424"
   ]
  },
  {
   "cycle": 36,
   "write": [
    "input_number.kitchen_damper_target",
-   "79.59999999999991"
+   "71.01819034585424"
   ]
  },
  {
@@ -4441,7 +4457,7 @@
   "cycle": 37,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.600000000000005"
+   "0.6000000000000048"
   ]
  },
  {
@@ -4476,14 +4492,14 @@
   "cycle": 37,
   "write": [
    "input_number.bed_1_damper_target",
-   "79.4499999999999"
+   "70.81754257420955"
   ]
  },
  {
   "cycle": 37,
   "write": [
    "input_number.kitchen_damper_target",
-   "79.4499999999999"
+   "70.81754257420955"
   ]
  },
  {
@@ -4595,14 +4611,14 @@
   "cycle": 38,
   "write": [
    "input_number.bed_1_damper_target",
-   "79.29999999999991"
+   "70.61708412275307"
   ]
  },
  {
   "cycle": 38,
   "write": [
    "input_number.kitchen_damper_target",
-   "79.29999999999991"
+   "70.61708412275307"
   ]
  },
  {
@@ -4679,7 +4695,7 @@
   "cycle": 39,
   "write": [
    "input_number.aircon_avg_deriv",
-   "0.6000000000000031"
+   "0.600000000000003"
   ]
  },
  {
@@ -4714,14 +4730,14 @@
   "cycle": 39,
   "write": [
    "input_number.bed_1_damper_target",
-   "79.1499999999999"
+   "70.41681517045473"
   ]
  },
  {
   "cycle": 39,
   "write": [
    "input_number.kitchen_damper_target",
-   "79.1499999999999"
+   "70.41681517045473"
   ]
  },
  {

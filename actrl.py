@@ -118,9 +118,13 @@ null_state = "unknown"
 
 mode_sign = {"cool": 1.0, "heat": -1.0}
 
-# Output->damper convexity; 1.0 = linear (historical behaviour). See
-# damper_share() docstring and docs/tuning.md "Damper contrast shaping".
-damper_share_gamma = 1.0
+# Output->damper convexity; 1.0 = linear (historical behaviour). 1.5
+# adopted 2026-07-06: widens sub-K zone contrast with winter texture
+# unchanged; 2.0 = +50% kitchen damper duty, 3.0 hunts. Position->flow
+# calibration (docs/calibration.md) found the real register curve linear
+# to mildly convex, so sim effect sizes hold. See damper_share() docstring
+# and docs/tuning.md "Damper contrast shaping".
+damper_share_gamma = 1.5
 
 
 def damper_share(output):
