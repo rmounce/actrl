@@ -433,3 +433,71 @@ Caveats: winter physics (heating), one scenario shape, 10 s replay
 cadence; cooling-season dynamics unvalidated until the summer archive
 accumulates. The scenario driver is reusable as-is for cooling once
 summer data exists.
+
+## Min-airflow inflation policy (2026-07-06)
+
+Follow-up to the divergent-target sweep's close-out: room gains stay,
+the min-airflow inflation loop is the remaining rebalance lever. The
+loop was extracted behaviour-neutrally as module-level
+`actrl.min_airflow_inflation()` (goldens unchanged) so candidate
+policies are `ctrl_overrides` monkeypatches — production never edited.
+Tools: `analysis/inflation_policy.py` (candidate arms + scenario
+matrix), `analysis/inflation_ci.py` (controller-CI gate for
+function-valued overrides), `analysis/inflation_bind.py` (where the
+production loop binds on recorded days).
+
+Arms vary two axes: WHO inflates (equal = production; calling-first;
+all-but-deeply-satisfied) and WHETHER the top-up persists (stateful =
+production's `adjust_integral` ratchet; stateless = bump this cycle's
+outputs only, integrals untouched — requires replicating the negative
+clamp on raw outputs first, else satisfied zones wind down unboundedly).
+
+Findings (3 evenings × 2 seeds, noise 0.012 K/15 s, kitchen 2.6):
+
+- **The loop barely binds in winter**: 0% of cycles on mild 06-09,
+  ~1% on 06-21/27 (satisfied-zone drag ~10–25 min/day, kitchen+study
+  first). It binds rarely *because* each bind's integral writes persist
+  — the ratchet holds zones propped for hours. All arms are
+  bit-identical to baseline on the 3 CI days (gate PASS at +0.000 on
+  every metric) and on the cold 06-22 evening scenario: under strong
+  demand the loop never fires. Winter deploy risk ≈ zero by
+  construction.
+- **K-scale override events don't discriminate**: ±1–2 K steps punch
+  through via kp in every arm (serve 5–6 min, full shed) — consistent
+  with the gain sweep. The loop was never the K-scale story.
+- **Sub-K events (±0.5 K): statefulness is the lever, eligibility is
+  noise.** calling/nodeep ≈ baseline (nodeep bit-identical — nothing
+  goes below −0.5 output at sub-K). Stateless arms
+  (free_equal/free_calling medians vs baseline): wants-more zone
+  damper shift +38 vs +25, settled-tail err_all 0.66 vs 0.70,
+  post-event damper moves 0.38 vs 0.47 /h, kitchen tail damper lower;
+  cost +1–3% scenario energy (heat actually delivered to the calling
+  zone; run_frac 06-27 0.38 vs 0.34).
+- **NEW structural finding — the renorm, not the inflation loop,
+  floors sub-K dampers.** No arm ever sheds the −0.5 K zone below 30%
+  (early post-event damper 69–85% everywhere): renormalisation pins
+  the top zone at range 2.0 and every other zone sits at
+  2.0 − (error gap), so damper *contrast* is bounded by error contrast
+  — sub-K errors can never produce large damper contrast, by design.
+  Deep sub-K sheds would need output→damper contrast shaping (a
+  different, untested lever with hunting risk, cf. gain sweep).
+
+**Recommendation: `free_equal`** — production's eligibility, no
+persistence. Smallest production diff: (a) move the negative-clamp
+pass ahead of the min-airflow pass, (b) top up `pid_outputs` for this
+cycle instead of `adjust_integral`. Kills the integral ratchet
+(kitchen cold-morning onset pump, docs/calibration.md) with zero
+winter behaviour change; benefit concentrates exactly in the sub-K
+per-zone-override regime (the felt summer problem). free_calling adds
+an eligibility boundary that noise can flap; not worth it for ~equal
+scores. Caveats: heating physics only (cooling unvalidated until the
+summer archive); +1–3% energy in contended sub-K regimes is the
+honest price of serving the calling zone. Deploy is Ryan's call;
+gate with `analysis/inflation_ci.py free_equal` + June scorecard
+(result below).
+
+June-wide scorecard (24 replayable days), free_equal vs baseline:
+22/24 days bit-identical; only 06-21/06-27 change at all, both
+negligibly and slightly *better* (06-21 kit_rmse 0.360→0.342,
+rms_all −0.015, energy −0.4 pt; 06-27 ±0.001). All medians unchanged
+(kit_rmse 0.342, energy −2.9%, starts 5.5). Winter-neutral June-wide.
