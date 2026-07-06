@@ -119,6 +119,23 @@ null_state = "unknown"
 mode_sign = {"cool": 1.0, "heat": -1.0}
 
 
+def damper_share(output):
+    """Fraction of fully-open damper commanded for a PID output.
+
+    Linear today: max(0, output) / normalised_damper_range. Single source of
+    truth for the output->damper mapping -- used for the damper command, the
+    minimum-airflow check and the demand/deriv weighting, so a shaped
+    (convex) variant swapped in via analysis/ctrl_overrides.py stays
+    self-consistent (the min-airflow constraint is physical: it must be met
+    by actual damper openings, not by output-space bookkeeping).
+
+    Deliberately unclipped above 1.0: renorm float epsilon can leave the top
+    output a hair over range and the historical damper command passed that
+    through (goldens encode it).
+    """
+    return max(0.0, output) / normalised_damper_range
+
+
 def min_airflow_inflation(pids, pid_outputs, adjusted_room_airflow, min_sum):
     """Ensure enough weighted positive PID output to satisfy minimum airflow.
 
@@ -137,32 +154,31 @@ def min_airflow_inflation(pids, pid_outputs, adjusted_room_airflow, min_sum):
     satisfied zone's integral winds down unboundedly behind a healthy-looking
     topped-up output.
 
-    The equal increment is solved directly on the piecewise-linear airflow
-    gain (bisection) -- the continuous limit of the old 0.0001-step loop.
-    `pids` is unused but kept so analysis policies remain drop-in
-    substitutes via analysis/ctrl_overrides.py.
+    The equal increment is solved by bisection on the airflow delivered as a
+    function of the increment (monotone; the continuous limit of the old
+    0.0001-step loop). Airflow is measured through damper_share() so the
+    constraint holds for the dampers physically commanded, whatever the
+    output->damper mapping. `pids` is unused but kept so analysis policies
+    remain drop-in substitutes via analysis/ctrl_overrides.py.
     """
 
-    def gain(delta):
-        return sum(
-            (min(max(o + delta, 0.0), normalised_damper_range) - max(o, 0.0))
+    def delivered(delta):
+        return normalised_damper_range * sum(
+            damper_share(min(o + delta, normalised_damper_range))
             * adjusted_room_airflow[room]
             for room, o in pid_outputs.items()
         )
 
-    short = min_sum - sum(
-        max(0.0, o) * adjusted_room_airflow[r] for r, o in pid_outputs.items()
-    )
     below_range = [r for r, o in pid_outputs.items() if o < normalised_damper_range]
-    if short <= 0 or not below_range:
-        # Too few zones enabled to satisfy minimum airflow.. not much we can do
+    if delivered(0.0) >= min_sum or not below_range:
+        # Nothing to do, or too few zones enabled to satisfy minimum airflow
         return
     hi = max(normalised_damper_range - pid_outputs[r] for r in below_range)
-    if gain(hi) > short:
+    if delivered(hi) > min_sum:
         lo = 0.0
         for _ in range(80):
             mid = 0.5 * (lo + hi)
-            if gain(mid) < short:
+            if delivered(mid) < min_sum:
                 lo = mid
             else:
                 hi = mid
@@ -268,12 +284,15 @@ class Actrl(hass.Hass):
         damper_vals = {}
 
         for room, output in pid_outputs.items():
-            clamped_output = max(0, output)
-            deriv_sum += clamped_output * self.temp_derivs[room].get()
-            error_sum += clamped_output * errors[self.mode][room]
-            weight_sum += clamped_output
+            # Weight by commanded damper share (== clamped output while the
+            # mapping is linear) so demand/deriv stay consistent with the
+            # air actually delivered if the mapping is reshaped.
+            share_weight = damper_share(output) * normalised_damper_range
+            deriv_sum += share_weight * self.temp_derivs[room].get()
+            error_sum += share_weight * errors[self.mode][room]
+            weight_sum += share_weight
 
-            damper_vals[room] = 100.0 * (clamped_output / normalised_damper_range)
+            damper_vals[room] = 100.0 * damper_share(output)
 
         avg_deriv = deriv_sum / weight_sum if weight_sum > 0 else 0.0
 
