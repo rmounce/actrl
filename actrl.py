@@ -3,9 +3,11 @@ import math
 
 # from simple_pid import PID
 from collections import deque
+from datetime import datetime, timezone
 import time
 
 from control import (
+    price_pressure_offset,
     MyWMA,
     MyDeriv,
     MyPID,
@@ -113,6 +115,17 @@ grid_surplus_max_offset = 1.0
 # e.g. during night mode the midpoint of (16+24)/2 = 20, a bit too chilly
 grid_surplus_min_cooling = 21
 grid_surplus_max_heating = 21
+
+# Price-aware target pressure (docs/pricing.md "Continuous price offset"):
+# a continuous K offset from live vs forecast retail prices -- pre-heat/
+# pre-cool when the coming hours are dearer than now, back off when now is
+# the expensive hour. Gated by input_boolean.ac_use_price_pressure;
+# missing/off (and any missing price entity) means offset 0 and behaviour
+# identical to before. PD-direct is the predispatch-derived forecast --
+# the source the fc calibration knots in control.py were fitted against.
+price_pressure_boolean = "input_boolean.ac_use_price_pressure"
+price_forecast_entity = "sensor.ai_pd_direct_price_forecast"
+price_now_entity = "sensor.amber_5min_current_general_price"
 
 null_state = "unknown"
 
@@ -264,8 +277,12 @@ class Actrl(hass.Hass):
         self._update_room_targets(temps, cur_targets)
 
         self._add_grid_surplus()
+        self.price_pressure = self._get_price_pressure()
 
         errors, cooling_demand, heating_demand = self._calculate_demand(temps)
+        cooling_demand, heating_demand = self._apply_price_pressure(
+            errors, cooling_demand, heating_demand
+        )
 
         self.get_entity("input_number.grid_surplus_integral").set_state(
             state=str(float(self.grid_surplus_integral))
@@ -567,6 +584,10 @@ class Actrl(hass.Hass):
 
     def _calculate_room_errors(self, temps):
         errors = {"heat": {}, "cool": {}}
+        # what the grid-surplus pass actually applied per room/mode, so the
+        # price-pressure pass can cap the COMBINED banking offset at the
+        # same target bounds (bookkeeping only, no behaviour change)
+        self.grid_surplus_applied = {"heat": {}, "cool": {}}
         # if every zone and mode overshoots, the integral should saturate to prevent wind-up
         min_grid_surplus_overshoot = float("inf")
 
@@ -626,6 +647,9 @@ class Actrl(hass.Hass):
                             == "on"
                         ):
                             errors[mode][room] += window_limited_offset
+                            self.grid_surplus_applied[mode][room] = (
+                                window_limited_offset
+                            )
 
         if min_grid_surplus_overshoot < float("inf"):
             self.grid_surplus_integral -= min_grid_surplus_overshoot
@@ -743,6 +767,79 @@ class Actrl(hass.Hass):
             )
 
         self.grid_surplus_integral = max(0.0, self.grid_surplus_integral)
+
+    def _get_price_pressure(self):
+        """Continuous price-pressure offset [K] for this cycle.
+
+        Reads the live retail price and the tariffed price-forecast sensor
+        and hands them to control.price_pressure_offset (where all the
+        actual logic and constants live -- docs/pricing.md). Any missing or
+        malformed entity means 0.0: no price data, no price behaviour.
+        """
+        if self.get_state(price_pressure_boolean) != "on":
+            return 0.0
+        try:
+            now_price = float(self.get_state(price_now_entity))
+            forecasts = self.get_state(price_forecast_entity, attribute="forecasts")
+            now = datetime.now(timezone.utc)
+            future = []
+            for item in forecasts:
+                ts = datetime.fromisoformat(
+                    str(item["timestamp"]).replace("Z", "+00:00")
+                )
+                h = (ts - now).total_seconds() / 3600.0
+                future.append((h, float(item["general_price"])))
+            offset = price_pressure_offset(now_price, future)
+        except (TypeError, ValueError, KeyError) as e:
+            self.log(f"Price pressure unavailable: {e}", level="WARNING")
+            offset = 0.0
+        self.get_entity("input_number.aircon_price_pressure").set_state(
+            state=str(float(offset))
+        )
+        if offset != 0.0:
+            self.log(f"price_pressure: {offset:+.3f}")
+        return offset
+
+    def _apply_price_pressure(self, errors, cooling_demand, heating_demand):
+        """Add the price offset to room errors; returns updated demands.
+
+        Positive (bank) offsets are capped per room at the same target
+        bounds the grid-surplus offset respects (21C, midpoint, open
+        windows), net of any surplus offset already applied this cycle.
+        Negative (shave) offsets apply as-is -- they only reduce runtime
+        and are already clamped in control.py. Runs AFTER
+        _calculate_demand so the grid-surplus integral bookkeeping (which
+        winds down on demand beyond its own cap) never sees price demand.
+        """
+        offset = self.price_pressure
+        if offset == 0.0:
+            return cooling_demand, heating_demand
+        for mode in errors:
+            for room in errors[mode]:
+                if offset > 0.0:
+                    if mode == "cool":
+                        bound = self.targets["cool"][room] - grid_surplus_min_cooling
+                    else:
+                        bound = grid_surplus_max_heating - self.targets["heat"][room]
+                    if room in self.targets["heat"] and room in self.targets["cool"]:
+                        midpoint_offset = (
+                            self.targets["cool"][room]
+                            - self.targets["heat"][room]
+                            + immediate_off_threshold
+                        ) / 2
+                        bound = min(bound, midpoint_offset)
+                    bound -= self.grid_surplus_applied[mode].get(room, 0.0)
+                    room_offset = max(
+                        0.0,
+                        min(offset, bound) - self.window_handler.get_offset(room),
+                    )
+                else:
+                    room_offset = offset
+                errors[mode][room] += room_offset
+        return (
+            max(errors["cool"].values(), default=float("-inf")),
+            max(errors["heat"].values(), default=float("-inf")),
+        )
 
     def _calculate_pid_outputs(self, errors):
         # Calculate raw PID outputs

@@ -318,8 +318,11 @@ analysis/comfort.py, the native-cadence raw archive).
 
 ## 6. Price-aware HVAC scheduling (scoping pass, 2026-07-06) `[~]`
 
-Phase A done 2026-07-06 -- findings in docs/pricing.md (spike day = 58% of
-June cost; bank+coast saves -64% on it with better comfort; GO for Phase B).
+Phases A-C done 2026-07-06, IMPLEMENTED in production 2026-07-07 (feature-
+off gates, pending Ryan review + staged enable — docs/pricing.md
+"Production implementation"). Remaining refinements tracked there
+(knot refresh cadence, 06-24 warm-window comparison, grid-surplus
+subsumption).
 
 The next deep study: statctrl currently decides WHEN to heat from schedule
 + comfort alone; electricity cost varies 10-100x intraday (Amber/AEMO

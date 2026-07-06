@@ -52,6 +52,21 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
 5. `_calculate_demand`: per-room signed errors for both modes; demand = max
    room error per mode. If demand exceeds `grid_surplus_max_offset` the
    surplus integral is trimmed and errors recomputed.
+5b. `_apply_price_pressure` (docs/pricing.md): a continuous K offset from
+   live vs forecast retail prices (`control.price_pressure_offset`; k=2,
+   tau=20 h, clamps −0.75/+1.5 K) is added to room errors AFTER
+   `_calculate_demand` so the grid-surplus integral bookkeeping never sees
+   price demand. Positive (bank = pre-heat/pre-cool ahead of dear hours) is
+   capped per room at the same 21 °C/midpoint/window bounds as grid
+   surplus, net of any surplus offset already applied; negative (shave
+   during the dear hour) applies as-is. Gated by
+   `input_boolean.ac_use_price_pressure`; boolean or price entities missing
+   ⇒ offset 0 and bit-identical behaviour. Reads
+   `sensor.amber_5min_current_general_price` (live retail) and
+   `sensor.ai_pd_direct_price_forecast` attr `forecasts` (predispatch-
+   derived tariffed forecast — the source the calibration knots in
+   control.py were fitted on). Metric: `input_number.aircon_price_pressure`
+   (only written while the boolean is on).
 6. `_determine_new_mode`: hysteresis via `immediate_off_threshold` (−1.5) so
    an active mode is sticky; mode change or None resets PIDs and turns off.
 7. `_calculate_pid_outputs` (see below) → damper values

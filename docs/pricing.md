@@ -239,3 +239,54 @@ rather than assuming cheap pre-dawn (refinement).
    AppDaemon; fc_calibration knots as constants; refresh monthly-ish.
 Implementation = production control-logic changes, Ryan review + CI
 gate + staged deploy as usual.
+
+## Production implementation (2026-07-07, pending Ryan review — NOT deployed)
+
+Both validated Phase C components landed in production code, feature-off
+by default (all goldens + controller CI bit-exact with the gates off).
+
+**Pure logic — control.py** (stdlib only, unit-tested in
+tests/test_price.py): `price_pressure_offset` (k=2, tau=20 h, horizon
+8 h, clamps −0.75/+1.5 K, forecasts valued at E[actual|fc]);
+`warmup_expected_costs` / `warmup_decide` (line-for-line port of
+analysis/warmup_shift.py coarse model, times re-based to "hours from
+now"; exact-parity test against the analysis implementation on a frozen
+synthetic-morning fixture); fc calibration knots as constants (winter-all
+fit to 2026-07-06 — REFRESH monthly-ish via analysis/fc_calibration.py
+and re-paste); HVAC/house constants (UA 0.160, C_eff 4.8, Pmax 3.055,
+efficiency fit ×0.80) copied from sim/hvac.py + docs/calibration.md.
+
+**actrl.py**: `_get_price_pressure` + `_apply_price_pressure` — see
+docs/actrl.md step 5b. Gate: `input_boolean.ac_use_price_pressure`.
+Runs after `_calculate_demand` so grid-surplus integral bookkeeping never
+sees price demand; bank capped per room at the grid-surplus target bounds
+net of applied surplus offset.
+
+**statctrl.py**: `get_price_shift` + effective-start plumbing in
+`update_setpoint` — see docs/statctrl.md "Price-aware warmup start".
+Gate: `input_boolean.statctrl_price_aware`.
+
+**HA-side setup needed to go live** (Ryan):
+1. Create `input_boolean.ac_use_price_pressure` and
+   `input_boolean.statctrl_price_aware` helpers (leave off for staged
+   rollout — code deploys inert).
+2. Verify the price entities exist and update:
+   `sensor.amber_5min_current_general_price` (live retail import $/kWh),
+   `sensor.ai_pd_direct_price_forecast` (attr `forecasts`, records with
+   `timestamp` + `general_price` — PD-direct chosen because the fc knots
+   were fitted on predispatch; `sensor.ai_price_forecast` (LGBM) is the
+   drop-in alternative but is a different forecast family than the
+   calibration), `sensor.temperature_adelaide`.
+3. Enable one gate at a time; watch `input_number.aircon_price_pressure`
+   and the statctrl "Price-aware warmup" log lines.
+
+Caveats carried from the study: knots are climatology (n=5 spike
+events); hold_mult=2 single-point; 06-24-style elevated-all-morning days
+are ~$1 wrong-calls (refinement identified: compare vs warm-window price
+instead of assuming cheap pre-dawn). New in production: warmup deadline
+= schedule start (study used end of target ramp — slightly early,
+comfort-safe); statctrl decides per room from house-level constants;
+grid-surplus offset and price offset coexist (price bank capped net of
+surplus) — the price offset likely subsumes grid_surplus long-term
+(negative feed-in ⇒ cheap now ⇒ bank), candidate for later removal, NOT
+removed unilaterally.

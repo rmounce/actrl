@@ -438,3 +438,259 @@ class MideaCapacityController:
             self.min_power_counter = 0
 
         return rval
+
+
+# ---------------------------------------------------------------------------
+# Price-aware control (docs/pricing.md). Pure logic; the AppDaemon apps feed
+# in prices read from HA entities and act on the returned numbers.
+# ---------------------------------------------------------------------------
+
+# Comfort-vs-money exchange rate [K per $/kWh]: the ONLY preference knob of
+# the continuous offset. Swept in docs/pricing.md "Continuous price offset":
+# k=2 was comfort-parity cheaper on elevated days, k=4 traded comfort.
+price_offset_k = 2.0
+
+# Banked-heat retention [h]: holding a banked degree leaks at the house's
+# free-running loss rate UA/C_eff ~ 5%/h, so heat banked h hours early is
+# worth exp(-h/tau) of face value. Physics, not preference; NOT the ~2.5 h
+# room-temperature decay constant (that mistake made banking look worthless
+# -- docs/pricing.md "retention semantics").
+price_retention_tau_h = 20.0
+
+# How far ahead the offset looks [h]: matches the useful predispatch skill
+# horizon studied in Phase B.
+price_horizon_h = 8.0
+
+# Offset clamps [K]: bank = pre-heat above target, shave = sag below.
+# Asymmetric because comfort risk is asymmetric (winter).
+price_bank_max_k = 1.5
+price_shave_max_k = 0.75
+
+# Forecast-price calibration knots (analysis/fc_calibration.py, fitted on
+# ALL winter data to 2026-07-06, months 5-8, ~3 h lead -- the
+# "insurance-premium" fit, docs/pricing.md "Phase C fork"). All in retail
+# import $/kWh. e_actual = E[actual | forecast] (restores the fat-tail
+# value that predispatch magnitude understates); upside = E[(actual-fc)+]
+# (the insurance term for the warmup chooser's g_lambda). Refresh
+# monthly-ish as data accumulates by re-running fc_calibration.py.
+fc_knots_retail = [
+    0.0967, 0.1699, 0.2261, 0.2752, 0.3423, 0.4790, 0.6393, 0.8964, 5.9483,
+]
+fc_knots_e_actual = [
+    0.1138, 0.1821, 0.2377, 0.2851, 0.3499, 0.4945, 0.6364, 0.8485, 2.9321,
+]
+fc_knots_upside = [
+    0.0236, 0.0190, 0.0237, 0.0241, 0.0286, 0.0631, 0.0415, 0.1041, 0.3369,
+]
+
+# Warmup-start chooser constants (docs/pricing.md "Warmup-start chooser").
+# House/HVAC numbers come from docs/calibration.md; they only steer WHEN the
+# morning warmup buys its energy, not any temperature the house is driven to.
+warmup_ua_kw_per_k = 0.160  # envelope loss
+warmup_c_eff_kwh_per_k = 4.8  # effective thermal capacity
+warmup_p_max_kw = 3.055  # electrical draw at max compressor increment
+# Fitted heating efficiency proxy e(P_kW, Tout) [K/h per kW] from
+# sim/hvac.py (open-loop fit x 0.80 closed-loop energy refit).
+warmup_eff_e0 = 1.045 * 0.80
+warmup_eff_per_kw = -0.101 * 0.80
+warmup_eff_per_k = 0.0522 * 0.80
+warmup_eff_floor = 0.2
+# Maintenance-cost fudge vs the full sim (single-point calibration on the
+# mild 06-09 morning): absorbs cycling overhead the increment model misses.
+warmup_hold_mult = 2.0
+# Free-floating house sag overnight [K/h]: the hold counterfactual.
+warmup_sag_k_per_h = 0.25
+# Insurance knob lambda for g_lambda(fc) = fc + lambda * upside(fc).
+# Moot 0-4 on June decisions once hold cost was fixed; 1 = face value plus
+# one expected upside surprise.
+warmup_lambda = 1.0
+
+
+def interp_knots(x, xs, ys):
+    """Piecewise-linear interpolation, clamped at both ends (np.interp)."""
+    if x <= xs[0]:
+        return ys[0]
+    if x >= xs[-1]:
+        return ys[-1]
+    for i in range(1, len(xs)):
+        if x <= xs[i]:
+            frac = (x - xs[i - 1]) / (xs[i] - xs[i - 1])
+            return ys[i - 1] + frac * (ys[i] - ys[i - 1])
+    return ys[-1]
+
+
+def price_pressure_offset(
+    now_price,
+    future_prices,
+    k=price_offset_k,
+    tau_h=price_retention_tau_h,
+    horizon_h=price_horizon_h,
+    bank_max=price_bank_max_k,
+    shave_max=price_shave_max_k,
+):
+    """Continuous price-pressure target offset [K] (docs/pricing.md).
+
+        offset = k * (max_h E[actual|fc](t+h) * exp(-h/tau) - p_now)
+
+    clamped to [-shave_max, +bank_max]. Positive = bank (pre-heat/pre-cool:
+    the future is dearer than now, discounted by retention losses);
+    negative = shave (now is the expensive hour). Flat prices give ~0 (the
+    retention discount and the mild E[actual|fc] uplift nearly cancel).
+
+    now_price: retail import price now [$ / kWh].
+    future_prices: iterable of (hours_ahead, forecast_retail_price); entries
+    outside (0, horizon_h] are ignored. Forecasts are valued at their
+    conditional mean actual (fc_knots) -- the fat-tail restoration that made
+    the offset act on spike mornings in the study.
+
+    Returns 0.0 when there is no usable future data (graceful: no forecast,
+    no action).
+    """
+    best = None
+    e = 2.718281828459045
+    for h, fc in future_prices:
+        if h <= 0 or h > horizon_h:
+            continue
+        value = interp_knots(fc, fc_knots_retail, fc_knots_e_actual) * (
+            e ** (-h / tau_h)
+        )
+        if best is None or value > best:
+            best = value
+    if best is None:
+        return 0.0
+    return min(bank_max, max(-shave_max, k * (best - now_price)))
+
+
+def _warmup_efficiency(p_kw, t_out):
+    e = (
+        warmup_eff_e0
+        + warmup_eff_per_kw * (p_kw - 0.7)
+        + warmup_eff_per_k * (t_out - 10.0)
+    )
+    return max(warmup_eff_floor, e)
+
+
+def warmup_expected_costs(
+    candidates,
+    price_at,
+    t_out,
+    deadline_h,
+    t_bulk0,
+    t_day,
+    hold_mult=warmup_hold_mult,
+):
+    """Expected cost [$] of each candidate warmup start (docs/pricing.md).
+
+    All times are hours from now (the decision instant). For each candidate
+    start the house warms at full capacity until it reaches t_day, then pays
+    MARGINAL maintenance until deadline_h + 2 -- marginal meaning the
+    increment above the counterfactual free-floating house (which sags at
+    warmup_sag_k_per_h and would be heated from the deadline anyway); the
+    baseline warmup energy is bought regardless, only WHEN differs. A
+    candidate that misses t_day by deadline_h is infeasible (inf).
+
+    price_at(h) -> forecast retail price [$ / kWh] at h hours from now,
+    already g_lambda-adjusted via warmup_glambda. t_out: outdoor temp [C],
+    held constant over the horizon (pre-dawn winter is flat enough for a
+    WHEN decision).
+
+    Ported from the validated analysis/warmup_shift.py coarse_costs.
+    """
+    p_max = warmup_p_max_kw
+    c_eff = warmup_c_eff_kwh_per_k
+
+    def warm_rate(temp):
+        # efficiency() * P is already the delivered house rate [K/h]
+        return (
+            _warmup_efficiency(p_max, t_out) * p_max
+            - warmup_ua_kw_per_k * (temp - t_out) / c_eff
+        )
+
+    def hold_power(temp, t_h):
+        t_float = t_bulk0 - warmup_sag_k_per_h * max(t_h, 0.0)
+        q_rate = warmup_ua_kw_per_k * max(temp - t_float, 0.0) / c_eff
+        p = q_rate / max(_warmup_efficiency(1.0, t_out), 0.1)
+        return hold_mult * q_rate / max(_warmup_efficiency(p, t_out), 0.1)
+
+    costs = {}
+    for t_s in candidates:
+        cost, t, temp = 0.0, float(t_s), t_bulk0
+        while t < deadline_h + 2.0:  # hold a little past deadline
+            if temp < t_day:  # warm phase at capacity
+                p_kw = p_max
+                temp += max(warm_rate(temp), 0.05) * 0.5
+            else:  # hold phase: maintenance
+                p_kw = hold_power(temp, t)
+            cost += p_kw * 0.5 * price_at(t)
+            t += 0.5
+            if t >= deadline_h and temp < t_day:
+                # did not reach the day target by the deadline: infeasible
+                cost = float("inf")
+                break
+        costs[float(t_s)] = cost
+    return costs
+
+
+def warmup_glambda(fc_retail, lam=warmup_lambda):
+    """Insurance-priced forecast value: fc + lam * E[(actual - fc)+ | fc]."""
+    return fc_retail + lam * interp_knots(
+        fc_retail, fc_knots_retail, fc_knots_upside
+    )
+
+
+def warmup_decide(
+    future_prices,
+    t_out,
+    deadline_h,
+    t_bulk0,
+    t_day,
+    lam=warmup_lambda,
+    hold_mult=warmup_hold_mult,
+):
+    """(start_h, jit_h, shift_h) for the upcoming warmup, hours from now.
+
+    future_prices: iterable of (hours_ahead, forecast_retail_price) on a
+    ~30-min grid covering [now, deadline_h + 2]. deadline_h: hours until
+    the schedule needs the day target t_day reached, from t_bulk0 now.
+    Candidates run every 30 min from max(0.5, deadline_h - 8) to
+    deadline_h - 0.5 (just-in-time). Returns None when no candidate is
+    feasible or there is no usable price data (caller falls back to
+    just-in-time behaviour).
+
+    shift_h = jit_h - start_h is how much earlier than just-in-time to
+    begin; 0 on flat mornings (the leak penalty makes just-in-time
+    cheapest), > 0 only when the forecast spread pays for the leak.
+    """
+    grid = sorted(
+        (float(h), warmup_glambda(float(p), lam)) for h, p in future_prices
+    )
+    if not grid or deadline_h < 1.0:
+        return None
+
+    def price_at(h):
+        # step (ffill) lookup, clamped to the grid ends
+        best = grid[0][1]
+        for gh, gp in grid:
+            if gh <= h:
+                best = gp
+            else:
+                break
+        return best
+
+    candidates = []
+    t_s = max(0.5, deadline_h - 8.0)
+    while t_s < deadline_h - 0.49:
+        candidates.append(round(t_s, 6))
+        t_s += 0.5
+    if not candidates:
+        return None
+    costs = warmup_expected_costs(
+        candidates, price_at, t_out, deadline_h, t_bulk0, t_day,
+        hold_mult=hold_mult,
+    )
+    feasible = [ts for ts, c in costs.items() if c != float("inf")]
+    if not feasible:
+        return None
+    t_star = min(feasible, key=lambda ts: costs[ts])
+    t_jit = max(feasible)
+    return t_star, t_jit, max(0.0, t_jit - t_star)

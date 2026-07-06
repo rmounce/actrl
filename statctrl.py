@@ -3,6 +3,8 @@ import datetime
 import json
 import os
 
+import control
+
 
 class Statctrl(hass.Hass):
     def initialize(self):
@@ -44,6 +46,20 @@ class Statctrl(hass.Hass):
         )
         self.adaptive_alpha = float(self.args.get("adaptive_alpha", 0.25))
 
+        # Price-aware warmup start (docs/pricing.md "Warmup-start chooser").
+        # Gated by input_boolean.statctrl_price_aware; missing/off (or any
+        # missing price entity) falls back to just-in-time behaviour.
+        # PD-direct is the predispatch-derived forecast the calibration
+        # knots in control.py were fitted against.
+        self.price_forecast_entity = self.args.get(
+            "price_forecast_entity", "sensor.ai_pd_direct_price_forecast"
+        )
+        self.outdoor_temp_entity = self.args.get(
+            "outdoor_temp_entity", "sensor.temperature_adelaide"
+        )
+        # per-mode committed decision for the upcoming scheduled start
+        self.price_sessions = {}
+
         self.run_every(self.periodic_check, "now", 60)
 
         entities_to_monitor = {f"input_boolean.{self.room}_manual_ac"}
@@ -54,6 +70,7 @@ class Statctrl(hass.Hass):
         entities_to_monitor.add(f"input_boolean.{self.room}_scheduled_cool")
         entities_to_monitor.add(f"binary_sensor.{self.room}_window")
         entities_to_monitor.add("input_boolean.statctrl_adaptive_optimum_start")
+        entities_to_monitor.add("input_boolean.statctrl_price_aware")
         entities_to_monitor.add(f"input_boolean.{self.room}_adaptive_optimum_start")
 
         for state in self.states:
@@ -274,6 +291,81 @@ class Statctrl(hass.Hass):
             f"{updated:.1f} min/C from {samples} samples"
         )
 
+    def price_aware_enabled(self):
+        return self.get_state("input_boolean.statctrl_price_aware") == "on"
+
+    def get_price_shift(self, mode, next_start, t_day):
+        """Hours to pull this warmup earlier than just-in-time (0.0 = JIT).
+
+        Asks control.warmup_decide (the validated coarse expected-cost
+        model, docs/pricing.md) whether starting the morning warmup before
+        the just-in-time point buys the same energy cheaper per the current
+        price forecast. Re-decided each check with the freshest forecast
+        until the chosen start time arrives, then frozen (committed) so a
+        ramp in progress never flip-flops. Any missing input means 0.0.
+        """
+        if mode != "heat" or not self.price_aware_enabled():
+            return 0.0
+        now = datetime.datetime.now().astimezone()
+        session = self.price_sessions.get(mode)
+        if (
+            session
+            and session["next_start"] == next_start
+            and now >= session["start"]
+        ):
+            return session["shift_h"]
+        hours_to_deadline = (next_start - now).total_seconds() / 3600.0
+        # decision window: the chooser only ever considers starting up to
+        # 8 h early, so there is nothing to decide before that
+        if hours_to_deadline <= 0.0 or hours_to_deadline > 8.5:
+            return 0.0
+        try:
+            t_out = float(self.get_state(self.outdoor_temp_entity))
+            t_bulk0 = self.get_current_temperature()
+            future = [
+                (
+                    (
+                        datetime.datetime.fromisoformat(
+                            str(item["timestamp"]).replace("Z", "+00:00")
+                        )
+                        - now
+                    ).total_seconds()
+                    / 3600.0,
+                    float(item["general_price"]),
+                )
+                for item in self.get_state(
+                    self.price_forecast_entity, attribute="forecasts"
+                )
+            ]
+            decision = control.warmup_decide(
+                future, t_out, hours_to_deadline, t_bulk0, t_day
+            )
+        except (TypeError, ValueError, KeyError) as error:
+            self.log(f"Price-aware warmup unavailable: {error}", level="WARNING")
+            return 0.0
+        if decision is None:
+            return 0.0
+        t_star, t_jit, shift_h = decision
+        if shift_h <= 0.0:
+            self.price_sessions.pop(mode, None)
+            return 0.0
+        start = next_start - datetime.timedelta(hours=shift_h)
+        if (
+            not session
+            or session["next_start"] != next_start
+            or abs(session["shift_h"] - shift_h) > 0.01
+        ):
+            self.log(
+                f"Price-aware warmup for {self.room} {mode}: "
+                f"start {start:%H:%M} ({shift_h:.1f} h before {next_start:%H:%M})"
+            )
+        self.price_sessions[mode] = {
+            "next_start": next_start,
+            "shift_h": shift_h,
+            "start": start,
+        }
+        return shift_h
+
     def handle_adaptive_start(self, mode, current_setpoint, active_target, next_start):
         # Return True when adaptive mode has handled the scheduled pre-start decision.
         if not self.should_step_to_target(current_setpoint, active_target, mode):
@@ -409,19 +501,28 @@ class Statctrl(hass.Hass):
             if next_start and self.should_step_to_target(
                 current_setpoint, setpoints["active"], mode
             ):
+                # A price-aware shift moves the whole pre-start ramp
+                # earlier: every deadline below uses the shifted start.
+                shift_h = self.get_price_shift(mode, next_start, setpoints["active"])
+                effective_start = next_start - datetime.timedelta(hours=shift_h)
+
                 if self.adaptive_enabled() and self.handle_adaptive_start(
-                    mode, current_setpoint, setpoints["active"], next_start
+                    mode, current_setpoint, setpoints["active"], effective_start
                 ):
                     return
 
                 time_until_next = (
-                    next_start - datetime.datetime.now().astimezone()
+                    effective_start - datetime.datetime.now().astimezone()
                 ).total_seconds() / 3600
+                if time_until_next <= 0:
+                    # inside the price-shifted window: ramp at the slew rate
+                    self.slew_on_step(mode, current_setpoint, setpoints["active"])
+                    return
                 setpoint_delta = abs(setpoints["active"] - current_setpoint)
                 slew_on_rate = self.get_slew_on_rate()
 
                 if (setpoint_delta / time_until_next) > slew_on_rate:
-                    self.slew_on_step(mode, current_setpoint, setpoints["active"], next_start)
+                    self.slew_on_step(mode, current_setpoint, setpoints["active"], effective_start)
                     return
         # self.log("No immediate action required")
 
@@ -430,6 +531,17 @@ class Statctrl(hass.Hass):
             current_setpoint == target
             or self.should_step_to_target(current_setpoint, target, mode)
         ):
+            # A committed price-shifted warmup holds its banked setpoint
+            # until the schedule actually fires -- without this the
+            # slew-off would claw back what the early ramp just bought.
+            # Only between the shifted start and the schedule: a session
+            # that hasn't begun must not freeze the normal evening
+            # slew-off.
+            session = self.price_sessions.get(mode)
+            if session and current_state == "inactive" and self.price_aware_enabled():
+                now = datetime.datetime.now().astimezone()
+                if session["start"] <= now < session["next_start"]:
+                    return
             # self.log("Slew-off")
             new_temp = self.step_towards(current_setpoint, target, mode)
             self.set_climate(mode, new_temp)

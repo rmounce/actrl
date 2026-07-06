@@ -83,6 +83,41 @@ instead of the naive slew-rate heuristic.
   of jumping (`update_setpoint` → `slew_on_step`), so learned rates reflect
   the same mechanism used for pre-start.
 
+## Price-aware warmup start
+
+Implemented 2026-07-07 (docs/pricing.md "Warmup-start chooser" — the
+spike-morning money, validated in sim at −36% on the 06-22 spike with
+better comfort). Heat mode only.
+
+- Gated by `input_boolean.statctrl_price_aware`; missing/off, or any
+  missing price entity, means shift 0.0 = behaviour unchanged.
+- `get_price_shift`: within 8.5 h of the next scheduled start, asks
+  `control.warmup_decide` (coarse expected-cost model: warm at capacity,
+  then pay MARGINAL hold vs the free-floating counterfactual; forecast
+  valued at g_lambda = fc + upside knots) whether starting earlier than
+  just-in-time buys the same warmup energy cheaper. Re-decided every
+  check with the freshest forecast; frozen once the shifted start time
+  arrives so a ramp in progress never flip-flops.
+- Applied by moving the whole pre-start machinery earlier:
+  `effective_start = next_start − shift` replaces `next_start` in the
+  adaptive call, the slew-rate trigger, and the slew deadline. Inside the
+  shift window the setpoint ramps at the slew-on rate.
+- Hold guard: between the shifted start and the real schedule the
+  slew-off branch is suppressed (a committed session only — an
+  uncommitted evening decision must not freeze the normal slew-off).
+- Inputs: `sensor.ai_pd_direct_price_forecast` attr `forecasts`
+  (tariffed `general_price` per 30 min), `sensor.temperature_adelaide`
+  (held constant over the horizon), current room temp, active setpoint
+  as the day target, hours-to-start as the deadline. Entity names
+  overridable via app args `price_forecast_entity` /
+  `outdoor_temp_entity`.
+- Per-room decisions from house-level constants: rooms sharing a
+  schedule reach the same answer; the model steers WHEN energy is
+  bought, not what temperature anything is driven to.
+- Deadline = schedule start (the study's deadline was the end of the
+  recorded target ramp, slightly later) — errs a touch early, comfort-
+  safe.
+
 ## Known issues / risks
 
 - `handle_adaptive_start` returns `True` for both "too early, deliberately
