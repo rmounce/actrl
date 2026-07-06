@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import time
 
 from control import (
+    forecast_hours_ahead,
     price_pressure_offset,
     MyWMA,
     MyDeriv,
@@ -121,10 +122,12 @@ grid_surplus_max_heating = 21
 # pre-cool when the coming hours are dearer than now, back off when now is
 # the expensive hour. Gated by input_boolean.ac_use_price_pressure;
 # missing/off (and any missing price entity) means offset 0 and behaviour
-# identical to before. PD-direct is the predispatch-derived forecast --
-# the source the fc calibration knots in control.py were fitted against.
+# identical to before. The forecast comes from the EMHASS-published
+# unit-load-cost series (already tariffed, follows whichever price source
+# EMHASS is configured with) -- same feed the HWC planner consumes.
 price_pressure_boolean = "input_boolean.ac_use_price_pressure"
-price_forecast_entity = "sensor.ai_pd_direct_price_forecast"
+price_forecast_entity = "sensor.dh_unit_load_cost"
+price_forecast_attr = "unit_load_cost_forecasts"
 price_now_entity = "sensor.amber_5min_current_general_price"
 
 null_state = "unknown"
@@ -780,15 +783,11 @@ class Actrl(hass.Hass):
             return 0.0
         try:
             now_price = float(self.get_state(price_now_entity))
-            forecasts = self.get_state(price_forecast_entity, attribute="forecasts")
-            now = datetime.now(timezone.utc)
-            future = []
-            for item in forecasts:
-                ts = datetime.fromisoformat(
-                    str(item["timestamp"]).replace("Z", "+00:00")
-                )
-                h = (ts - now).total_seconds() / 3600.0
-                future.append((h, float(item["general_price"])))
+            future = forecast_hours_ahead(
+                self.get_state(price_forecast_entity, attribute=price_forecast_attr),
+                price_forecast_entity.split(".", 1)[1],
+                datetime.now(timezone.utc),
+            )
             offset = price_pressure_offset(now_price, future)
         except (TypeError, ValueError, KeyError) as e:
             self.log(f"Price pressure unavailable: {e}", level="WARNING")

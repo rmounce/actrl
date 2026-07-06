@@ -63,9 +63,9 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
    `input_boolean.ac_use_price_pressure`; boolean or price entities missing
    ⇒ offset 0 and bit-identical behaviour. Reads
    `sensor.amber_5min_current_general_price` (live retail) and
-   `sensor.ai_pd_direct_price_forecast` attr `forecasts` (predispatch-
-   derived tariffed forecast — the source the calibration knots in
-   control.py were fitted on). Metric: `input_number.aircon_price_pressure`
+   `sensor.dh_unit_load_cost` attr `unit_load_cost_forecasts` (EMHASS-
+   published tariffed forecast, follows the configured price source — the
+   HWC planner's feed). Metric: `input_number.aircon_price_pressure`
    (only written while the boolean is on).
 6. `_determine_new_mode`: hysteresis via `immediate_off_threshold` (−1.5) so
    an active mode is sticky; mode change or None resets PIDs and turns off.

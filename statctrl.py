@@ -49,10 +49,11 @@ class Statctrl(hass.Hass):
         # Price-aware warmup start (docs/pricing.md "Warmup-start chooser").
         # Gated by input_boolean.statctrl_price_aware; missing/off (or any
         # missing price entity) falls back to just-in-time behaviour.
-        # PD-direct is the predispatch-derived forecast the calibration
-        # knots in control.py were fitted against.
+        # Forecast = the EMHASS-published unit-load-cost series (already
+        # tariffed, follows whichever price source EMHASS is configured
+        # with) -- same feed the HWC planner consumes.
         self.price_forecast_entity = self.args.get(
-            "price_forecast_entity", "sensor.ai_pd_direct_price_forecast"
+            "price_forecast_entity", "sensor.dh_unit_load_cost"
         )
         self.outdoor_temp_entity = self.args.get(
             "outdoor_temp_entity", "sensor.temperature_adelaide"
@@ -322,21 +323,14 @@ class Statctrl(hass.Hass):
         try:
             t_out = float(self.get_state(self.outdoor_temp_entity))
             t_bulk0 = self.get_current_temperature()
-            future = [
-                (
-                    (
-                        datetime.datetime.fromisoformat(
-                            str(item["timestamp"]).replace("Z", "+00:00")
-                        )
-                        - now
-                    ).total_seconds()
-                    / 3600.0,
-                    float(item["general_price"]),
-                )
-                for item in self.get_state(
-                    self.price_forecast_entity, attribute="forecasts"
-                )
-            ]
+            future = control.forecast_hours_ahead(
+                self.get_state(
+                    self.price_forecast_entity,
+                    attribute="unit_load_cost_forecasts",
+                ),
+                self.price_forecast_entity.split(".", 1)[1],
+                now.astimezone(datetime.timezone.utc),
+            )
             decision = control.warmup_decide(
                 future, t_out, hours_to_deadline, t_bulk0, t_day
             )

@@ -105,8 +105,8 @@ better comfort). Heat mode only.
 - Hold guard: between the shifted start and the real schedule the
   slew-off branch is suppressed (a committed session only — an
   uncommitted evening decision must not freeze the normal slew-off).
-- Inputs: `sensor.ai_pd_direct_price_forecast` attr `forecasts`
-  (tariffed `general_price` per 30 min), `sensor.temperature_adelaide`
+- Inputs: `sensor.dh_unit_load_cost` attr `unit_load_cost_forecasts`
+  (EMHASS-published tariffed price per 30 min), `sensor.temperature_adelaide`
   (held constant over the horizon), current room temp, active setpoint
   as the day target, hours-to-start as the deadline. Entity names
   overridable via app args `price_forecast_entity` /

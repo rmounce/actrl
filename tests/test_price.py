@@ -145,10 +145,11 @@ def _price_world(now_price, forecast_prices):
     world = scenarios.base_world(climate_state="heat", setpoint=17.0)
     scenarios.room_climates(world, "heat_cool", targets, temps)
     now = datetime.datetime.now(datetime.timezone.utc)
+    value_key = actrl.price_forecast_entity.split(".", 1)[1]
     forecasts = [
         {
-            "timestamp": (now + datetime.timedelta(hours=h)).isoformat(),
-            "general_price": p,
+            "date": (now + datetime.timedelta(hours=h)).isoformat(),
+            value_key: p,
         }
         for h, p in forecast_prices
     ]
@@ -156,7 +157,7 @@ def _price_world(now_price, forecast_prices):
     world[actrl.price_now_entity] = {"state": str(now_price)}
     world[actrl.price_forecast_entity] = {
         "state": str(now_price),
-        "attributes": {"forecasts": forecasts},
+        "attributes": {actrl.price_forecast_attr: forecasts},
     }
     return world
 

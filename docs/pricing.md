@@ -272,11 +272,17 @@ Gate: `input_boolean.statctrl_price_aware`.
    rollout — code deploys inert).
 2. Verify the price entities exist and update:
    `sensor.amber_5min_current_general_price` (live retail import $/kWh),
-   `sensor.ai_pd_direct_price_forecast` (attr `forecasts`, records with
-   `timestamp` + `general_price` — PD-direct chosen because the fc knots
-   were fitted on predispatch; `sensor.ai_price_forecast` (LGBM) is the
-   drop-in alternative but is a different forecast family than the
-   calibration), `sensor.temperature_adelaide`.
+   `sensor.dh_unit_load_cost` (EMHASS-published, attr
+   `unit_load_cost_forecasts`, records `date` + `dh_unit_load_cost` —
+   already tariffed and follows whichever price source EMHASS is
+   configured with, the same feed the HWC planner consumes; Ryan's call
+   2026-07-07, replacing the shelved PD-direct sensor),
+   `sensor.temperature_adelaide`. NOTE the fc calibration knots were
+   fitted on predispatch; the EMHASS feed is currently the LGBM APF — a
+   different forecast family. Acceptable to start (same quantity, same
+   units); the clean fix is refitting fc_calibration against the APF's
+   own log (price_forecast_log.csv in the slop repo) — do this at the
+   first monthly knot refresh.
 3. Enable one gate at a time; watch `input_number.aircon_price_pressure`
    and the statctrl "Price-aware warmup" log lines.
 

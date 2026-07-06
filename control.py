@@ -1,6 +1,7 @@
 # Pure (HA-independent) control logic shared by AppDaemon apps and tests.
 
 from collections import deque
+from datetime import datetime
 
 # per interval
 # 0.2C per minute
@@ -504,6 +505,23 @@ warmup_sag_k_per_h = 0.25
 # Moot 0-4 on June decisions once hold cost was fixed; 1 = face value plus
 # one expected upside surprise.
 warmup_lambda = 1.0
+
+
+def forecast_hours_ahead(records, value_key, now_utc, date_key="date"):
+    """[(hours_from_now, price)] from an EMHASS-style forecast attribute.
+
+    records: the `unit_load_cost_forecasts` attribute of an EMHASS-published
+    price entity (sensor.dh_unit_load_cost etc.) -- a list of dicts with an
+    ISO `date` and the price under the entity's own suffix (the same
+    convention Ryan's HWC planner consumes, so this follows whatever price
+    source EMHASS is currently configured with, already tariffed).
+    """
+    out = []
+    for item in records:
+        ts = datetime.fromisoformat(str(item[date_key]).replace("Z", "+00:00"))
+        h = (ts - now_utc).total_seconds() / 3600.0
+        out.append((h, float(item[value_key])))
+    return out
 
 
 def interp_knots(x, xs, ys):
