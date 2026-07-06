@@ -511,3 +511,58 @@ June-wide scorecard (24 replayable days), free_equal vs baseline:
 negligibly and slightly *better* (06-21 kit_rmse 0.360→0.342,
 rms_all −0.015, energy −0.4 pt; 06-27 ±0.001). All medians unchanged
 (kit_rmse 0.342, energy −2.9%, starts 5.5). Winter-neutral June-wide.
+
+## Damper contrast shaping (2026-07-06, follow-up to the inflation study)
+
+The inflation study's structural bound — renorm keeps damper contrast <=
+error contrast, so a sub-K-satisfied zone holds a ~70-100% damper — is
+attackable at the output stage: `damper_share(output) = (out/range)**gamma`
+with gamma > 1 widens damper contrast at the same output contrast. Pure
+output-stage change: PID state, renorm, clamp untouched; the min-airflow
+top-up already evaluates delivered airflow through `damper_share`, so the
+constraint stays physical (satisfied zones' shrunken shares make the
+top-up work correspondingly harder when it binds). Prep refactor: the
+mapping extracted as module-level `actrl.damper_share()` used by the
+damper command, min-airflow check and demand/deriv weighting
+(behaviour-neutral, goldens bit-exact). Sweep:
+`analysis/contrast_shape.py` (sub-K divergent scenario + CI mode),
+damper_fidelity wrapper for winter texture with noise.
+
+Sub-K scenario medians (2 days x 2 seeds, noise 0.012 K/15 s):
+
+| gamma | err_hold | err_all | d3_tail | kwh | post_mv/h |
+|---|---|---|---|---|---|
+| 1.0 | 1.03 | 0.67 | 100.0 | 4.24 | 0.39 |
+| 1.5 | 0.96 | 0.64 | 99.0 | 4.22 | 0.48 |
+| 2.0 | 0.93 | 0.61 | 94.7 | 4.03 | 0.48 |
+| 3.0 | 0.92 | 0.54 | 83.6 | 3.77 | 1.71 |
+
+- Tracking improves monotonically with gamma in the sub-K contention
+  regime (finally: contrast where the renorm allowed none), and energy
+  DROPS with better comfort (heat stops being dumped into satisfied
+  zones) — the opposite trade to the stateless top-up's +1-3%.
+- **gamma 3 is past the hunting cliff**: post-event damper movement
+  1.71/h (4x recorded envelope), one seed collapses into a degenerate
+  oscillating low-energy regime. The steep top of the convex curve
+  amplifies noise ~gamma-fold in damper space, as predicted.
+- Winter texture with noise (damper_fidelity, 5 weekdays): gamma 1.5
+  indistinguishable from production (bed_1 movement actually lower);
+  gamma 2.0 raises kitchen movement ~+50% (0.85 vs 0.57 rec mv/h —
+  kitchen sits ~67% damper, the steepest part of the curve); gamma 3.0
+  hunts outright (kitchen 1.50, bed_2 2x). Noiseless controller-CI
+  passes ALL gammas incl. 3.0 with small improvements — the CI gate is
+  blind to hunting; never qualify a shaping/gain change without a
+  noise-on texture check.
+
+**Recommendation**: gamma 1.5 as the deploy-now value (sub-K tracking
++solid share of the win, winter texture provably unchanged); gamma 2.0
+is the assertive option (-5% scenario energy, best tracking short of
+the cliff) at ~+50% kitchen damper duty — one step from the gamma-3
+cliff, so prudence says live with 1.5 first. June scorecards
+(noiseless, 24 days) for both:
+both winter-neutral — kit_rmse median 0.342 (1.5) / 0.339 (2.0) vs
+0.342, rms_all +0.008/+0.010, energy medians unchanged, worst single-day
+kit_rmse delta +0.038; starts median 5.5→6.0 (half-start rounding, not a
+cycling change). `damper_share_gamma` is a production constant
+(default 1.0 = bit-exact current behaviour) so adopting either option is
+a one-line edit + controller-CI run.

@@ -118,6 +118,10 @@ null_state = "unknown"
 
 mode_sign = {"cool": 1.0, "heat": -1.0}
 
+# Output->damper convexity; 1.0 = linear (historical behaviour). See
+# damper_share() docstring and docs/tuning.md "Damper contrast shaping".
+damper_share_gamma = 1.0
+
 
 def damper_share(output):
     """Fraction of fully-open damper commanded for a PID output.
@@ -132,8 +136,17 @@ def damper_share(output):
     Deliberately unclipped above 1.0: renorm float epsilon can leave the top
     output a hair over range and the historical damper command passed that
     through (goldens encode it).
+
+    damper_share_gamma > 1 makes the mapping convex: more damper contrast
+    for the same output contrast, tightening sub-K zone rebalancing that
+    the renorm otherwise floors. Swept in docs/tuning.md "Damper contrast
+    shaping": 1.5 = winter texture provably unchanged; 2.0 = best tracking
+    /-5% scenario energy but ~+50% kitchen damper duty; 3.0 HUNTS (never).
     """
-    return max(0.0, output) / normalised_damper_range
+    base = max(0.0, output) / normalised_damper_range
+    if damper_share_gamma != 1.0:
+        base **= damper_share_gamma
+    return base
 
 
 def min_airflow_inflation(pids, pid_outputs, adjusted_room_airflow, min_sum):
