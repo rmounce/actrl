@@ -89,6 +89,9 @@ def main() -> None:
     ap.add_argument("--lead", type=float, default=3.0)
     ap.add_argument("--out", default=_ROOT / "analysis/out/fc_calibration.json",
                     type=Path)
+    ap.add_argument("--fit-end", default="2026-06-01",
+                    help="fit/holdout split; set past today to fit on ALL data "
+                    "(insurance-premium mode -- see docs/pricing.md)")
     ap.add_argument("--hours", default=None,
                     help="local-hour window 'a-b' to condition on (e.g. 5-9)")
     ap.add_argument("--months", default=None,
@@ -120,14 +123,14 @@ def main() -> None:
     df["fc_r"] = retailize(df.fc.to_numpy(float), when)
     df["act_r"] = retailize(df.actual.to_numpy(float), when)
 
-    fit = df[df.time < pd.Timestamp("2026-06-01", tz="UTC")]
-    hold = df[df.time >= pd.Timestamp("2026-06-01", tz="UTC")]
+    fit = df[df.time < pd.Timestamp(args.fit_end, tz="UTC")]
+    hold = df[df.time >= pd.Timestamp(args.fit_end, tz="UTC")]
 
     edges = np.array([-np.inf, 0.15, 0.20, 0.25, 0.30, 0.40, 0.55, 0.80,
                       1.20, np.inf])
-    knots_x, knots_y = [], []
+    knots_x, knots_y, knots_up = [], [], []
     print(f"\n{'fc bin $/kWh':>18}{'n_fit':>7}{'E[act|fc] fit':>14}"
-          f"{'n_jun':>7}{'E[act|fc] jun':>14}")
+          f"{'E[(act-fc)+]':>13}{'n_jun':>7}{'E[act|fc] jun':>14}")
     for lo, hi in zip(edges[:-1], edges[1:]):
         m_fit = fit[(fit.fc_r > lo) & (fit.fc_r <= hi)]
         m_hold = hold[(hold.fc_r > lo) & (hold.fc_r <= hi)]
@@ -135,11 +138,16 @@ def main() -> None:
             continue
         x = float(m_fit.fc_r.mean())
         y = float(m_fit.act_r.mean())
+        # upside surprise: the insurance term. Pools ALL positive residuals
+        # in the bin, so it is far stabler than the mean (docs/pricing.md
+        # Phase C fork).
+        up = float((m_fit.act_r - m_fit.fc_r).clip(lower=0).mean())
         knots_x.append(x)
         knots_y.append(y)
+        knots_up.append(up)
         jn = f"{m_hold.act_r.mean():>14.3f}" if len(m_hold) else f"{'-':>14}"
         print(f"({lo:>6.2f},{hi:>6.2f}]{len(m_fit):>7}{y:>14.3f}"
-              f"{len(m_hold):>7}{jn}")
+              f"{up:>13.3f}{len(m_hold):>7}{jn}")
 
     # enforce monotone non-decreasing knots (isotonic-lite)
     for i in range(1, len(knots_y)):
@@ -147,8 +155,10 @@ def main() -> None:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(
-        {"lead_h": args.lead, "fit_end": "2026-06-01",
-         "knots_fc_retail": knots_x, "knots_e_actual_retail": knots_y},
+        {"lead_h": args.lead, "fit_end": args.fit_end,
+         "conditioning": {"hours": args.hours, "months": args.months},
+         "knots_fc_retail": knots_x, "knots_e_actual_retail": knots_y,
+         "knots_upside_retail": knots_up},
         indent=1))
     print(f"\nwrote {args.out}")
 

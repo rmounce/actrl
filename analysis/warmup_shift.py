@@ -79,22 +79,30 @@ def morning_schedule(day: pd.DataFrame) -> tuple[np.ndarray, dict]:
     return hh, info
 
 
-def coarse_costs(day: pd.DataFrame, pre: pd.DataFrame, fc_cal: dict,
+def coarse_costs(day_start_utc: pd.Timestamp, tout_series, pre: pd.DataFrame,
+                 fc_cal: dict, lam: float, hold_mult: float,
                  deadline_hh: float, t_bulk0: float, t_day: float,
                  candidates: np.ndarray) -> dict[float, float]:
-    """Expected cost of each candidate warmup start, per the 00:30 vintage."""
+    """Expected cost of each candidate warmup start, per the 00:30 vintage.
+
+    Insurance pricing: g_lambda(fc) = fc + lam * E[(actual - fc)+ | fc]
+    (upside-surprise knots from fc_calibration.py). lam = Ryan's risk knob.
+    tout_series: pd.Series (UTC index) or a float for coarse-only mode.
+    """
     hvac = Hvac()
-    dec_utc = day.index[0] + pd.Timedelta(hours=DECISION_HH)
+    dec_utc = day_start_utc + pd.Timedelta(hours=DECISION_HH)
     vintages = pre[pre.run_time <= dec_utc]
+    if vintages.empty:
+        return {}
     run = vintages.run_time.max()
     fc = vintages[vintages.run_time == run].set_index("time").rrp.sort_index()
-    fc_retail = pd.Series(
-        np.interp(retailize(fc.to_numpy(float), fc.index),
-                  fc_cal["knots_fc_retail"], fc_cal["knots_e_actual_retail"]),
-        index=fc.index)
-    tout = day["temperature_adelaide"].ffill()
+    raw_retail = retailize(fc.to_numpy(float), fc.index)
+    upside = np.interp(raw_retail, fc_cal["knots_fc_retail"],
+                       fc_cal["knots_upside_retail"])
+    fc_retail = pd.Series(raw_retail + lam * upside, index=fc.index)
+    tout = tout_series
 
-    local0 = day.index[0]
+    local0 = day_start_utc
 
     def price_at(hh_local: float) -> float:
         ts = local0 + pd.Timedelta(hours=hh_local)
@@ -102,6 +110,8 @@ def coarse_costs(day: pd.DataFrame, pre: pd.DataFrame, fc_cal: dict,
         return float(fc_retail.iloc[max(0, min(idx, len(fc_retail) - 1))])
 
     def tout_at(hh_local: float) -> float:
+        if isinstance(tout, float):
+            return tout
         ts = local0 + pd.Timedelta(hours=hh_local)
         idx = tout.index.searchsorted(ts, side="right") - 1
         return float(tout.iloc[max(0, idx)])
@@ -115,11 +125,17 @@ def coarse_costs(day: pd.DataFrame, pre: pd.DataFrame, fc_cal: dict,
         envelope loss UA*dT/C_eff."""
         return hvac.efficiency(p_max, to) * p_max - UA_KW_PER_K * (temp - to) / c_eff
 
-    def hold_power(temp: float, to: float) -> float:
-        """Maintenance electrical power [kW]: e(p)*p = UA*dT/C_eff."""
-        q_rate = UA_KW_PER_K * max(temp - to, 0.0) / c_eff
+    def hold_power(temp: float, to: float, t_hh: float) -> float:
+        """MARGINAL maintenance power [kW]: the baseline schedule heats the
+        house from the deadline anyway, so an early start only pays for
+        holding the increment above the counterfactual free-floating house
+        (t_bulk0 sagging ~0.25 K/h overnight) -- NOT the absolute UA*dT.
+        hold_mult (calibrated vs the full sim's mild-day answer) absorbs
+        cycling overhead the increment model misses."""
+        t_float = t_bulk0 - 0.25 * max(t_hh - DECISION_HH, 0.0)
+        q_rate = UA_KW_PER_K * max(temp - t_float, 0.0) / c_eff
         p = q_rate / max(hvac.efficiency(1.0, to), 0.1)
-        return q_rate / max(hvac.efficiency(p, to), 0.1)
+        return hold_mult * q_rate / max(hvac.efficiency(p, to), 0.1)
 
     costs = {}
     for t_s in candidates:
@@ -130,7 +146,7 @@ def coarse_costs(day: pd.DataFrame, pre: pd.DataFrame, fc_cal: dict,
                 p_kw = p_max
                 temp += max(warm_rate(temp, to), 0.05) * 0.5
             else:  # hold phase: maintenance
-                p_kw = hold_power(temp, to)
+                p_kw = hold_power(temp, to, t)
             cost += p_kw * 0.5 * price_at(t)
             t += 0.5
             if t >= deadline_hh and temp < t_day:
@@ -175,17 +191,51 @@ def run_arm(day: pd.DataFrame, ctrl: pd.DataFrame, prices: pd.DataFrame) -> dict
             "time_in_band": m["time_in_band"], "starts": m["starts"]}
 
 
+def decide(day_start_utc, tout, pre, fc_cal, lam, hold_mult,
+           deadline, t_day, t_bulk0):
+    """(t_star, t_jit, shift_h) for one morning."""
+    candidates = np.arange(max(DECISION_HH + 0.5, deadline - 8.0),
+                           deadline - 0.49, 0.5)
+    costs = coarse_costs(day_start_utc, tout, pre, fc_cal, lam, hold_mult,
+                         deadline, t_bulk0, t_day, candidates)
+    feasible = [ts for ts, c in costs.items() if np.isfinite(c)]
+    if not feasible:
+        return None
+    t_star = min(feasible, key=lambda ts: costs[ts])
+    t_jit = max(feasible)
+    return t_star, t_jit, max(0.0, t_jit - t_star)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dates", default="2026-06-22,2026-06-23,2026-06-24,2026-06-09")
-    ap.add_argument("--k", type=float, default=2.0)
-    ap.add_argument("--tau", type=float, default=20.0)
+    ap.add_argument("--lams", default="0,1,2,4")
+    ap.add_argument("--hold-mult", type=float, default=2.0)
+    ap.add_argument("--coarse-only", action="store_true",
+                    help="decisions only, no sim (works without house archive; "
+                    "assumes deadline 7.5h, t_day 19.7, t_bulk0 18.2, Tout 4C)")
     ap.add_argument("--parquet", default=_ROOT / "data/processed/june.parquet", type=Path)
     ap.add_argument("--cache", default=_ROOT / "data/prices_sa1.parquet", type=Path)
-    ap.add_argument("--fc-cal", default=_ROOT / "analysis/out/fc_calibration.json",
+    ap.add_argument("--fc-cal",
+                    default=_ROOT / "analysis/out/fc_calibration_winter_all.json",
                     type=Path)
     args = ap.parse_args()
     fc_cal = json.loads(args.fc_cal.read_text())
+    lams = [float(x) for x in args.lams.split(",")]
+
+    if args.coarse_only:
+        print(f"{'date':>12}" + "".join(f"{f'shift@lam={l}':>14}" for l in lams),
+              flush=True)
+        for date in args.dates.split(","):
+            start_utc = pd.Timestamp(date, tz=LOCAL_TZ).tz_convert("UTC")
+            pre = load_predispatch(start_utc, start_utc + pd.Timedelta("1D"))
+            cells = []
+            for lam in lams:
+                d = decide(start_utc, 4.0, pre, fc_cal, lam, args.hold_mult,
+                           7.5, 19.7, 18.2)
+                cells.append("-" if d is None else f"{d[2]:.1f}h(s{d[0]:.1f})")
+            print(f"{date:>12}" + "".join(f"{c:>14}" for c in cells), flush=True)
+        return
 
     print(f"{'arm':>18}{'date':>12}{'cost$':>8}{'kwh':>7}{'degmin_blw':>11}"
           f"{'in_band':>8}{'starts':>7}{'note':>22}", flush=True)
@@ -194,9 +244,6 @@ def main() -> None:
         prices = load_prices(date, date, args.cache)
         pre = load_predispatch(day.index[0], day.index[-1])
         hh, info = morning_schedule(day)
-
-        # whole-house coarse decision over rooms with a REAL morning rise
-        # (study never heats; flat schedules would corrupt the deadline)
         rising = {r: i for r, i in info.items()
                   if i["day_level"] > i["night_level"] + 0.5}
         if not rising:
@@ -204,44 +251,30 @@ def main() -> None:
             continue
         deadline = float(np.median([i["rise_end"] for i in rising.values()]))
         t_day = float(np.mean([i["day_level"] for i in rising.values()]))
-        # bulk start state ~ mean recorded room temp at the decision time
-        temps0 = np.mean([[day[f"{r}_average_temperature"].astype(float).ffill()
-                           .iloc[int(DECISION_HH * 60)]] for r in cl.ROOMS])
-        candidates = np.arange(max(DECISION_HH + 0.5, deadline - 8.0),
-                               deadline - 0.49, 0.5)
-        costs = coarse_costs(day, pre, fc_cal, deadline, float(temps0), t_day,
-                             candidates)
-        t_star = min(costs, key=costs.get)
-        # default just-in-time start = latest feasible candidate
-        feasible = [t for t, c in costs.items() if np.isfinite(c)]
-        t_jit = max(feasible) if feasible else t_star
-        shift = max(0.0, t_jit - t_star)
-        note = f"start {t_star:.1f}h (jit {t_jit:.1f}h)"
+        temps0 = float(np.mean([day[f"{r}_average_temperature"].astype(float)
+                                .ffill().iloc[int(DECISION_HH * 60)]
+                                for r in cl.ROOMS]))
+        tout = day["temperature_adelaide"].ffill()
 
         b = run_arm(day, day, prices)
         print(f"{'baseline':>18}{date:>12}{b['cost']:>8.2f}{b['kwh']:>7.2f}"
               f"{b['deg_min_below']:>11.1f}{b['time_in_band']:>8.3f}"
               f"{b['starts']:>7.0f}{'-':>22}", flush=True)
 
-        sd = shifted_day(day, shift)
-        m = run_arm(day, sd, prices)
-        print(f"{'shift':>18}{date:>12}{m['cost']:>8.2f}{m['kwh']:>7.2f}"
-              f"{m['deg_min_below']:>11.1f}{m['time_in_band']:>8.3f}"
-              f"{m['starts']:>7.0f}{note:>22}", flush=True)
-
-        off = offset_series(day, prices, pre, args.k, args.tau, 8.0, 1.5, 0.75,
-                            fc_cal)
-        combo = sd.copy()
-        offv = off.to_numpy()
-        for r in cl.ROOMS:
-            low = combo[f"climate.{r}_aircon.target_temp_low"].ffill().to_numpy(float) + offv
-            high = combo[f"climate.{r}_aircon.target_temp_high"].ffill().to_numpy(float)
-            combo[f"climate.{r}_aircon.target_temp_low"] = low
-            combo[f"climate.{r}_aircon.target_temp_high"] = np.maximum(high, low + 0.5)
-        m2 = run_arm(day, combo, prices)
-        print(f"{'shift+offset':>18}{date:>12}{m2['cost']:>8.2f}{m2['kwh']:>7.2f}"
-              f"{m2['deg_min_below']:>11.1f}{m2['time_in_band']:>8.3f}"
-              f"{m2['starts']:>7.0f}{'-':>22}", flush=True)
+        seen: dict[float, dict] = {}
+        for lam in lams:
+            d = decide(day.index[0], tout, pre, fc_cal, lam, args.hold_mult,
+                       deadline, t_day, temps0)
+            if d is None:
+                continue
+            t_star, t_jit, shift = d
+            if shift not in seen:
+                seen[shift] = run_arm(day, shifted_day(day, shift), prices)
+            m = seen[shift]
+            note = f"start {t_star:.1f}h (jit {t_jit:.1f}h)"
+            print(f"{f'lam={lam}':>18}{date:>12}{m['cost']:>8.2f}{m['kwh']:>7.2f}"
+                  f"{m['deg_min_below']:>11.1f}{m['time_in_band']:>8.3f}"
+                  f"{m['starts']:>7.0f}{note:>22}", flush=True)
 
 
 if __name__ == "__main__":

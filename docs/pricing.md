@@ -186,3 +186,56 @@ calibrate the coarse hold cost against sim, sweep lambda on 06-22 +
 2025 winter spike days (coarse decision only -- house archive doesn't
 cover 2025) + false-fire days, June-wide neutrality check, then the
 statctrl implementation spec.
+
+## Lambda sweep result (2026-07-06): the knob is (nearly) moot
+
+Fixing the coarse model first changed the answer. The hold-cost bug: an
+early start was being charged UA x (T_house - T_outdoor) -- the ABSOLUTE
+envelope loss -- but the baseline heats the house from the deadline
+anyway, so the true marginal cost is holding the ~1.5-2K INCREMENT above
+the counterfactual free-floating house (~10x less, the same insight as
+the offset's tau=20h). With that fixed (+ upside-surprise knots fitted
+on ALL winter data -- insurance-premium mode, leave-one-event-out noted
+below), the warmup-shift planner fires from FACE-VALUE forecast
+economics alone:
+
+| day | baseline | shifted | comfort | decision (all lam 0-4 identical) |
+|---|---|---|---|---|
+| 06-22 spike | $67.60 | **$42.99 (-36%)** | 22.9 -> 13.3 K.min (better) | start 02:00 (jit 04:30) |
+| 06-23 | $4.33 | $4.39 (+$0.06) | 10.7 -> 0.1 (near-perfect) | 0.5h early |
+| 06-24 elevated | $6.73 | $7.55 (+$0.82) | 18.4 -> 11.4 (better) | 2h early, elevated all morning: no spread to harvest |
+| 06-09 mild | $0.29 | $0.36 (+$0.07) | 2.1 -> 0.0 (perfect) | 1.5h early, marginal wrong call |
+
+2025 coarse-only decisions (no house archive): 07-02 (the forecastable
+spike) shifts 3.5h at lam=0; 08-10 (forecast dead-normal) never fires --
+correctly unreachable, that's the realtime shave's job; lam changes only
+one borderline morning (07-15 at lam>=2).
+
+**Verdict**: lam 0-4 produces IDENTICAL June decisions -- the honest
+marginal hold cost (~$0.05-0.10/h) is so small that face-value forecast
+spreads already justify shifting; the upside term only nudges borderline
+mornings. Keep lam=1 (actuarially fair) as the default -- it costs
+nothing and covers the borderline cases. The wrong-call tax on
+non-spike mornings is $0.06-0.82/event, ALWAYS with better comfort
+(same insurance profile as Phase B). Net over the 4 sim days: -$23.7.
+
+Caveats: upside knots fitted on all 5 events (insurance-premium mode --
+a leave-one-out fit under-prices whichever spike it hasn't seen; with
+n=5 events this is climatology, not validated prediction); hold_mult=2
+calibrated against a single sim point (06-09); 06-24-style
+elevated-all-morning days are systematic ~$1 wrong-calls the coarse
+model could avoid by comparing against the elevated warm-window price
+rather than assuming cheap pre-dawn (refinement).
+
+## Deployment picture after Phase C sim work
+
+1. actrl: continuous price offset (k=2, tau=20, clamps) -- ToU banking +
+   zero-lead spike shave. VALIDATED.
+2. statctrl: warmup-start chooser (coarse marginal-cost model, 00:30
+   decision from predispatch via g_lam, lam=1) -- the spike-morning
+   money. VALIDATED on 06-22 (-36% with better comfort) + 2025 coarse
+   decisions sane.
+3. Data plumbing: predispatch forecast + live Amber price into HA/
+   AppDaemon; fc_calibration knots as constants; refresh monthly-ish.
+Implementation = production control-logic changes, Ryan review + CI
+gate + staged deploy as usual.
