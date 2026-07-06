@@ -119,6 +119,34 @@ null_state = "unknown"
 mode_sign = {"cool": 1.0, "heat": -1.0}
 
 
+def min_airflow_inflation(pids, pid_outputs, adjusted_room_airflow, min_sum):
+    """Ensure enough weighted positive PID output to satisfy minimum airflow.
+
+    Inflates every room's integral in small equal steps until the
+    airflow-weighted sum of positive outputs reaches min_sum (rooms already
+    at full range are skipped). Mutates pids and pid_outputs in place.
+
+    Module-level so analysis harnesses can substitute candidate policies
+    via analysis/ctrl_overrides.py without editing production logic.
+    """
+    while True:
+        positive_outputs = {
+            room: max(0, output) * adjusted_room_airflow[room]
+            for room, output in pid_outputs.items()
+        }
+        if sum(positive_outputs.values()) >= min_sum:
+            break
+        no_integral_adjusted = True
+        for room in pid_outputs:
+            if pid_outputs[room] < normalised_damper_range:
+                no_integral_adjusted = False
+                pids[room].adjust_integral(0.0001)
+                pid_outputs[room] = pids[room].get_output()
+        if no_integral_adjusted:
+            # Too few zones enabled to satisfy minimum airflow.. not much we can do
+            break
+
+
 class Actrl(hass.Hass):
     def initialize(self):
         self.log("INITIALISING")
@@ -736,22 +764,7 @@ class Actrl(hass.Hass):
             for room, airflow in room_airflow.items()
         }
 
-        while True:
-            positive_outputs = {
-                room: max(0, output * adjusted_room_airflow[room])
-                for room, output in pid_outputs.items()
-            }
-            if sum(positive_outputs.values()) >= min_sum:
-                break
-            no_integral_adjusted = True
-            for room in pid_outputs:
-                if pid_outputs[room] < normalised_damper_range:
-                    no_integral_adjusted = False
-                    self.pids[room].adjust_integral(0.0001)
-                    pid_outputs[room] = self.pids[room].get_output()
-            if no_integral_adjusted:
-                # Too few zones enabled to satisfy minimum airflow.. not much we can do
-                break
+        min_airflow_inflation(self.pids, pid_outputs, adjusted_room_airflow, min_sum)
 
         for room in pid_outputs:
             allowable_difference = room_pid_minimum
