@@ -305,3 +305,25 @@ grid-surplus offset and price offset coexist (price bank capped net of
 surplus) — the price offset likely subsumes grid_surplus long-term
 (negative feed-in ⇒ cheap now ⇒ bank), candidate for later removal, NOT
 removed unilaterally.
+
+## APF re-validation (2026-07-07)
+
+June arms re-run with APF vintages (price_offset.py / warmup_shift.py
+--apf-log) + the APF knots -- the exact forecast family production now
+consumes. Logs: analysis/out/{price_offset,warmup_shift}_apf.log.
+
+Warmup chooser: 06-22 spike decision IDENTICAL to predispatch (start
+2.0h, $67.60 -> $42.99, -36%, comfort better); 06-23's predispatch
+0.5h wrong-call disappears (clean JIT); 06-24 same ~$0.82 comfort-
+positive wrong-call (the known warm-window refinement case); 06-09 same
+$0.07 insurance at perfect comfort. The spike money survives the
+forecast-family change unchanged.
+
+Offset: banking tamer as the knots predicted (off max +0.42/+0.45 K vs
++1.5 clamp under predispatch); savings hold -- 06-22 -$5.45 (-8%,
+mostly the live shave during the $16/kWh hour, deliberate degmin cost),
+06-24 -$0.72 (-11%, vs -14% predispatch), 06-09 ~flat. If the spike-
+hour sag ever feels too deep the knob is shave_max, but the shave IS
+the mechanism that recovers unforecastable spikes.
+
+Verdict: no re-tuning needed for the APF feed; constants stand.

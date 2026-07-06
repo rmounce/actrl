@@ -49,7 +49,12 @@ import sim.closed_loop as cl  # noqa: E402  (hassapi stub)
 from sim.hvac import Hvac  # noqa: E402
 from analysis.comfort import score_day  # noqa: E402
 from analysis.price_cost import load_prices  # noqa: E402
-from analysis.price_offset import load_predispatch, offset_series, retailize  # noqa: E402
+from analysis.price_offset import (  # noqa: E402
+    load_apf,
+    load_predispatch,
+    offset_series,
+    retailize,
+)
 from analysis.replay_day import load_day, replay  # noqa: E402
 from analysis.tune import build_comfort_frame  # noqa: E402
 
@@ -219,6 +224,10 @@ def main() -> None:
     ap.add_argument("--fc-cal",
                     default=_ROOT / "analysis/out/fc_calibration_winter_all.json",
                     type=Path)
+    ap.add_argument("--apf-log", default=None, type=Path,
+                    help="APF price_forecast_log.csv; vintages from the APF "
+                    "instead of the predispatch archive (pair with the APF "
+                    "fc-cal)")
     args = ap.parse_args()
     fc_cal = json.loads(args.fc_cal.read_text())
     lams = [float(x) for x in args.lams.split(",")]
@@ -228,7 +237,9 @@ def main() -> None:
               flush=True)
         for date in args.dates.split(","):
             start_utc = pd.Timestamp(date, tz=LOCAL_TZ).tz_convert("UTC")
-            pre = load_predispatch(start_utc, start_utc + pd.Timedelta("1D"))
+            pre = (load_apf(start_utc, start_utc + pd.Timedelta("1D"), args.apf_log)
+                   if args.apf_log
+                   else load_predispatch(start_utc, start_utc + pd.Timedelta("1D")))
             cells = []
             for lam in lams:
                 d = decide(start_utc, 4.0, pre, fc_cal, lam, args.hold_mult,
@@ -242,7 +253,9 @@ def main() -> None:
     for date in args.dates.split(","):
         day = load_day(args.parquet, date)
         prices = load_prices(date, date, args.cache)
-        pre = load_predispatch(day.index[0], day.index[-1])
+        pre = (load_apf(day.index[0], day.index[-1], args.apf_log)
+               if args.apf_log
+               else load_predispatch(day.index[0], day.index[-1]))
         hh, info = morning_schedule(day)
         rising = {r: i for r, i in info.items()
                   if i["day_level"] > i["night_level"] + 0.5}

@@ -68,6 +68,33 @@ def load_predispatch(day_utc0: pd.Timestamp, day_utc1: pd.Timestamp) -> pd.DataF
     return df
 
 
+def load_apf(day_utc0: pd.Timestamp, day_utc1: pd.Timestamp,
+             log_path: Path) -> pd.DataFrame:
+    """APF forecast-log rows shaped like load_predispatch's frame.
+
+    Same columns (time, run_time, rrp in wholesale $/MWh) so offset_series
+    and warmup_shift.coarse_costs consume APF vintages unchanged --
+    run_time = forecast_creation_time, rrp = prediction * 1000 (the log
+    stores wholesale $/kWh). This is the forecast family production
+    consumes since 2026-07-07 (EMHASS unit_load_cost <- LGBM APF).
+    """
+    df = pd.read_csv(
+        log_path,
+        usecols=["forecast_target_time", "forecast_creation_time",
+                 "model_name", "prediction"],
+        low_memory=False,
+    )
+    df = df[df.model_name == "price"]
+    df["time"] = pd.to_datetime(df.forecast_target_time, utc=True, format="mixed")
+    t0 = day_utc0 - pd.Timedelta("1h")
+    t1 = day_utc1 + pd.Timedelta("9h")
+    df = df[(df.time >= t0) & (df.time < t1)]
+    df["run_time"] = pd.to_datetime(df.forecast_creation_time, utc=True,
+                                    format="mixed")
+    df["rrp"] = df.prediction.astype(float) * 1000.0
+    return df[["time", "run_time", "rrp"]].reset_index(drop=True)
+
+
 def retailize(rrp_mwh: np.ndarray, when: pd.DatetimeIndex) -> np.ndarray:
     """Wholesale $/MWh -> retail import $/kWh via the tariff profile."""
     profile = json.loads((_SLOP / "tariff_profile.json").read_text())
@@ -153,6 +180,9 @@ def main() -> None:
     ap.add_argument("--cache", default=_ROOT / "data/prices_sa1.parquet", type=Path)
     ap.add_argument("--fc-cal", default=None, type=Path,
                     help="fc_calibration.json to value forecasts at E[actual|fc]")
+    ap.add_argument("--apf-log", default=None, type=Path,
+                    help="APF price_forecast_log.csv; vintages from the APF "
+                    "instead of the predispatch archive")
     args = ap.parse_args()
     fc_cal = json.loads(args.fc_cal.read_text()) if args.fc_cal else None
 
@@ -161,7 +191,9 @@ def main() -> None:
     for date in args.dates.split(","):
         day = load_day(args.parquet, date)
         prices = load_prices(date, date, args.cache)
-        pre = load_predispatch(day.index[0], day.index[-1])
+        pre = (load_apf(day.index[0], day.index[-1], args.apf_log)
+               if args.apf_log
+               else load_predispatch(day.index[0], day.index[-1]))
         b = run_arm(day, None, prices)
         print(f"{'baseline':>16}{date:>12}{b['cost']:>8.2f}{b['kwh']:>7.2f}"
               f"{b['deg_min_below']:>11.1f}{b['time_in_band']:>8.3f}"
