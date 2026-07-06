@@ -9,6 +9,7 @@ dev = [
     "pandas>=3.0.3",
     "pyarrow>=24.0.0",
     "pytest",
+    "pytz>=2026.2",
 ]
 
 [tool.uv]
