@@ -315,3 +315,79 @@ analysis/comfort.py, the native-cadence raw archive).
   glazing). Cooling calibration should expect the bias pattern to invert by
   orientation and time of day; bed_2's neighbour-wall shading prediction
   (solar r2 should rise in summer) doubles as a model check.
+
+## 6. Price-aware HVAC scheduling (scoping pass, 2026-07-06)
+
+The next deep study: statctrl currently decides WHEN to heat from schedule
++ comfort alone; electricity cost varies 10-100x intraday (Amber/AEMO
+SA1). Ryan previously tried modelling the HVAC in EMHASS — failed on
+plant-model accuracy. We now have the accurate plant model (the
+calibrated sim), and the ai-energy-forecast-slop repo already solved the
+identical problem for the HWC (`hwc_dp_planner.py`): monetary objective
+(import cost + per-start transition cost), soft high-penalty comfort
+obligations, DP over a binned internal model, published plan re-scored by
+the exact model. That architecture is the template.
+
+### Data all confirmed available
+
+- **Actual prices**: InfluxDB `rp_30m.aemo_dispatch_sa1_30m` field
+  `price`, Dec 2021 → now, full June coverage (June: mean $121/MWh, max
+  $20,300/MWh — a real spike day inside the calibrated month).
+- **Vintage forecasts** (what a planner would have known):
+  `rp_30m.aemo_predispatch_forecast` (239k June rows), plus the slop
+  repo's `price_forecast_log.csv` (published ML forecast with creation
+  times, PV/weather covariates and actuals) and
+  `amber_spot_5min_forecast_log.parquet`.
+- **Tariff**: `tariff_profile.json` + `tariff_utils.py` (wholesale →
+  retail c/kWh incl network, GST; feed-in tariff = the opportunity cost
+  of self-consuming PV). `amber-usage.csv` for validating the conversion.
+- **Live consumption path**: `sensor.ai_price_forecast[_low/_high]`
+  already published to HA (72 h × 30 min); actrl already reads an EMHASS
+  curtailment forecast (grid_surplus feature) — the plumbing pattern
+  exists.
+- **Plant**: the calibrated closed-loop sim + analysis/comfort.py
+  metrics + June archive for co-replay against recorded prices.
+
+### Study design sketch (phased, each phase can kill it)
+
+1. **Phase A — value bound (hindsight oracle).** June replay, perfect
+   price/weather knowledge. Search statctrl-shaped schedule space
+   (per-room target trajectories: pre-heat depth/timing, ramp starts,
+   PV-window bias) with a two-level loop — coarse 30-min house-RC
+   planning model for search, full closed-loop sim to score candidates
+   (HWC pattern: approximate model inside the optimiser, exact model for
+   the published plan). Objective: Σ import_price × HVAC_kWh − feed-in
+   credit + comfort penalty ($/deg-min-below, sweepable — it is Ryan's
+   preference parameter). Deliverable: $ ceiling vs recorded June cost.
+   If the ceiling is small, stop here.
+2. **Phase B — forecast realism.** Re-run the winning strategies with
+   vintage predispatch/ML forecasts instead of hindsight; measure value
+   erosion. (The 20.3k spike day is the natural stress test — was it
+   forecast far enough ahead to pre-bank heat?)
+3. **Phase C — distillation.** Compress the oracle's behaviour into 2–3
+   inspectable statctrl rules (like the HWC planner's evolution);
+   controller-CI gate + staged deploy. A full DP planner in production is
+   possible (HWC precedent) but rules are preferred if they capture most
+   of the value.
+
+### Decisions taken from the HWC precedent
+
+- **Battery decoupled** from the HVAC planner (EMHASS keeps the battery;
+  HWC does the same; surplus/negative-feed-in is a known gap with an
+  agreed design there — inherit that design when it lands).
+- Monetary objective with soft comfort penalties, no hard rules.
+- Winter-first: heating season is NOW; findings deploy this month.
+  Cooling variant waits for summer calibration anyway.
+
+### Open questions for the brainstorm proper
+
+- Comfort-penalty calibration: what $/K·h below target actually reflects
+  the family's preference? (Sweep; present the frontier, Ryan picks.)
+- Defrost in the objective: accumulator model is in the sim; spike-day
+  pre-banking interacts with defrost timing (#7 folds in here).
+- Per-room vs whole-house planning: statctrl is per-room; the plan
+  search space should probably be whole-house strategy + existing
+  per-room punctuality logic, not a per-room DP.
+- Grid-surplus feature overlap: today's curtailment-driven target
+  widening becomes a special case of price-aware planning — retire or
+  subsume?
