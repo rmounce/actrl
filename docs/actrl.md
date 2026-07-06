@@ -84,13 +84,20 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
     `max(output) == normalised_damper_range` (2.0) — the hungriest room always
     pins its damper fully open and the compressor, not the dampers, modulates
     total capacity.
-  - **Minimum airflow**: measured fan power table (static pressure × fan
-    speed, baseline SP2/low ≈ one open duct) sets a minimum sum of
-    airflow-weighted damper outputs; integrals are nudged up in a loop until
-    satisfied. Closed doors derate a room's airflow weight to 0.25.
   - **Negative clamp**: integral may only wind down to −0.1
     (`room_pid_minimum`) so a satisfied room hovers just below opening rather
-    than accumulating unbounded wind-down.
+    than accumulating unbounded wind-down. Runs before the minimum-airflow
+    top-up (which no longer props raw outputs up — the clamp must see raw
+    outputs).
+  - **Minimum airflow** (`min_airflow_inflation`, module-level): measured fan
+    power table (static pressure × fan speed, baseline SP2/low ≈ one open
+    duct) sets a minimum sum of airflow-weighted damper outputs; this cycle's
+    outputs are topped up by an equal increment until satisfied. Stateless
+    since 2026-07-06 — integrals are never written, so the top-up carries no
+    memory and a satisfied zone hands airflow back the moment other zones
+    cover the minimum (was: integral nudges that ratcheted satisfied zones
+    up for tens of minutes; study in docs/tuning.md "Min-airflow inflation
+    policy"). Closed doors derate a room's airflow weight to 0.25.
 
 ## Capacity control (`compress` + `midea_runtime_quirks`)
 

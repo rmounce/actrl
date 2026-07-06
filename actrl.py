@@ -122,29 +122,54 @@ mode_sign = {"cool": 1.0, "heat": -1.0}
 def min_airflow_inflation(pids, pid_outputs, adjusted_room_airflow, min_sum):
     """Ensure enough weighted positive PID output to satisfy minimum airflow.
 
-    Inflates every room's integral in small equal steps until the
-    airflow-weighted sum of positive outputs reaches min_sum (rooms already
-    at full range are skipped). Mutates pids and pid_outputs in place.
+    Stateless: tops up this cycle's pid_outputs by an equal increment across
+    all rooms below full range until the airflow-weighted sum of positive
+    outputs reaches min_sum. Integrals are never written, so the top-up
+    carries no memory -- the moment other zones' demand covers min_sum, a
+    satisfied zone's damper falls straight back to its true PID value.
+    (The stateful predecessor wrote the top-up into i_term, leaving
+    counterfeit demand that took ~tens of minutes of room_ki to unwind and
+    ratcheted satisfied zones up relative to the range-capped top zone --
+    study in docs/tuning.md "Min-airflow inflation policy".)
 
-    Module-level so analysis harnesses can substitute candidate policies
-    via analysis/ctrl_overrides.py without editing production logic.
+    Requires the negative-integral clamp to run BEFORE this pass: the top-up
+    no longer props raw outputs up, so the clamp must see raw outputs or a
+    satisfied zone's integral winds down unboundedly behind a healthy-looking
+    topped-up output.
+
+    The equal increment is solved directly on the piecewise-linear airflow
+    gain (bisection) -- the continuous limit of the old 0.0001-step loop.
+    `pids` is unused but kept so analysis policies remain drop-in
+    substitutes via analysis/ctrl_overrides.py.
     """
-    while True:
-        positive_outputs = {
-            room: max(0, output) * adjusted_room_airflow[room]
-            for room, output in pid_outputs.items()
-        }
-        if sum(positive_outputs.values()) >= min_sum:
-            break
-        no_integral_adjusted = True
-        for room in pid_outputs:
-            if pid_outputs[room] < normalised_damper_range:
-                no_integral_adjusted = False
-                pids[room].adjust_integral(0.0001)
-                pid_outputs[room] = pids[room].get_output()
-        if no_integral_adjusted:
-            # Too few zones enabled to satisfy minimum airflow.. not much we can do
-            break
+
+    def gain(delta):
+        return sum(
+            (min(max(o + delta, 0.0), normalised_damper_range) - max(o, 0.0))
+            * adjusted_room_airflow[room]
+            for room, o in pid_outputs.items()
+        )
+
+    short = min_sum - sum(
+        max(0.0, o) * adjusted_room_airflow[r] for r, o in pid_outputs.items()
+    )
+    below_range = [r for r, o in pid_outputs.items() if o < normalised_damper_range]
+    if short <= 0 or not below_range:
+        # Too few zones enabled to satisfy minimum airflow.. not much we can do
+        return
+    hi = max(normalised_damper_range - pid_outputs[r] for r in below_range)
+    if gain(hi) > short:
+        lo = 0.0
+        for _ in range(80):
+            mid = 0.5 * (lo + hi)
+            if gain(mid) < short:
+                lo = mid
+            else:
+                hi = mid
+    for room in below_range:
+        pid_outputs[room] = min(
+            pid_outputs[room] + hi, normalised_damper_range
+        )
 
 
 class Actrl(hass.Hass):
@@ -764,8 +789,9 @@ class Actrl(hass.Hass):
             for room, airflow in room_airflow.items()
         }
 
-        min_airflow_inflation(self.pids, pid_outputs, adjusted_room_airflow, min_sum)
-
+        # Negative wind-down clamp must run BEFORE the min-airflow top-up:
+        # the top-up is stateless and no longer props raw outputs up, so the
+        # clamp has to see raw outputs (see min_airflow_inflation docstring).
         for room in pid_outputs:
             allowable_difference = room_pid_minimum
             difference_beyond_allowable = pid_outputs[room] - allowable_difference
@@ -783,6 +809,9 @@ class Actrl(hass.Hass):
 
                 pid_outputs[room] = self.pids[room].get_output()
 
+        min_airflow_inflation(self.pids, pid_outputs, adjusted_room_airflow, min_sum)
+
+        for room in pid_outputs:
             self.get_entity(f"input_number.{room}_pid").set_state(
                 state=str(float(pid_outputs[room]))
             )

@@ -496,6 +496,16 @@ honest price of serving the calling zone. Deploy is Ryan's call;
 gate with `analysis/inflation_ci.py free_equal` + June scorecard
 (result below).
 
+**ADOPTED 2026-07-06**: free_equal is now production
+(`min_airflow_inflation` stateless + clamp reordered ahead of it).
+Verified: goldens green (cycle fixtures never bind the loop), sub-K
+scenario replay bit-identical to the study's free_equal arm,
+controller-CI gate PASS at +0.000 on every metric (baseline NOT
+re-pinned — production is bit-identical on the canonical days). The
+"baseline" arm in analysis/inflation_policy.py now means the new
+stateless production; the old stateful behaviour is only in git
+history (<= commit c1a20d2).
+
 June-wide scorecard (24 replayable days), free_equal vs baseline:
 22/24 days bit-identical; only 06-21/06-27 change at all, both
 negligibly and slightly *better* (06-21 kit_rmse 0.360→0.342,
