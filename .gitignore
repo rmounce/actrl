@@ -5,3 +5,4 @@ appdaemon
 *.egg-info/
 data/
 tools/influx.env
+analysis/out/
