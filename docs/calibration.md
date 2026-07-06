@@ -712,3 +712,46 @@ kitchen mass 2.0 vs 2.6, so NOT the mass refit; suspects are tasks
 all 2026-07-03/04, whose validation tracked whole-June starts but never
 re-checked this window). Whole-June medians still match (starts 5 vs 6).
 The evening window still matches (4|4 at mass 2.6). Flagged, not chased.
+
+## Overnight zone-state divergence — chased to ground (2026-07-06)
+
+Follow-up to the kitchen-onset root cause. The 05:00 integral-field fork
+(rec study pinned top vs sim bed_3) traces to a single, fully verified
+chain (probes in session scratch; per-room pid_{room} telemetry):
+
+1. **The cold-night run trigger is bed_3**, in recorded AND sim on every
+   cold night checked (06-22/24/25/26): the run starts the minute
+   bed_3's feels-like crosses its 16.0 target. Controller logic is
+   faithful — only the crossing time shifts.
+2. **The sim under-cools pre-run on cold nights** (+0.04..+0.14 K/h per
+   room, bed_3 and study worst), and the trigger AMPLIFIES it: at a
+   ~0.5 K/h approach rate, +0.1 K/h of bias = 36-56 min late trigger →
+   the sim's night run starts ~50 min late and ends ~2 h early → rooms
+   enter 05:00 ~0.3-0.8 K colder with a differently-ranked integral
+   field → the kitchen morning ratchet gap.
+3. **Attribution of the under-cooling is UNRESOLVED at n=5 cold
+   nights.** Wind DISCONFIRMED: June wind backfilled from InfluxDB
+   rp_30m (never exported; now added to tools/export_entities.json for
+   future runs) shows the windiest nights (06-29 14.3, 06-08 10.6 km/h)
+   are the mild no-gap nights, while calm 06-26 (0.3 km/h) has the
+   largest delay. Sky-radiation-via-humidity DISCONFIRMED as a
+   discriminator: all cold nights sit at 92-97% RH / 8.3-9.6 hPa vapour
+   pressure, including no-gap 06-21. Outdoor temp alone disconfirmed:
+   06-21 matches 06-22 (5.7 C) with no gap. The residual bias (~0.3 K
+   accumulated over 3 h) is near the night fit's validated RMSE (0.14),
+   so this may simply be within-fit scatter that the trigger threshold
+   amplifies — more cold nights (July archive) will decide.
+
+Consequences / recommendations:
+
+- Morning multi-zone texture on cold days inherits a ~±50 min night-run
+  timing uncertainty from sub-RMSE plant scatter. Comparative A/Bs are
+  unaffected (both arms share the plant); absolute morning-authority
+  claims should average over several mornings (damper_fidelity already
+  does).
+- Do NOT chase with a static parameter tweak (bed_3 tau_out): the gap is
+  regime-specific (4 of 5 cold nights, absent on 06-21) and a static
+  change would trade validated windows for it.
+- Re-attribute when the July export lands (wind now included; more cold
+  nights). If a night-loss regime term is ever fitted, fit it on the
+  night windows only and re-anchor the trigger times, not just RMSE.

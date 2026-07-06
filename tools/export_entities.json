@@ -82,6 +82,11 @@
     "entities": null
   },
 
+  "wind_speed_adelaide": {
+    "rp": "rp_30m",
+    "entities": null
+  },
+
   "power_load_5m": {
     "rp": "rp_5m",
     "entities": null
