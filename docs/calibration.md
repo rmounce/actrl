@@ -755,3 +755,40 @@ Consequences / recommendations:
 - Re-attribute when the July export lands (wind now included; more cold
   nights). If a night-loss regime term is ever fitted, fit it on the
   night windows only and re-anchor the trigger times, not just RMSE.
+
+## Damper position→flow curve (2026-07-06, contrast-shaping prerequisite)
+
+Question (Ryan's 2023 hunch, commit 6fa96b8 "it seems nonlinear, lets try
+squaring!"): is register airflow concave in damper position? If so,
+position-space contrast shaping (`damper_share_gamma`) would deliver less
+real contrast than the linear-flow sim predicts.
+
+Method (`analysis/damper_flow_fit.py`): one-step-ahead prediction on
+recorded June data, no closed loop. 153 steady windows (all dampers ±5
+pts, outdoor power steady, indoor fan >50 W to exclude defrost, minutes
+5–35 of each span to dodge the sensor-lead transient); per-room measured
+slopes vs calibrated physics (RoomParams losses + orientation solar) plus
+HVAC heat allocated by share = x**beta · w / Σ. x**beta pins the
+endpoints (0/full states the June calibration anchored on), so beta is
+identified only by mid-range windows (39/153). Two estimators:
+
+- Joint (beta, scale) SSE: FLAT in beta (0.8% total range) with scale at
+  the grid edge — level/noise dominated, uninformative.
+- Pairwise scale-free (mid-range room vs full-open reference in the same
+  window: heat ratio = x**beta directly): well-conditioned band
+  x∈(0.3, 0.7), excluding bed_1: **median beta 1.24, IQR [1.05, 1.73],
+  n=21** (bed_2 1.10, bed_3 1.22). Kitchen/study too few windows and/or
+  x too near 1 (log-denominator noise).
+
+Verdict: **no concavity — linear to mildly convex.** The 2023 concave
+hunch is not supported; the linear sim flow model stands, and gamma
+contrast-shaping effect sizes are, if anything, slightly conservative
+(real curve beta ~1.1–1.2 compounds with gamma rather than cancelling).
+
+Caveats: bed_1 excluded as unphysical (pairwise beta ≈ 0, huge scatter)
+— its mid-range windows are confounded by something unmodelled (door
+state is the suspect: actrl derates closed-door zones ×0.25 but door
+sensors are NOT in InfluxDB — only bed_2_door exists there, bed_1_door
+has no recorded data — so no correction is possible from history).
+Overall scatter is wide (IQR spans ~0.7); mild curvature either way
+can't be excluded, only strong concavity (beta ≤ 0.5) is ruled out.
