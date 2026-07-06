@@ -327,3 +327,16 @@ hour sag ever feels too deep the knob is shave_max, but the shave IS
 the mechanism that recovers unforecastable spikes.
 
 Verdict: no re-tuning needed for the APF feed; constants stand.
+
+## Recorded-trace counterfactual, 06-22 (2026-07-07)
+
+Ryan pushed back that the sim baseline ($67.60) costing more than the
+recorded day ($51.91) undersells the strategy. Right lens: the strategy
+value needs no simulator on this day -- from the RECORDED trace, $46.48
+of the $51.91 was 3.78 kWh bought at avg $12.29/kWh inside 06:00-08:00;
+the same energy at that morning's 02:00-04:30 price ($0.60/kWh, +15%
+hold overhead) is $2.61 => counterfactual recorded day ~$8. The rec/sim
+gap is morning cycling texture repriced across a 20x cliff (same kWh
++-4%); sim claims are arm-vs-arm only. The sim's role is de-risking the
+decision rule (fires at 00:30 from real vintages, comfort improves,
+wrong-calls cost cents), not predicting the dollar figure.
