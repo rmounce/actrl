@@ -123,3 +123,66 @@ on trigger mornings. Implementation: statctrl reads the predispatch max
 the live Amber price entity. Ordinary-day ToU shaping (<= $18/mo
 ceiling) deliberately NOT in scope for the first deploy -- separate,
 lower-value lever.
+
+## Phase C progress (2026-07-06, continuous formulations)
+
+Ryan's steer: no hard-coded thresholds. Results of moving both Phase B
+triggers to continuous rules:
+
+### Component 1 -- continuous price offset (VALIDATED, deployable candidate)
+
+`analysis/price_offset.py`: offset(t) = k x (retention-discounted max of
+the calibrated price forecast over the next 8h - price now), clamped
+[-0.75, +1.5] K, added to every room's target. k [K per $/kWh] is the
+one preference knob (comfort-vs-money exchange rate); tau ~= 20h is
+physics (holding a banked degree leaks at ~UA/C_eff ~= 5%/h).
+
+- Elevated days: -14% cost at comfort parity (06-24 $6.73 -> $5.81).
+- Mild days: neutral at k=2 (offset ~0 when prices are flat).
+- Spike shave: engages on ACTUAL price with zero lead -- catches even
+  unforecast spikes' second half.
+- What it CANNOT do: the warmup time-shift. An additive +-1K offset on
+  the 16C night setback still leaves rooms 3K below day level when a
+  morning spike lands -- the mandatory warmup energy still gets bought
+  at spike prices. The spike-day result is poor (-$11 with worse
+  comfort vs the discrete experiment's -$43 with better).
+
+### Component 2 -- price-aware warmup start (BLOCKED on an honest fork)
+
+`analysis/warmup_shift.py`: pick the warmup start time by expected cost
+(coarse RC model x calibrated price forecast, decided at 00:30 from the
+vintage predispatch; full-sim validated). Two findings block it:
+
+1. **The tail is unlearnable as a conditional mean.**
+   `analysis/fc_calibration.py` fits E[actual | forecast]: pooled AND
+   winter-morning-conditioned fits show ~no uplift (the $0.40-0.55/kWh
+   forecast bin fits to ~$0.40-0.46... while the SAME bin realised
+   $2.60 mean in the June holdout, because 06-22's $16/kWh sat there).
+   2-3 spike events per winter cannot pin E[act|fc]; whichever period
+   you fit, the other period's spike is in the holdout. A pure
+   expected-cost planner therefore (correctly, per its inputs) declines
+   to shift on 06-22.
+2. Coarse hold-cost is ~2x low vs the full sim (UA/C_eff maintenance
+   underestimates real cycling losses) -- fixable by calibrating one
+   constant against sim replays, but moot until (1) is decided.
+
+### The fork (Ryan's call -- this is a risk preference, not a fit)
+
+- **Expected-value planner**: with honest tail estimates it rarely
+  banks; you eat a ~$50 morning 1-2x/winter. Optimal iff you only care
+  about the mean.
+- **Insurance planner**: value forecast prices with an upside-surprise
+  term, e.g. g(fc) = fc + lambda x E[(actual - fc)+ | fc] (the expected
+  positive surprise -- statistically much stabler than the mean because
+  it pools all upside residuals). lambda is the single knob: 0 = pure
+  EV, 1 ~= actuarially fair, >1 = risk-averse. Phase B's discrete
+  trigger was implicitly lambda>>1 and demonstrably paid: ~$0.5 +
+  BETTER comfort per false fire (~2-3/month), ~$40 saved per hit
+  (1-2/winter). The asymmetry makes some lambda>0 clearly right; HOW
+  MUCH is preference.
+
+Next session: pick lambda form, refit the upside-surprise curve,
+calibrate the coarse hold cost against sim, sweep lambda on 06-22 +
+2025 winter spike days (coarse decision only -- house archive doesn't
+cover 2025) + false-fire days, June-wide neutrality check, then the
+statctrl implementation spec.
