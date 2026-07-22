@@ -291,7 +291,10 @@ class Actrl(hass.Hass):
             "mode": mode or self.mode or "off",
             "plant_mode": plant_mode or self.get_state(climate_entity) or "unknown",
             "active_rooms": int(active_rooms),
-            "capacity_step": int(self.capacity.guesstimated_comp_speed),
+            # AppDaemon's HA REST adapter prunes False recursively, and numeric
+            # zero compares equal to False. Preserve a stopped compressor by
+            # using the same string workaround as aircon_comp_speed.
+            "capacity_step": str(int(self.capacity.guesstimated_comp_speed)),
             "capacity_max": compressor_power_increments,
             # Always changes, even when the status does not, and gives consumers
             # an explicit liveness signal for the ten-second control loop.

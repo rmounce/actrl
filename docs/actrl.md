@@ -34,6 +34,8 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   `initializing`, `manual`, `inhibited`, `switching`, `idle`, `heating`, or
   `cooling`; attributes carry mode, lead room/temperature/target, signed
   demand, active-room count, capacity step/max, grid offset, and heartbeat.
+  Capacity step is encoded as a numeric string because AppDaemon's HA REST
+  adapter otherwise prunes numeric zero as falsey.
 - Rooms: bed_1, bed_2, bed_3, study (airflow weight 1.0), kitchen (2.0 — two
   ducts).
 

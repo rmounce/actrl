@@ -32,7 +32,7 @@ def test_manual_mode_publishes_pause_state():
 
     assert status["state"] == "manual"
     assert status["attributes"]["mode"] == "off"
-    assert status["attributes"]["capacity_step"] == 0
+    assert status["attributes"]["capacity_step"] == "0"
 
 
 def test_local_inhibit_pauses_without_issuing_plant_commands():
