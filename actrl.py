@@ -28,7 +28,9 @@ from control import (
 device_name = "m5atom"
 climate_entity = f"climate.{device_name}_climate"
 static_pressure_entity = f"number.{device_name}_static_pressure"
-follow_me_service = f"esphome/{device_name}_send_follow_me"
+# ESPHome user services are prefixed with the node name, not the retained
+# friendly/entity-name prefix used by the migrated Home Assistant entities.
+follow_me_service = "esphome/hvac_xye_send_follow_me"
 compressor_entity = f"binary_sensor.{device_name}_compressor"
 outdoor_fan_entity = f"binary_sensor.{device_name}_outdoor_fan"
 actrl_status_entity = "sensor.actrl_status"

@@ -169,7 +169,7 @@
  },
  {
   "cycle": 0,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -288,7 +288,7 @@
  },
  {
   "cycle": 1,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -407,7 +407,7 @@
  },
  {
   "cycle": 2,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 21.0
   }
@@ -526,7 +526,7 @@
  },
  {
   "cycle": 3,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -645,7 +645,7 @@
  },
  {
   "cycle": 4,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -764,7 +764,7 @@
  },
  {
   "cycle": 5,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -883,7 +883,7 @@
  },
  {
   "cycle": 6,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -1002,7 +1002,7 @@
  },
  {
   "cycle": 7,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -1121,7 +1121,7 @@
  },
  {
   "cycle": 8,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -1240,7 +1240,7 @@
  },
  {
   "cycle": 9,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -1359,7 +1359,7 @@
  },
  {
   "cycle": 10,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -1478,7 +1478,7 @@
  },
  {
   "cycle": 11,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -1597,7 +1597,7 @@
  },
  {
   "cycle": 12,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -1716,7 +1716,7 @@
  },
  {
   "cycle": 13,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -1835,7 +1835,7 @@
  },
  {
   "cycle": 14,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 21.0
   }
@@ -1970,7 +1970,7 @@
  },
  {
   "cycle": 15,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 23.0
   }
@@ -2089,7 +2089,7 @@
  },
  {
   "cycle": 16,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -2208,7 +2208,7 @@
  },
  {
   "cycle": 17,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -2327,7 +2327,7 @@
  },
  {
   "cycle": 18,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -2446,7 +2446,7 @@
  },
  {
   "cycle": 19,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -2565,7 +2565,7 @@
  },
  {
   "cycle": 20,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -2684,7 +2684,7 @@
  },
  {
   "cycle": 21,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -2803,7 +2803,7 @@
  },
  {
   "cycle": 22,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -2922,7 +2922,7 @@
  },
  {
   "cycle": 23,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3041,7 +3041,7 @@
  },
  {
   "cycle": 24,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3160,7 +3160,7 @@
  },
  {
   "cycle": 25,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3279,7 +3279,7 @@
  },
  {
   "cycle": 26,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3398,7 +3398,7 @@
  },
  {
   "cycle": 27,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3517,7 +3517,7 @@
  },
  {
   "cycle": 28,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3636,7 +3636,7 @@
  },
  {
   "cycle": 29,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3755,7 +3755,7 @@
  },
  {
   "cycle": 30,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3874,7 +3874,7 @@
  },
  {
   "cycle": 31,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -3993,7 +3993,7 @@
  },
  {
   "cycle": 32,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -4112,7 +4112,7 @@
  },
  {
   "cycle": 33,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -4231,7 +4231,7 @@
  },
  {
   "cycle": 34,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -4350,7 +4350,7 @@
  },
  {
   "cycle": 35,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -4469,7 +4469,7 @@
  },
  {
   "cycle": 36,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -4588,7 +4588,7 @@
  },
  {
   "cycle": 37,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -4707,7 +4707,7 @@
  },
  {
   "cycle": 38,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -4826,7 +4826,7 @@
  },
  {
   "cycle": 39,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -4945,7 +4945,7 @@
  },
  {
   "cycle": 40,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -5064,7 +5064,7 @@
  },
  {
   "cycle": 41,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -5183,7 +5183,7 @@
  },
  {
   "cycle": 42,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -5302,7 +5302,7 @@
  },
  {
   "cycle": 43,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }
@@ -5421,7 +5421,7 @@
  },
  {
   "cycle": 44,
-  "service": "esphome/m5atom_send_follow_me",
+  "service": "esphome/hvac_xye_send_follow_me",
   "data": {
    "temperature": 22.0
   }

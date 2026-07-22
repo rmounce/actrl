@@ -75,7 +75,7 @@ MASS_WEIGHTS = {"bed_1": 1.395, "bed_2": 0.893, "bed_3": 1.070, "study": 0.642, 
 # absorbs any mid-range curvature), so this stays 1.0 until summer data
 # gives real mid-range coverage. Sensitivity hook only.
 DAMPER_FLOW_BETA = 1.0
-FOLLOW_ME_SERVICE = "esphome/m5atom_send_follow_me"
+FOLLOW_ME_SERVICE = "esphome/hvac_xye_send_follow_me"
 UNIT_CLIMATE = "climate.m5atom_climate"
 
 

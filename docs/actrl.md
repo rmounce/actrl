@@ -16,7 +16,7 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
 ## Hardware / entity surface
 
 - `climate.m5atom_climate` — the Midea unit via ESPHome.
-- `esphome/m5atom_send_follow_me` — service used to report a fake ambient
+- `esphome/hvac_xye_send_follow_me` — service used to report a fake ambient
   temperature (the entire capacity-control mechanism).
 - `number.m5atom_static_pressure` — duct static pressure setting 1–4.
 - `binary_sensor.m5atom_compressor`, `binary_sensor.m5atom_outdoor_fan` —
