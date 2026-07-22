@@ -31,6 +31,8 @@ static_pressure_entity = f"number.{device_name}_static_pressure"
 follow_me_service = f"esphome/{device_name}_send_follow_me"
 compressor_entity = f"binary_sensor.{device_name}_compressor"
 outdoor_fan_entity = f"binary_sensor.{device_name}_outdoor_fan"
+actrl_status_entity = "sensor.actrl_status"
+local_inhibit_entity = "switch.hvac_xye_m5atom_local_inhibit"
 
 # Kitchen has 2 ducts, min airflow isn't an issue there
 # The rest of the rooms are comparable in size
@@ -267,11 +269,79 @@ class Actrl(hass.Hass):
             )
         # run every interval (in minutes)
         self.run_every(self.main, "now", 60.0 * interval)
+        self._publish_status("initializing")
+
+    def _publish_status(
+        self,
+        status,
+        *,
+        mode=None,
+        plant_mode=None,
+        lead_room=None,
+        lead_temperature=None,
+        lead_target=None,
+        demand=None,
+        active_rooms=0,
+    ):
+        """Publish the stable display/monitoring contract for this controller."""
+        attributes = {
+            "friendly_name": "actrl HVAC Status",
+            "mode": mode or self.mode or "off",
+            "plant_mode": plant_mode or self.get_state(climate_entity) or "unknown",
+            "active_rooms": int(active_rooms),
+            "capacity_step": int(self.capacity.guesstimated_comp_speed),
+            "capacity_max": compressor_power_increments,
+            # Always changes, even when the status does not, and gives consumers
+            # an explicit liveness signal for the ten-second control loop.
+            "heartbeat": int(time.time()),
+        }
+        optional_attributes = {
+            "lead_room": lead_room,
+            "lead_temperature": lead_temperature,
+            "lead_target": lead_target,
+            "demand": demand,
+            "grid_surplus_offset": self.grid_surplus_integral,
+        }
+        attributes.update(
+            {
+                key: value
+                for key, value in optional_attributes.items()
+                if value is not None
+                and (not isinstance(value, float) or math.isfinite(value))
+            }
+        )
+        self.get_entity(actrl_status_entity).set_state(
+            state=status, attributes=attributes
+        )
+
+    def _get_pause_reason(self):
+        if self.get_state(local_inhibit_entity) == "on":
+            return "inhibited"
+        if self.get_state("input_boolean.ac_manual_mode") == "on":
+            return "manual"
+        return None
+
+    def _pause_control(self, reason):
+        self.log(f"{reason.capitalize()} mode active, resetting internal state")
+        self._reset_internal_state()
+        self._publish_status(reason, mode="off", plant_mode="off")
+
+    @staticmethod
+    def _lead_context(mode, errors, temps, targets):
+        if mode is None or not errors.get(mode):
+            return {}
+        lead_room = max(errors[mode], key=errors[mode].get)
+        return {
+            "lead_room": lead_room,
+            "lead_temperature": temps[lead_room],
+            "lead_target": targets[mode][lead_room],
+            "active_rooms": len(errors[mode]),
+        }
 
     def main(self, kwargs):
-        if self.get_state("input_boolean.ac_manual_mode") == "on":
-            self.log("Manual mode active, resetting internal state")
-            self._reset_internal_state()
+        pause_reason = self._get_pause_reason()
+        if pause_reason is not None:
+            self._pause_control(pause_reason)
             return
         self.log("")
         self.log("#### BEGIN CYCLE ####")
@@ -296,12 +366,24 @@ class Actrl(hass.Hass):
 
         new_mode, demand = self._determine_new_mode(cooling_demand, heating_demand)
         self.log(f"new_mode {new_mode} (old mode {self.mode})")
+        status_context = self._lead_context(new_mode, errors, temps, self.targets)
+        status_context.update(
+            {
+                "mode": new_mode or "off",
+                "demand": mode_sign[new_mode] * demand if new_mode is not None else None,
+            }
+        )
 
         celsius_setpoint = float(
             self.get_entity(climate_entity).get_state("temperature")
         )
 
         if self._handle_mode_change(new_mode, celsius_setpoint):
+            self._publish_status(
+                "idle" if new_mode is None else "switching",
+                plant_mode="off",
+                **status_context,
+            )
             return
 
         self.mode = new_mode
@@ -400,6 +482,11 @@ class Actrl(hass.Hass):
             self.capacity.on_counter = 0
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
                 self.set_damper_pos(room, damper_vals[room], True)
+            self._publish_status(
+                "idle",
+                plant_mode="off",
+                **status_context,
+            )
             return
         else:
             for room in sorted(damper_vals, key=damper_vals.get, reverse=True):
@@ -428,6 +515,10 @@ class Actrl(hass.Hass):
             self.set_fake_temp(celsius_setpoint, compressed_error, True)
             time.sleep(1.0)
         self.set_fake_temp(celsius_setpoint, compressed_error, True)
+        self._publish_status(
+            "heating" if self.mode == "heat" else "cooling",
+            **status_context,
+        )
 
     def _reset_internal_state(self):
         """Resets the script state counters and flags, but preserves PID objects."""
@@ -1073,4 +1164,3 @@ class Actrl(hass.Hass):
                 "climate/set_fan_mode", entity_id=climate_entity, fan_mode=fan_mode
             )
             time.sleep(0.1)
-

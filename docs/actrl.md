@@ -30,13 +30,19 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
 - Various `input_number.*` entities used both as dashboards metrics and as
   persistence across app restarts (`aircon_comp_speed`,
   `grid_surplus_integral`).
+- `sensor.actrl_status` — deliberate monitoring/display contract. State is
+  `initializing`, `manual`, `inhibited`, `switching`, `idle`, `heating`, or
+  `cooling`; attributes carry mode, lead room/temperature/target, signed
+  demand, active-room count, capacity step/max, grid offset, and heartbeat.
 - Rooms: bed_1, bed_2, bed_3, study (airflow weight 1.0), kitchen (2.0 — two
   ducts).
 
 ## Main cycle (10 s, `main()`)
 
-1. Manual-mode escape hatch: `input_boolean.ac_manual_mode` resets internal
-   state and skips the cycle.
+1. Pause escape hatches: `input_boolean.ac_manual_mode` and the ATOM S3 local
+   inhibit switch reset internal state, publish their pause state, and
+   skip control. Releasing either resumes from reset state. Local inhibit is
+   still enforced independently in ESPHome if AppDaemon or HA is unavailable.
 2. Read temperatures (feels-like optional w/ fallback), update window-open
    offsets.
 3. Read per-room targets from `climate.<room>_aircon` (heat/cool/heat_cool);

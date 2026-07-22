@@ -40,12 +40,17 @@ class FakeEntity:
             return entry
         return entry["attributes"].get(attribute)
 
-    def set_state(self, state=None, **kwargs):
+    def set_state(self, state=None, attributes=None, **kwargs):
         self.world.ensure(self.entity_id)
         self.world.entities[self.entity_id]["state"] = state
-        self.world.journal.append(
-            {"cycle": self.world.cycle, "write": [self.entity_id, state]}
-        )
+        if attributes is not None:
+            self.world.entities[self.entity_id]["attributes"] = dict(attributes)
+        # Status publication is monitoring-only. Keep it out of the existing
+        # control-output goldens and test its contract explicitly.
+        if self.entity_id != actrl.actrl_status_entity:
+            self.world.journal.append(
+                {"cycle": self.world.cycle, "write": [self.entity_id, state]}
+            )
 
 
 class FakeWorld:
@@ -123,7 +128,7 @@ class HarnessActrl(actrl.Actrl):
         self.logs.append(str(msg))
 
 
-def run_scenario(scenario):
+def run_scenario_world(scenario):
     """Run a scenario dict and return the journal.
 
     scenario = {
@@ -142,4 +147,8 @@ def run_scenario(scenario):
             for eid, entry in scenario.get("updates", {}).get(cycle, {}).items():
                 world.update(eid, entry)
             app.main({})
-    return world.journal
+    return world
+
+
+def run_scenario(scenario):
+    return run_scenario_world(scenario).journal

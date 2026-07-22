@@ -24,6 +24,7 @@ def base_world(
         "number.m5atom_static_pressure": {"state": static_pressure},
         "binary_sensor.m5atom_compressor": {"state": "off"},
         "binary_sensor.m5atom_outdoor_fan": {"state": "off"},
+        "switch.hvac_xye_m5atom_local_inhibit": {"state": "off"},
         "input_boolean.ac_manual_mode": {"state": "off"},
         "input_boolean.ac_min_power": {"state": "off"},
         "input_boolean.ac_use_feels_like": {"state": "off"},
