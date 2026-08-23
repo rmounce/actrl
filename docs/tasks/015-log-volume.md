@@ -1,6 +1,6 @@
 # 015: Reduce actrl log volume
 
-Status: review
+Status: done
 Branch: task/015-log-volume
 
 ## Goal
@@ -47,3 +47,6 @@ None.
   golden control journals unchanged. Awaiting review/merge/deployment.
 - 2026-08-23: added the requested HA runtime DEBUG toggle; 213 tests passed with one
   unrelated skip and golden control journals unchanged.
+- 2026-08-23: reviewed, fast-forwarded to master, and deployed through `deploy.sh`
+  while HA Manual Mode was on. AppDaemon hot reload succeeded; pause logging reduced
+  to one entry and the HA DEBUG toggle was verified on/off without app reload.
