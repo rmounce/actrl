@@ -224,8 +224,9 @@ class WindowStateHandler:
 
 
 class MideaCapacityController:
-    def __init__(self, log=lambda msg: None):
+    def __init__(self, log=lambda msg: None, debug=lambda msg: None):
         self.log = log
+        self.debug = debug
         self.on_counter = 0
         self.min_power_counter = 0
         self.max_power_counter = 0
@@ -293,7 +294,7 @@ class MideaCapacityController:
             return self.midea_runtime_quirks(ac_off_threshold + 1)
 
         if self.on_counter < soft_delay:
-            self.log("soft start, on_counter: " + str(self.on_counter))
+            self.debug("soft start, on_counter: " + str(self.on_counter))
             self.deadband_integrator.clear()
             return self.midea_runtime_quirks(ac_stable_threshold - 1)
 
@@ -387,7 +388,7 @@ class MideaCapacityController:
 
         if rval >= ac_stable_threshold + threshold_offset:
 
-            self.log(
+            self.debug(
                 f"Hysteresis Active. rval: {rval}, counter: {self.max_power_counter}"
             )
 

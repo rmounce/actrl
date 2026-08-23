@@ -1,6 +1,8 @@
+from unittest import mock
+
 import pytest
 
-from hvac_harness import actrl, run_scenario_world
+from hvac_harness import FakeWorld, HarnessActrl, actrl, run_scenario_world
 from scenarios import heat_approach, manual_mode
 
 
@@ -64,3 +66,64 @@ def test_control_resumes_after_inhibit_is_released():
         event.get("service") == "climate/set_hvac_mode"
         for event in world.journal
     )
+
+
+def test_manual_mode_logs_entry_once_and_exit_once():
+    scenario = manual_mode()
+
+    world = FakeWorld(scenario["initial"])
+    app = HarnessActrl(world)
+    with mock.patch.object(actrl.time, "sleep", lambda seconds: None):
+        app.initialize()
+        for cycle in range(3):
+            world.cycle = cycle
+            app.main({})
+        world.update("input_boolean.ac_manual_mode", {"state": "off"})
+        world.cycle = 3
+        app.main({})
+
+    info = [message for level, message in app.log_records if level == "INFO"]
+    assert info.count("Manual mode active, resetting internal state") == 1
+    assert info.count("Manual mode released, resuming control") == 1
+
+
+def test_steady_cycle_telemetry_is_debug():
+    scenario = heat_approach()
+
+    world = FakeWorld(scenario["initial"])
+    app = HarnessActrl(world)
+    with mock.patch.object(actrl.time, "sleep", lambda seconds: None):
+        app.initialize()
+        app.main({})
+        app.main({})
+        app.set_damper_pos("bed_1", app.damper_pos["bed_1"], False)
+
+    records = dict((message, level) for level, message in app.log_records)
+    assert records["#### BEGIN CYCLE ####"] == "DEBUG"
+    assert any(
+        level == "DEBUG" and "adjusted PID output" in message
+        for level, message in app.log_records
+    )
+    assert any(
+        level == "DEBUG" and "within deadband" in message
+        for level, message in app.log_records
+    )
+
+
+def test_debug_logging_toggle_changes_level_without_reinitializing():
+    scenario = manual_mode()
+    scenario["initial"][actrl.debug_logging_entity] = {"state": "off"}
+    world = FakeWorld(scenario["initial"])
+    app = HarnessActrl(world)
+
+    app.initialize()
+    assert app.log_level == "INFO"
+    assert any(
+        entity_id == actrl.debug_logging_entity
+        for _, entity_id, _ in app.state_listeners
+    )
+
+    app._set_debug_logging(actrl.debug_logging_entity, "state", "off", "on", {})
+    assert app.log_level == "DEBUG"
+    app._set_debug_logging(actrl.debug_logging_entity, "state", "on", "off", {})
+    assert app.log_level == "INFO"

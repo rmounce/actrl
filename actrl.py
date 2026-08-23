@@ -34,6 +34,7 @@ follow_me_service = "esphome/hvac_xye_send_follow_me"
 compressor_entity = f"binary_sensor.{device_name}_compressor"
 outdoor_fan_entity = f"binary_sensor.{device_name}_outdoor_fan"
 actrl_status_entity = "sensor.actrl_status"
+debug_logging_entity = "input_boolean.actrl_debug_logging"
 local_inhibit_entity = "switch.hvac_xye_m5atom_local_inhibit"
 
 # Kitchen has 2 ducts, min airflow isn't an issue there
@@ -227,14 +228,26 @@ def min_airflow_inflation(pids, pid_outputs, adjusted_room_airflow, min_sum):
 
 class Actrl(hass.Hass):
     def initialize(self):
+        self._set_debug_logging(
+            debug_logging_entity,
+            "state",
+            None,
+            self.get_state(debug_logging_entity),
+            {},
+        )
+        self.listen_state(self._set_debug_logging, debug_logging_entity)
         self.log("INITIALISING")
         self.pids = {}
         self.temp_derivs = {}
         self.targets = {"heat": {}, "cool": {}}
         self.rooms_enabled = {}
         self.damper_pos = {}
+        self.pause_reason = None
         self.off_fan_running_counter = 0
-        self.capacity = MideaCapacityController(log=self.log)
+        self.capacity = MideaCapacityController(
+            log=self.log,
+            debug=lambda message: self.log(message, level="DEBUG"),
+        )
         self.capacity.guesstimated_comp_speed = int(
             float(self.get_state("input_number.aircon_comp_speed"))
         )
@@ -272,6 +285,15 @@ class Actrl(hass.Hass):
         # run every interval (in minutes)
         self.run_every(self.main, "now", 60.0 * interval)
         self._publish_status("initializing")
+
+    def _set_debug_logging(self, entity, attribute, old, new, kwargs):
+        """Apply the HA debug toggle immediately, without reloading this app."""
+        enabled = new == "on"
+        if old is not None and enabled:
+            self.log("Debug logging enabled from Home Assistant")
+        elif old is not None:
+            self.log("Debug logging disabled from Home Assistant")
+        self.set_log_level("DEBUG" if enabled else "INFO")
 
     def _publish_status(
         self,
@@ -327,7 +349,9 @@ class Actrl(hass.Hass):
         return None
 
     def _pause_control(self, reason):
-        self.log(f"{reason.capitalize()} mode active, resetting internal state")
+        if reason != self.pause_reason:
+            self.log(f"{reason.capitalize()} mode active, resetting internal state")
+            self.pause_reason = reason
         self._reset_internal_state()
         self._publish_status(reason, mode="off", plant_mode="off")
 
@@ -348,8 +372,10 @@ class Actrl(hass.Hass):
         if pause_reason is not None:
             self._pause_control(pause_reason)
             return
-        self.log("")
-        self.log("#### BEGIN CYCLE ####")
+        if self.pause_reason is not None:
+            self.log(f"{self.pause_reason.capitalize()} mode released, resuming control")
+            self.pause_reason = None
+        self.log("#### BEGIN CYCLE ####", level="DEBUG")
         temps = self._get_current_temperatures()
         cur_targets = self._get_current_targets()
         self._update_room_targets(temps, cur_targets)
@@ -366,11 +392,15 @@ class Actrl(hass.Hass):
             state=str(float(self.grid_surplus_integral))
         )
         self.log(
-            f"heating_demand: {heating_demand:.3f}, cooling_demand: {cooling_demand:.3f}"
+            f"heating_demand: {heating_demand:.3f}, cooling_demand: {cooling_demand:.3f}",
+            level="DEBUG",
         )
 
         new_mode, demand = self._determine_new_mode(cooling_demand, heating_demand)
-        self.log(f"new_mode {new_mode} (old mode {self.mode})")
+        if new_mode != self.mode:
+            self.log(f"new_mode {new_mode} (old mode {self.mode})")
+        else:
+            self.log(f"new_mode {new_mode} (old mode {self.mode})", level="DEBUG")
         status_context = self._lead_context(new_mode, errors, temps, self.targets)
         status_context.update(
             {
@@ -436,7 +466,8 @@ class Actrl(hass.Hass):
 
         compressed_error = mode_sign[self.mode] * unsigned_compressed_error
         self.log(
-            f"weighted_error: {weighted_error:.3f}, avg_deriv: {avg_deriv:.3f}, compressed_error: {compressed_error}"
+            f"weighted_error: {weighted_error:.3f}, avg_deriv: {avg_deriv:.3f}, compressed_error: {compressed_error}",
+            level="DEBUG",
         )
 
         self.capacity.on_counter += 1
@@ -459,10 +490,12 @@ class Actrl(hass.Hass):
             state=str(float(self.capacity.guesstimated_comp_speed))
         )
         self.log(
-            f"compressor_totally_off: {self.capacity.compressor_totally_off}, guesstimated_comp_speed: {self.capacity.guesstimated_comp_speed}, prev_step: {self.capacity.prev_step}"
+            f"compressor_totally_off: {self.capacity.compressor_totally_off}, guesstimated_comp_speed: {self.capacity.guesstimated_comp_speed}, prev_step: {self.capacity.prev_step}",
+            level="DEBUG",
         )
         self.log(
-            f"min_power_counter: {self.capacity.min_power_counter}, max_power_counter: {self.capacity.max_power_counter}, on_counter: {self.capacity.on_counter}"
+            f"min_power_counter: {self.capacity.min_power_counter}, max_power_counter: {self.capacity.max_power_counter}, on_counter: {self.capacity.on_counter}",
+            level="DEBUG",
         )
 
         if (
@@ -644,19 +677,22 @@ class Actrl(hass.Hass):
                 target_ramp_linear_increment, target_delta
             )
             self.log(
-                f"linearly ramping target room: {room}, smooth target: {str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
+                f"linearly ramping target room: {room}, smooth target: {str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}",
+                level="DEBUG",
             )
         elif abs(target_delta) <= (target_ramp_step_threshold + 1e-9):
             self.targets[mode][room] += target_delta * target_ramp_proportional
             self.log(
-                f"proportionally ramping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
+                f"proportionally ramping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}",
+                level="DEBUG",
             )
         else:
             self.targets[mode][room] = cur_targets[mode][room] - math.copysign(
                 target_ramp_step_threshold, target_delta
             )
             self.log(
-                f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}"
+                f"stepping target room: {room}, smooth target:{str(self.targets[mode][room])}, ultimate target: {str(cur_targets[mode][room])}",
+                level="DEBUG",
             )
 
     def _update_room_targets(self, temps, cur_targets):
@@ -835,7 +871,8 @@ class Actrl(hass.Hass):
                         curtailment_forecasts
                     )
                     self.log(
-                        f"EMHASS Forecast: Avg curtailment of {grid_surplus:.2f}W over the next hour."
+                        f"EMHASS Forecast: Avg curtailment of {grid_surplus:.2f}W over the next hour.",
+                        level="DEBUG",
                     )
                 else:
                     self.log("EMHASS forecast list was empty, assuming 0 surplus.")
@@ -892,7 +929,7 @@ class Actrl(hass.Hass):
             state=str(float(offset))
         )
         if offset != 0.0:
-            self.log(f"price_pressure: {offset:+.3f}")
+            self.log(f"price_pressure: {offset:+.3f}", level="DEBUG")
         return offset
 
     def _apply_price_pressure(self, errors, cooling_demand, heating_demand):
@@ -973,7 +1010,7 @@ class Actrl(hass.Hass):
                 # If the integral term is greater than the margin by which the next highest zone is below 0
                 # then the integral term is keeping the next highest zone on the cusp of being closed.
                 if self.pids[top_zone].i_term > difference_beyond_allowable:
-                    self.log("Adjusting top integral")
+                    self.log("Adjusting top integral", level="DEBUG")
                     self.pids[top_zone].adjust_integral(-difference_beyond_allowable)
                     pid_outputs[top_zone] = self.pids[top_zone].get_output()
 
@@ -1044,7 +1081,8 @@ class Actrl(hass.Hass):
                 state=str(float(pid_outputs[room]))
             )
             self.log(
-                f"{room} adjusted PID output: {pid_outputs[room]:.3f} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})"
+                f"{room} adjusted PID output: {pid_outputs[room]:.3f} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})",
+                level="DEBUG",
             )
         return pid_outputs
 
@@ -1115,7 +1153,7 @@ class Actrl(hass.Hass):
             self.damper_pos[room] = rounded_damper_val
             time.sleep(0.1)
         else:
-            self.log(damper_log + " within deadband")
+            self.log(damper_log + " within deadband", level="DEBUG")
 
     def try_set_mode(
         self,

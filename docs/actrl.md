@@ -43,8 +43,11 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
 
 1. Pause escape hatches: `input_boolean.ac_manual_mode` and the ATOM S3 local
    inhibit switch reset internal state, publish their pause state, and
-   skip control. Releasing either resumes from reset state. Local inhibit is
+   skip control. Pause entry and release log once rather than every ten-second
+   cycle. Releasing either resumes from reset state. Local inhibit is
    still enforced independently in ESPHome if AppDaemon or HA is unavailable.
+   `input_boolean.actrl_debug_logging` changes this app's log threshold between
+   INFO and DEBUG immediately; it does not reload or reset the controller.
 2. Read temperatures (feels-like optional w/ fallback), update window-open
    offsets.
 3. Read per-room targets from `climate.<room>_aircon` (heat/cool/heat_cool);

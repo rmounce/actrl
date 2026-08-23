@@ -83,6 +83,9 @@ class HarnessActrl(actrl.Actrl):
     def __init__(self, world):
         self.world = world
         self.logs = []
+        self.log_records = []
+        self.log_level = "INFO"
+        self.state_listeners = []
 
     # --- AppDaemon API subset used by actrl ---
 
@@ -124,8 +127,15 @@ class HarnessActrl(actrl.Actrl):
     def run_every(self, callback, start, interval, **kwargs):
         self._run_every = (callback, start, interval)
 
+    def listen_state(self, callback, entity_id, **kwargs):
+        self.state_listeners.append((callback, entity_id, kwargs))
+
+    def set_log_level(self, level):
+        self.log_level = level
+
     def log(self, msg, level=None, **kwargs):
         self.logs.append(str(msg))
+        self.log_records.append((level or "INFO", str(msg)))
 
 
 def run_scenario_world(scenario):
