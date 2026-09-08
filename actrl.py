@@ -68,6 +68,11 @@ room_kp = 1.0
 room_ki = 0.001
 # a 0.1 deg error will accumulate 0.1 in ~15 minutes
 
+# One-shot catch-up for deliberate target steps; small adjustments retain
+# normal relative integration. Thresholds are in degrees Celsius.
+room_activation_step = 1.0
+room_activation_error = 0.5
+
 # Allow a small negative integral to accumulate to keep an over-satisfied room's
 # PID output below 0 to avoid noise pushing it back up into "control authority".
 # In the old PID implementation this value was effectively -0.2 (clamp_high=1.2)
@@ -240,6 +245,8 @@ class Actrl(hass.Hass):
         self.pids = {}
         self.temp_derivs = {}
         self.targets = {"heat": {}, "cool": {}}
+        self.previous_requested_targets = {"heat": {}, "cool": {}}
+        self.activation_steps = {"heat": set(), "cool": set()}
         self.rooms_enabled = {}
         self.damper_pos = {}
         self.pause_reason = None
@@ -562,6 +569,8 @@ class Actrl(hass.Hass):
         """Resets the script state counters and flags, but preserves PID objects."""
         # Force mode to None so _handle_mode_change won't wipe PIDs on resume
         self.mode = None
+        self.previous_requested_targets = {"heat": {}, "cool": {}}
+        self.activation_steps = {"heat": set(), "cool": set()}
         self.capacity.compressor_totally_off = True
         self.capacity.on_counter = 0
         self.capacity.min_power_counter = 0
@@ -696,6 +705,20 @@ class Actrl(hass.Hass):
             )
 
     def _update_room_targets(self, temps, cur_targets):
+        # Compare consecutive requested targets, not smoothed targets or
+        # effective errors. Never accumulate small scheduled ramp steps.
+        self.activation_steps = {"heat": set(), "cool": set()}
+        for mode in cur_targets:
+            for room, target in cur_targets[mode].items():
+                previous = self.previous_requested_targets[mode].get(room)
+                if previous is not None and (
+                    -mode_sign[mode] * (target - previous)
+                    >= room_activation_step - 1e-9
+                ):
+                    self.activation_steps[mode].add(room)
+        self.previous_requested_targets = {
+            mode: dict(targets) for mode, targets in cur_targets.items()
+        }
         for room in rooms:
             self.temp_derivs[room].set(temps[room], 0)
 
@@ -826,6 +849,8 @@ class Actrl(hass.Hass):
         return None, max(cooling_demand, heating_demand)
 
     def _handle_mode_change(self, new_mode, celsius_setpoint):
+        if new_mode != self.mode or new_mode is None:
+            self.activation_steps = {"heat": set(), "cool": set()}
         if new_mode is None or (self.mode is not None and (new_mode != self.mode)):
             self.mode = new_mode
             for room, pid in self.pids.items():
@@ -987,6 +1012,21 @@ class Actrl(hass.Hass):
             )
             pid_outputs[room] = self.pids[room].get_output()
             # self.log(f"{room} raw PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})")
+
+        # Seed only the qualifying zone up to the existing raw leader. Do
+        # this before normalisation/airflow inflation: top-up is not demand.
+        # Consume once even if effective demand is too small this cycle.
+        activation_steps = self.activation_steps[self.mode]
+        self.activation_steps[self.mode] = set()
+        leader = max(pid_outputs.values())
+        for room in sorted(activation_steps & pid_outputs.keys()):
+            if errors[self.mode][room] < room_activation_error - 1e-9:
+                continue
+            boost = leader - pid_outputs[room]
+            if boost > 0:
+                self.pids[room].adjust_integral(boost)
+                pid_outputs[room] = self.pids[room].get_output()
+                self.log(f"Target-step catch-up {room}: integral +{boost:.3f}")
 
         if len(pid_outputs) > 1:
             # Prevent the highest zone from "running away" by adjusting its

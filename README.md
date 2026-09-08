@@ -16,7 +16,9 @@ soak up energy that would otherwise be curtailed.
   "follow me" temperatures that step the compressor speed up/down through
   reverse-engineered Midea controller behaviour. Handles soft start, defrost,
   purge cycles, minimum airflow, static pressure and fan speed selection, and
-  grid-surplus target offsets. See [docs/actrl.md](docs/actrl.md).
+  grid-surplus target offsets. Large demand-increasing target steps seed
+  room PID catch-up without changing small-step ramp gains. See
+  [docs/actrl.md](docs/actrl.md).
 - **`statctrl.py`** — per-room setpoint scheduler (one app instance per room).
   Moves each room's `climate.<room>_aircon` setpoints between
   turbo/active/inactive/window-open levels with rate-limited slewing, driven

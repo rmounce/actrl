@@ -5,7 +5,7 @@ progress, `[x]` done.
 
 ## 1. Near-term fixes (small, low risk)
 
-- `[ ]` Manual zone activation transient (2026-09-09, Adelaide time):
+- `[~]` Manual zone activation transient (2026-09-09, Adelaide time):
   AppDaemon logs + InfluxDB show study target 16 → 19.5°C around 08:33;
   study PID 1.220, requested damper 47.645% at 08:33:10; kitchen PID 2.0
   despite measured temperature slightly above its 20°C target. Study
@@ -22,6 +22,17 @@ progress, `[x]` done.
   Gate on actual positive effective demand; preserve minimum airflow and
   damper slew. Simulate manual steps, gradual ramps, steady operation,
   repeated triggers and subsequent deactivation before choosing a policy.
+  Implemented for review, not deployed: ≥1.0°C demand-increasing requested
+  target step, ≥0.5°C effective demand, seed only a lagging PID to the raw
+  leader. Tests cover heat/cool, boundaries, non-accumulating ramps,
+  one-shot consumption, cancellation, startup/pause/mode transitions.
+  Existing cycle goldens unchanged; full suite 230 passed, 1 skipped.
+  Synthetic 1h closed-loop probe (study 18.2°C / target 16 → 19.5°C,
+  kitchen 20.1°C / target 20°C, kitchen initial I=2.1, outdoor 10°C):
+  study full opening 8.5 → 0 min; study at 20 min 19.080 → 19.212°C;
+  kitchen peak 20.895 → 20.768°C; study peak 20.289 → 20.307°C.
+  Illustrative default thermal model, not an event replay; slightly higher
+  study peak remains a review consideration.
 
 - `[x]` statctrl `save_adaptive_model`: merge only this room's keys to fix
   the cross-instance overwrite race (docs/statctrl.md).
