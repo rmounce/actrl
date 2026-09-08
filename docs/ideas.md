@@ -5,6 +5,24 @@ progress, `[x]` done.
 
 ## 1. Near-term fixes (small, low risk)
 
+- `[ ]` Manual zone activation transient (2026-09-09, Adelaide time):
+  AppDaemon logs + InfluxDB show study target 16 → 19.5°C around 08:33;
+  study PID 1.220, requested damper 47.645% at 08:33:10; kitchen PID 2.0
+  despite measured temperature slightly above its 20°C target. Study
+  requested 100% at 08:39:00; kitchen first requested closing at 08:39:50.
+  Source/deployed actrl.py and control.py matched at review. Effective
+  errors (feels-like, surplus/price offsets) and separate P/I/D components
+  were not captured; absolute integral values remain unverified.
+  Equal integral normalisation preserves relative PID history; the 2.1
+  top-two guard does not act on the ~0.78 gap at activation.
+  Candidate: bounded one-shot integral seeding for a newly demanding zone
+  after a large demand-increasing target step, bringing it level with the
+  leader. Alternatives: temporarily accelerate relative integration, or
+  apply temporary output priority with a smooth return to ordinary PID.
+  Gate on actual positive effective demand; preserve minimum airflow and
+  damper slew. Simulate manual steps, gradual ramps, steady operation,
+  repeated triggers and subsequent deactivation before choosing a policy.
+
 - `[x]` statctrl `save_adaptive_model`: merge only this room's keys to fix
   the cross-instance overwrite race (docs/statctrl.md).
 - `[x]` actrl `_set_static_pressure`: bound the retry loop (5 attempts →

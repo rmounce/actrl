@@ -6,6 +6,12 @@ simulator calibration (`docs/ideas.md` #3). Stdlib only.
 
 ## Running it
 
+- Recent event reviews: consider direct HA recorder/history first (user
+  preference, 2026-09-09), especially timer transitions, modes and attributes.
+  InfluxDB remains useful for numeric traces and bulk calibration exports.
+  This is a source-selection preference; HA history access is not configured
+  by this exporter.
+
 ```bash
 cp tools/influx.env.example tools/influx.env   # once, fill in the real password
 # password lives in /opt/dockerfiles/influxdb/docker-compose.yml, key
