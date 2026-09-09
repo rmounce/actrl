@@ -36,6 +36,17 @@ progress, `[x]` done.
   0.766 → 0.685 kWh (~11% lower). At 20 min, increment 3 → 1.
   This shows reduced capacity escalation in the synthetic case, not
   proof of reduced temperature overshoot or measured compressor Hz.
+  Accuracy follow-up: temperatures above use model bulk `T_*`, not sensor
+  `Tm_*`. Sensor target crossing in the probe is 20m30s → 18m20s; bulk
+  crossing is 27m10s → 25m40s. Export ends around 09:00:34 local; no actual
+  later peak established. At +20 min, original simulated study sensor
+  19.467°C versus actual average 18.95°C (climate current_temperature
+  19.1°C); simulated power 1.220 kW versus actual 1.671 kW. Observed
+  power peak before export cutoff ~1.999 kW versus simulated 1.391 kW.
+  Original full-opening request 8.5 min versus actual ~5m50s. Probe uses
+  outdoor 10°C versus recorded 13–13.5°C, synthetic other-room states,
+  cold thermal/plant history and a seeded kitchen integral. Relative
+  improvements are illustrative, not calibrated predictions for this event.
   Illustrative default thermal model, not an event replay; slightly higher
   study peak remains a review consideration.
 
