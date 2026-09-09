@@ -1,6 +1,6 @@
 # 2026-09-09 activation comparison — checkpoint
 
-Status: IN PROGRESS; paused at user's quota/model-switch request. No deployment.
+Status: INITIAL THREE-WAY COMPARISON COMPLETE. No deployment.
 
 ## Objective / agreed policies
 
@@ -81,11 +81,31 @@ Status: IN PROGRESS; paused at user's quota/model-switch request. No deployment.
 - Main validation gap persists: baseline capacity too low / recovery too fast.
   Do not present energy/comfort improvements as calibrated predictions.
 
-## Provisional central run (anchor, solar .5, lead 1)
+## Initial conclusion
+
+- The anchored replay consistently ranks the policies in this order for study
+  recovery: scale relative to leading PID, match leading PID, original.
+- Match leading PID is the conservative improvement. Across the five anchored
+  assumption sets it reaches the study target 1.17–4.0min before original and
+  reduces study deficit by 2.25–2.67K·min. Its simulated study peak remains
+  within 0.05°C of original.
+- Scale relative to leading PID is much stronger. It reaches target
+  5.67–7.83min before original and reduces study deficit by 6.18–6.63K·min,
+  but raises the simulated study peak by 0.10–0.20°C and diverts the kitchen's
+  first damper command from 100% to 20%.
+- The stronger policy's lower simulated peak power and energy are not yet
+  credible forecasts. The baseline reaches target too early and uses much
+  less compressor power and energy than the house did. Its worse temperature
+  RMSE is further evidence that this replay cannot determine real effect size.
+- No arm invokes minimum-airflow top-up. The benefit comes from changing
+  relative room demand and the resulting capacity trajectory, not from
+  escaping a simulated minimum-airflow feedback loop.
+
+## Central run (anchor, solar .5, lead 1)
 
 Window: activation to 10:16 (~103min). Effective temperature metrics.
 
-| Metric | Original | Match | Proportional |
+| Metric | Original | Match leading PID | Scale relative |
 |---|---:|---:|---:|
 | First study opening | 50% | 100% | 100% |
 | First kitchen opening | 100% | 100% | 20% |
@@ -117,17 +137,24 @@ Window: activation to 10:16 (~103min). Effective temperature metrics.
   medium 08:42:29–09:07:11. off falls back to high in airflow code; published
   airflow above even that floor weakens the hypothesis at open-door SP2.
 
-## Remaining work
+## Verification
 
-1. Rerun final gated code; check all arms identical pre-event. Remove unused
-   test import, review script style, metadata assumptions and timestamp phase.
-2. Add meaningful tests: gradual/steady inputs unchanged across policies,
-   repeated activation and cancellation; inspect effect on other rooms.
-   `run(..., cancel=True)` exists but has NOT been exercised or scored.
-3. Investigate baseline compressor mismatch without fitting to variant gains.
+- Final gated matrix rerun 2026-09-09. For each anchored sensitivity set, all
+  three trajectory CSVs are exactly identical for the 1,080 pre-event rows.
+- `tests/test_activation_comparison.py`: 7 passed. Covers policy identity,
+  activation/error gates, relative P+D preservation and context restoration.
+- Five anchored assumption sets cover solar scale 0/.5/1 and retained thermal
+  lead scale 0/1/2. Policy ranking is unchanged across them.
+- Unanchored policies are identical because warmup drift leaves the study
+  already fully open. This is a failed validation arm, not contrary evidence.
+
+## Possible follow-up
+
+1. Add tests for gradual/steady inputs, repeated activation and cancellation;
+   inspect the later effect on all rooms. `run(..., cancel=True)` exists but
+   has not been exercised or scored.
+2. Investigate baseline compressor mismatch without fitting to variant gains.
    Warmup/device internal state and measured/bulk model mismatch are candidates.
    If unresolved, report comparative results as conditional, not validated.
-4. Extract final central table and sensitivity ranges (including peaks and
-   overshoot); document actual-vs-sim validation and airflow finding.
-5. Full appropriate tests, diff review, commit and clean worktree. Update
-   docs/ideas.md status and this checkpoint into a final report. Do NOT deploy.
+3. Revisit the stronger policy only after cancellation and multi-room tradeoffs
+   are scored. Do not deploy either policy as a result of this initial replay.

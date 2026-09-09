@@ -1,6 +1,4 @@
 """Analysis-only policy identities; ordinary production PID path stays intact."""
-import copy
-
 import pytest
 
 from test_activation_step import controller, targets, outputs
