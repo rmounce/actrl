@@ -49,6 +49,19 @@ progress, `[x]` done.
   improvements are illustrative, not calibrated predictions for this event.
   Illustrative default thermal model, not an event replay; slightly higher
   study peak remains a review consideration.
+  Follow-up through 10:16: study average sensor reached 19.5°C at 09:02:20
+  (~29m10s after activation), peaked 20.36°C at 10:10:05. Climate
+  current_temperature reached 19.5°C at 08:56:09 and peaked 20.8°C at
+  09:36:59; do not mix these signals. Kitchen average peaked 21.02°C at
+  09:02:17. Both heating targets stayed unchanged in the review window.
+  User hypothesis: delayed redistribution → prolonged cold-room error →
+  capacity/fan escalation → higher minimum airflow → unwanted heat in
+  satisfied rooms. Evidence and fan-report caveat documented in
+  `docs/actrl.md`, "Zone activation: capacity / minimum-airflow feedback".
+  Next: reconstruct baseline with preceding thermal/control history, then
+  compare original, match-leader and proportional-relative activation
+  seeding. Measure airflow top-up magnitude/duration as well as comfort,
+  capacity, energy and cancellation response. No third variant implemented.
 
 - `[x]` statctrl `save_adaptive_model`: merge only this room's keys to fix
   the cross-instance overwrite race (docs/statctrl.md).

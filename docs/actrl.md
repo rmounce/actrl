@@ -139,6 +139,46 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
     up for tens of minutes; study in docs/tuning.md "Min-airflow inflation
     policy"). Closed doors derate a room's airflow weight to 0.25.
 
+### Zone activation: capacity / minimum-airflow feedback
+
+- Hypothesis raised during the 2026-09-09 study timer review: an incumbent
+  zone's integral advantage delays airflow redistribution. The newly cold
+  zone retains a large error; capacity demand uses the maximum room error
+  (despite the `weighted_error` name), so compressor demand can rise before
+  that zone receives its intended airflow. Temperature derivative feedback
+  is airflow-weighted and also changes with allocation.
+- `_determine_fan_mode` raises requested fan speed with estimated compressor
+  steps. `_calculate_pid_outputs` uses reported fan mode and static pressure
+  to set minimum total airflow. A higher minimum can require satisfied rooms
+  to remain open even after the new room reaches full opening, reducing its
+  share of total airflow and delivering unwanted heat elsewhere. This is a
+  dynamic feedback path; the airflow top-up itself is stateless.
+- Example at SP2, doors open: low requires 1.0 duct-equivalent; medium
+  requires 115/97 ≈ 1.186; high requires 144/97 ≈ 1.485. Study supplies
+  at most 1.0. If kitchen alone supplies the remainder, its two-duct weight
+  requires ~9.3% opening at medium or ~24.2% at high. These are illustrative
+  command-space minima, not reconstructed actual flows or this event's
+  confirmed static-pressure setting.
+- Earlier aggressive redistribution could reduce later capacity/fan demand
+  and avoid that constraint becoming binding. Candidate comparison:
+  original PID, match-leader seeding, proportional-error-relative seeding
+  (optionally retaining D). Preserve airflow protection; test whether the
+  need for top-up falls, rather than weakening the protection.
+- Evidence, Adelaide 2026-09-09: study requested 47.645% at 08:33:10 and
+  100% at 08:39:00; kitchen first requested closing at 08:39:50. InfluxDB
+  `climate.m5atom_climate` fan reports first show medium at 08:33:31;
+  medium is continuous from 08:42:29 until low at 09:07:11. Kitchen average
+  temperature peaked at 21.02°C at 09:02:17 against an unchanged 20°C
+  target (review window ends 10:16). This supports the proposed sequence,
+  but does not establish how much overshoot minimum airflow caused.
+- Reported-state quirk: before continuous medium, fan reports alternate
+  requested low/medium with off while `hvac_action=idle`, then medium/low
+  while heating. `off` is outside the airflow power table and falls back
+  to high. Do not equate every reported transition with physical fan speed.
+  Need cycle-aligned fan/pressure/door inputs and pre/post-top-up PID outputs
+  to establish when the constraint bound. Pressure query returned no rows;
+  P/I/D components were not logged at INFO. Preserve this uncertainty.
+
 ## Capacity control (`compress` + `midea_runtime_quirks`)
 
 The Midea controller, fed follow-me temperatures, behaves like a stepper:
