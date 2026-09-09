@@ -105,16 +105,18 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   adjustment is the interesting part:
   - **Target-step catch-up** (source only; pending deployment): a requested
     heating target rise / cooling target fall of ≥1.0°C in one observed
-    cycle seeds that room's integral up to the current raw PID leader,
-    provided its effective demand is ≥0.5°C and its PID is below the leader.
+    cycle copies the current raw PID leader's integral into that room when it
+    is an increase, preserving the room's own P+D response. This can make a
+    newly cold room the immediate leader. Effective demand must be ≥0.5°C.
     Runs once before anti-runaway, normalisation and airflow protection;
     no global gain change. Small steps never accumulate into a trigger.
     Trigger uses requested targets; demand gate uses smoothed targets plus
     feels-like/window/surplus/price effects. Offset changes alone cannot
     trigger it. First observations, absent targets, mode transitions and
     pause/resume do not seed. A failed demand gate is not deferred.
-    Multiple qualifying rooms match the same pre-seeding leader. Integral
-    memory persists afterward; normal PID operation unwinds it. A missed
+    Multiple qualifying rooms use the same pre-seeding leader's integral, so
+    processing order cannot cascade boosts. Integral memory persists afterward;
+    normal PID operation unwinds it. A missed
     observation can combine several external changes into one observed
     step; no timer-source discrimination is attempted.
   - **Top-zone anti-runaway**: if the top two zones' outputs differ by more

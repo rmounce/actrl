@@ -1013,16 +1013,20 @@ class Actrl(hass.Hass):
             pid_outputs[room] = self.pids[room].get_output()
             # self.log(f"{room} raw PID output: {pid_outputs[room]} (P: {self.pids[room].p_term:.3f}, I: {self.pids[room].i_term:.3f}, D: {self.pids[room].deriv.get():.3f})")
 
-        # Seed only the qualifying zone up to the existing raw leader. Do
-        # this before normalisation/airflow inflation: top-up is not demand.
+        # Give each qualifying zone the raw leader's integral when that is an
+        # increase. This preserves the zone's own P+D response, so a newly
+        # cold room can immediately lead rather than merely tie an incumbent.
+        # Use one pre-seeding leader for simultaneous steps; order must not
+        # cascade. Do this before normalisation/airflow inflation: top-up is
+        # not demand.
         # Consume once even if effective demand is too small this cycle.
         activation_steps = self.activation_steps[self.mode]
         self.activation_steps[self.mode] = set()
-        leader = max(pid_outputs.values())
+        leader = max(pid_outputs, key=pid_outputs.get)
         for room in sorted(activation_steps & pid_outputs.keys()):
             if errors[self.mode][room] < room_activation_error - 1e-9:
                 continue
-            boost = leader - pid_outputs[room]
+            boost = self.pids[leader].i_term - self.pids[room].i_term
             if boost > 0:
                 self.pids[room].adjust_integral(boost)
                 pid_outputs[room] = self.pids[room].get_output()

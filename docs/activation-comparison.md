@@ -8,13 +8,13 @@ Status: INITIAL THREE-WAY COMPARISON COMPLETE. No deployment.
 - Compare original controller, committed match-leader seeding, and stronger
   proportional-relative seeding. User favours investigating early airflow
   redistribution to avoid subsequent capacity/fan escalation.
-- Third variant remains analysis-only: transfer incumbent raw leader's I to
+- Selected third variant: transfer incumbent raw leader's I to
   the qualifying room if that increases I. Difference becomes P+D, retaining
   derivative feedback. Same >=1.0°C requested step / >=0.5°C effective error
   gates. This can boost a newly activated room already leading on raw output
   if its I is lower; unlike match-leader, it need not be below the raw leader.
-- Production match-leader implementation committed previously, NOT deployed.
-  No production changes in this comparison checkpoint.
+- Production implementation now uses the selected relative policy, NOT
+  deployed. The analysis retains the historical match-leader arm.
 
 ## Files / resume commands
 
@@ -147,12 +147,20 @@ Window: activation to 10:16 (~103min). Effective temperature metrics.
   lead scale 0/1/2. Policy ranking is unchanged across them.
 - Unanchored policies are identical because warmup drift leaves the study
   already fully open. This is a failed validation arm, not contrary evidence.
+- Central anchored cancellation replay: cancelling study at +10min closes its
+  damper in the same simulated cycle under all three policies. It remains
+  closed for the rest of the window; proportional uses .370kWh versus .372kWh
+  original, so no cancellation energy claim is warranted.
+- Focused simultaneous activation: study and bed 2 share one pre-seeding
+  integral reference without cascading. For illustrative P+D values 1.3/.8
+  against kitchen -.1, normalized outputs are 2/1.5/.6 and damper targets are
+  100%/65%/16.4%. Cancellation and a fresh later activation also behave once
+  each as intended.
 
 ## Possible follow-up
 
-1. Add tests for gradual/steady inputs, repeated activation and cancellation;
-   inspect the later effect on all rooms. `run(..., cancel=True)` exists but
-   has not been exercised or scored.
+1. Inspect later effects on all rooms for a simultaneous real-world activation
+   once suitable recorded data exists.
 2. Investigate baseline compressor mismatch without fitting to variant gains.
    Warmup/device internal state and measured/bulk model mismatch are candidates.
    If unresolved, report comparative results as conditional, not validated.

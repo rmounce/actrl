@@ -67,6 +67,25 @@ def seed_proportional(app, errors):
     app.activation_steps[app.mode] = set()
 
 
+def seed_match(app, errors):
+    """Analysis-only historical candidate: tie activated raw output to leader."""
+    projected = {}
+    for room, error in errors[app.mode].items():
+        pid = copy.deepcopy(app.pids[room])
+        if not app.rooms_enabled[room]:
+            pid.clear()
+        pid.update(error, actrl.mode_sign[app.mode] * app.targets[app.mode][room])
+        projected[room] = pid
+    leader_output = max(pid.get_output() for pid in projected.values())
+    for room in sorted(app.activation_steps[app.mode] & projected.keys()):
+        if errors[app.mode][room] < actrl.room_activation_error - 1e-9:
+            continue
+        boost = max(0.0, leader_output - projected[room].get_output())
+        if boost and app.rooms_enabled[room]:
+            app.pids[room].adjust_integral(boost)
+    app.activation_steps[app.mode] = set()
+
+
 @contextmanager
 def policy(name):
     original = actrl.Actrl._calculate_pid_outputs
@@ -74,6 +93,8 @@ def policy(name):
     def calculate(app, errors):
         if name == 'original' or not getattr(app, 'comparison_enabled', True):
             app.activation_steps[app.mode] = set()
+        elif name == 'match':
+            seed_match(app, errors)
         elif name == 'proportional':
             seed_proportional(app, errors)
         return original(app, errors)

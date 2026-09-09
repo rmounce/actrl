@@ -1,8 +1,8 @@
-"""Analysis-only policy identities; ordinary production PID path stays intact."""
+"""Analysis policy identities, including historical alternatives."""
 import pytest
 
 from test_activation_step import controller, targets, outputs
-from analysis.activation_comparison import policy
+from analysis.activation_comparison import actrl, policy
 
 
 def test_proportional_priority_preserves_pd_difference():
@@ -53,3 +53,29 @@ def test_original_and_match_reproduce_activation_difference():
     assert results['original']['study']<results['match']['study']
     assert results['match']['study']==results['proportional']['study']==pytest.approx(2)
     assert results['proportional']['kitchen']<results['match']['kitchen']
+
+
+def test_proportional_simultaneous_steps_share_one_integral_reference():
+    app=controller()
+    requested={'heat':{'study':16,'bed_2':16,'kitchen':20},'cool':{}}
+    app._update_room_targets({r:20 for r in app.pids},requested)
+    app.pids['kitchen'].set_integral(2.1)
+    requested['heat'].update(study=19.5,bed_2=19.5)
+    app._update_room_targets({r:20 for r in app.pids},requested)
+    errors={'heat':{'study':1.3,'bed_2':.8,'kitchen':-.1}}
+    with policy('proportional'):
+        result=app._calculate_pid_outputs(errors)
+    assert result==pytest.approx({'study':2,'bed_2':1.5,'kitchen':.6})
+
+
+def test_proportional_cancel_closes_then_allows_fresh_reactivation():
+    app=controller()
+    targets(app,16)
+    app.pids['kitchen'].set_integral(2.1)
+    targets(app,19.5)
+    with policy('proportional'):
+        outputs(app)
+        targets(app,16)
+        assert actrl.damper_share(outputs(app,-2.2)['study'])==0
+        targets(app,19.5)
+        assert actrl.damper_share(outputs(app)['study'])==pytest.approx(1)

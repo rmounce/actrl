@@ -27,18 +27,18 @@ def outputs(app, error=1.3):
 
 
 @pytest.mark.parametrize("mode,start,end", [("heat", 16, 19.5), ("cool", 28, 24.5)])
-def test_activation_matches_leader_once_then_hands_over(mode, start, end):
+def test_activation_inherits_leader_integral_once_then_hands_over(mode, start, end):
     app = controller(mode)
     targets(app, start)
     app.pids["kitchen"].set_integral(2.1)
     targets(app, end)
     result = outputs(app)
     assert result["study"] == pytest.approx(2)
-    assert result["kitchen"] == pytest.approx(2)
+    assert result["kitchen"] == pytest.approx(.6)
     assert actrl.damper_share(result["study"]) == pytest.approx(1)
     result = outputs(app)
     assert result["study"] == pytest.approx(2)
-    assert result["kitchen"] < 2
+    assert result["kitchen"] < .6
     assert sum("Target-step catch-up" in msg for _, msg in app.log_records) == 1
 
 
@@ -140,12 +140,17 @@ def test_main_uses_effective_error_and_commands_full_opening():
     assert any('Target-step catch-up study' in msg for _, msg in app.log_records)
 
 
-def test_simultaneous_steps_share_leader_without_amplifying_it():
+def test_simultaneous_steps_share_integral_reference_without_cascading():
     app = controller()
-    targets(app, 16, 18)
+    requested={'heat':{'study':16,'bed_2':16,'kitchen':20},'cool':{}}
+    app._update_room_targets({r:20 for r in ROOMS},requested)
     app.pids['kitchen'].set_integral(2.1)
-    targets(app, 19.5, 20)
-    result = app._calculate_pid_outputs({'heat': {'study': 1.3, 'kitchen': 0.8}})
+    requested['heat'].update(study=19.5,bed_2=19.5)
+    app._update_room_targets({r:20 for r in ROOMS},requested)
+    result = app._calculate_pid_outputs(
+        {'heat': {'study': 1.3, 'bed_2': .8, 'kitchen': -.1}}
+    )
     assert result['study'] == pytest.approx(2)
-    assert result['kitchen'] == pytest.approx(2)
-    assert sum('Target-step catch-up' in msg for _, msg in app.log_records) == 1
+    assert result['bed_2'] == pytest.approx(1.5)
+    assert result['kitchen'] == pytest.approx(.6)
+    assert sum('Target-step catch-up' in msg for _, msg in app.log_records) == 2

@@ -23,10 +23,11 @@ progress, `[x]` done.
   damper slew. Simulate manual steps, gradual ramps, steady operation,
   repeated triggers and subsequent deactivation before choosing a policy.
   Implemented for review, not deployed: ≥1.0°C demand-increasing requested
-  target step, ≥0.5°C effective demand, seed only a lagging PID to the raw
-  leader. Tests cover heat/cool, boundaries, non-accumulating ramps,
+  target step, ≥0.5°C effective demand, copy the raw leader's integral when
+  that raises the activated room while preserving its P+D. Tests cover
+  simultaneous activations, heat/cool, boundaries, non-accumulating ramps,
   one-shot consumption, cancellation, startup/pause/mode transitions.
-  Existing cycle goldens unchanged; full suite 230 passed, 1 skipped.
+  Existing cycle goldens unchanged; full suite 239 passed, 1 skipped.
   Synthetic 1h closed-loop probe (study 18.2°C / target 16 → 19.5°C,
   kitchen 20.1°C / target 20°C, kitchen initial I=2.1, outdoor 10°C):
   study full opening 8.5 → 0 min; study at 20 min 19.080 → 19.212°C;
@@ -63,7 +64,8 @@ progress, `[x]` done.
   seeding. Measure airflow top-up magnitude/duration as well as comfort,
   capacity, energy and cancellation response. Three-variant analysis now
   checkpointed in `docs/activation-comparison.md` at user's quota/model
-  switch request. Third variant is analysis-only; comparison not complete.
+  switch request. Initial comparison and cancellation validation complete;
+  proportional-relative policy selected and implemented, not deployed.
   New conditional evidence: recorded PID-implied airflow stays above the
   SP2 high-fan minimum through 09:07 if doors are open, weakening the
   minimum-airflow-binding explanation for this event. See checkpoint.
