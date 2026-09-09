@@ -31,6 +31,11 @@ progress, `[x]` done.
   kitchen 20.1°C / target 20°C, kitchen initial I=2.1, outdoor 10°C):
   study full opening 8.5 → 0 min; study at 20 min 19.080 → 19.212°C;
   kitchen peak 20.895 → 20.768°C; study peak 20.289 → 20.307°C.
+  Same probe, compressor comparison: peak simulated increment 5 → 4;
+  peak electrical power 1.391 → 1.225 kW (~12% lower); first-hour energy
+  0.766 → 0.685 kWh (~11% lower). At 20 min, increment 3 → 1.
+  This shows reduced capacity escalation in the synthetic case, not
+  proof of reduced temperature overshoot or measured compressor Hz.
   Illustrative default thermal model, not an event replay; slightly higher
   study peak remains a review consideration.
 
