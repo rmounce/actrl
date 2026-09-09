@@ -69,6 +69,11 @@ progress, `[x]` done.
   New conditional evidence: recorded PID-implied airflow stays above the
   SP2 high-fan minimum through 09:07 if doors are open, weakening the
   minimum-airflow-binding explanation for this event. See checkpoint.
+  Deployed 2026-09-09 10:58. First confirmed live event at 22:56: bed 1 target
+  16 → 19.5°C at effective 18.5°C; next controller cycle published bed 1 PID
+  2.0 / 100% damper and kitchen PID .77725 / 24.227% damper. Compressor moved
+  0 → 2 within 20s, then 3 after 3m30s. Numeric traces confirm the selected
+  policy executed coherently; no comparative energy conclusion from one run.
 
 - `[x]` statctrl `save_adaptive_model`: merge only this room's keys to fix
   the cross-instance overwrite race (docs/statctrl.md).

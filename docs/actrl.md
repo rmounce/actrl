@@ -173,6 +173,13 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   temperature peaked at 21.02°C at 09:02:17 against an unchanged 20°C
   target (review window ends 10:16). This supports the proposed sequence,
   but does not establish how much overshoot minimum airflow caused.
+- First live proportional-relative activation, Adelaide 2026-09-09 22:56:
+  bed 1 heat target changed 16 → 19.5°C at effective 18.5°C. On the next
+  control cycle bed 1 PID changed about -.098 → 2.0 and its damper target to
+  100%; kitchen changed 2.0 → .77725 and 24.227%. The latter matches the
+  configured convex damper mapping exactly. Compressor estimate moved 0 → 2
+  within 20s and to 3 after 3m30s. This confirms coherent policy execution;
+  it does not establish comparative energy savings.
 - Reported-state quirk: before continuous medium, fan reports alternate
   requested low/medium with off while `hvac_action=idle`, then medium/low
   while heating. `off` is outside the airflow power table and falls back

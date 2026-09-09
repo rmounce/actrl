@@ -1,6 +1,9 @@
 # 2026-09-09 activation comparison — checkpoint
 
-Status: INITIAL THREE-WAY COMPARISON COMPLETE. No deployment.
+Status: INITIAL THREE-WAY COMPARISON COMPLETE; selected policy deployed.
+
+Deployment/live status: proportional-relative policy deployed 2026-09-09
+10:58 Adelaide (`dec8cc4`). First confirmed activation at 22:56; see below.
 
 ## Objective / agreed policies
 
@@ -13,8 +16,8 @@ Status: INITIAL THREE-WAY COMPARISON COMPLETE. No deployment.
   derivative feedback. Same >=1.0°C requested step / >=0.5°C effective error
   gates. This can boost a newly activated room already leading on raw output
   if its I is lower; unlike match-leader, it need not be below the raw leader.
-- Production implementation now uses the selected relative policy, NOT
-  deployed. The analysis retains the historical match-leader arm.
+- Production implementation and deployment use the selected relative policy.
+  The analysis retains the historical match-leader arm.
 
 ## Files / resume commands
 
@@ -156,6 +159,24 @@ Window: activation to 10:16 (~103min). Effective temperature metrics.
   against kitchen -.1, normalized outputs are 2/1.5/.6 and damper targets are
   100%/65%/16.4%. Cancellation and a fresh later activation also behave once
   each as intended.
+
+## First live activation
+
+- Confirmed from AppDaemon and InfluxDB, Adelaide 2026-09-09. At 22:56:03,
+  bed 1 requested heat target changed 16.0 → 19.5°C; climate effective
+  temperature was 18.5°C, so both activation gates qualified.
+- On the 22:56:07 control cycle, published bed 1 PID changed about -.098 →
+  2.0 while kitchen changed 2.0 → .77725. Damper targets changed from bed 1
+  closed / kitchen 100% to bed 1 100% / kitchen 24.227%. The kitchen target
+  exactly matches the configured convex mapping of PID .77725.
+- Compressor estimate was 0 on that cycle, reached increment 2 by 22:56:27,
+  then increment 3 at 22:59:37. Outdoor-unit power rose from about 641W at
+  activation to about 868W by 22:56:59 and 1.11kW by 23:00. These observations
+  confirm policy execution and coherent downstream control; a single event
+  does not establish comparative energy savings.
+- No `Target-step catch-up` log line was present even though the published
+  PID transition confirms the behavior. Cause of the missing event log remains
+  unknown; retain the numeric traces as the evidence for this activation.
 
 ## Possible follow-up
 
