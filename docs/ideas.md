@@ -61,7 +61,12 @@ progress, `[x]` done.
   Next: reconstruct baseline with preceding thermal/control history, then
   compare original, match-leader and proportional-relative activation
   seeding. Measure airflow top-up magnitude/duration as well as comfort,
-  capacity, energy and cancellation response. No third variant implemented.
+  capacity, energy and cancellation response. Three-variant analysis now
+  checkpointed in `docs/activation-comparison.md` at user's quota/model
+  switch request. Third variant is analysis-only; comparison not complete.
+  New conditional evidence: recorded PID-implied airflow stays above the
+  SP2 high-fan minimum through 09:07 if doors are open, weakening the
+  minimum-airflow-binding explanation for this event. See checkpoint.
 
 - `[x]` statctrl `save_adaptive_model`: merge only this room's keys to fix
   the cross-instance overwrite race (docs/statctrl.md).
