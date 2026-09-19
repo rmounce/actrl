@@ -31,6 +31,10 @@
 ## External Systems
 
 - Document confirmed black-box behaviour promptly.
+- Live/current Home Assistant state: query the HA REST API directly; do not use
+  InfluxDB as a substitute. Read the URL and long-lived token from the
+  `home_assistant` section of `~/src/ai-energy-forecast-slop/config.yaml`; never
+  print, log, or copy the token into this repository. Use InfluxDB for history.
 - Midea AC quirks (follow-me protocol, ramp flags, purge cycle, defrost) are
   hard-won reverse engineering: preserve the comments in `actrl.py` and keep
   `docs/actrl.md` in sync. Never simplify a step sequence without evidence.
