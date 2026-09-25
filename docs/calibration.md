@@ -802,4 +802,34 @@ margins (err_all 0.67->0.59 vs 0.67->0.64 at beta 1.0). Verdict: leave
 the sim linear (beta 1.0); the measured curve is too weak an anchor to
 adopt and nothing tested depends on it. Refit from summer data (per-zone
 overrides will give real mid-range damper coverage), together with the
-kitchen MASS_WEIGHT it is degenerate with in winter.
+ kitchen MASS_WEIGHT it is degenerate with in winter.
+
+# Initial cooling check — 2026-09-24 evening
+
+- Context: first short cooling run of the season, Adelaide time. InfluxDB
+  Shelly power and room sensors show the outdoor unit active from 22:09 to
+  about 22:36; the bedroom 1 damper was 100%, kitchen 0%. Bedroom 1 fell
+  from 24.05°C at 22:09 to 22.70°C at 22:36, then to about 22.63°C after
+  shutdown. Outdoor temperature was about 20°C. The room target fell from
+  24.7°C to 24.0°C during the run. Cooling mode is based on the user report
+  and controller/replay behavior; the HA recorder mode history request
+  returned HTTP 400, so the exact climate state was not independently read.
+- Recorded outdoor electrical draw after startup settled near 280 W for
+  roughly 20 min, with the indoor fan near 81 W. The event used about
+  0.204 kWh from 22:09 through 22:36. The heating-calibrated sim holds
+  665 W outdoors plus 55 W indoors at minimum. The cooling electrical
+  minimum therefore needs a separate fit before using cooling energy scores.
+- Full-day 2026-09-24 replay: simulated cooling 22:24–22:57 versus recorded
+  22:09–22:36; simulated kitchen was about 1.8°C too warm by 22:05, so this
+  timing comparison includes substantial daytime thermal drift. A replay
+  initialized from measured rooms at 21:00 started cooling at 22:09,
+  stopped at 22:29, and used 0.265 kWh. It cooled bedroom 1 to about
+  22.4°C by 22:30 versus recorded 23.0°C then. This suggests the cooling
+  heat-removal/airflow model is too strong for bedroom 1 under the present
+  parameterization, but one ramped-target event cannot isolate the cause.
+- Reproduce: export 2026-09-23..25 with `tools/export_history.py`, load
+  with `calib.py --seed-days 30`, then use `analysis/replay_day.py` on the
+  24th. For the focused replay, call `replay()` on 21:00–23:30 local from
+  `load_day()` so the model starts at measured temperatures. The standard
+  scorecard's >300 W running threshold misses most of this low-power
+  cooling run; its on-fraction is not meaningful here.
