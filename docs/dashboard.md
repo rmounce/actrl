@@ -6,8 +6,8 @@
 - Published through HA WebSocket `lovelace/config/save`; verified by reading back.
   No HA restart or AppDaemon deployment.
 - Existing dependencies: button-card, ApexCharts, card-mod. No new HACS components.
-- Responsive HA Sections layout: system, rooms, trends; preferences and control
-  signals below. Three columns on desktop, stacked on narrow screens.
+- Responsive HA Sections layout: three compact columns for system/signals,
+  rooms/preferences and trends; stacked on narrow screens.
 - Overview uses `sensor.actrl_status`; heartbeat older than 90 seconds displays
   a warning. Its heartbeat attribute is authoritative, not nested timestamp attrs.
 - Room headline = measured average temperature. Secondary line distinguishes
@@ -36,3 +36,11 @@
 - Chromium checks at 1440px desktop and 390px phone: five room cards, three charts,
   no page errors or HA error cards; phone document width 390px (no page overflow).
   Screenshots retained locally under `.git/hvac-desktop.png` and `.git/hvac-phone.png`.
+
+## Density revision · 2026-09-25
+
+- Removed explanatory cards; status reduced to state, leading room and temperatures.
+- Room padding 18 → 10px; title row 42 → 30px; tighter secondary text.
+- Charts 215 → 175px; entity rows tightened; smaller card headings and corners.
+- Signals and preferences follow their own columns, avoiding a second section row.
+- Expert-facing dashboard: concise labels and readings; explanations live here.
