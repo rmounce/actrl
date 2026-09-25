@@ -1,0 +1,706 @@
+title: Climate
+path: climate-prototype
+icon: mdi:home-thermometer-outline
+type: sections
+max_columns: 3
+dense_section_placement: false
+sections:
+- type: grid
+  cards:
+  - type: heading
+    heading: Whole-house climate
+    icon: mdi:home-thermometer-outline
+  - type: markdown
+    content: '{% set s = states(''sensor.actrl_status'') %}
+
+      {% set age = as_timestamp(now()) - (state_attr(''sensor.actrl_status'',''heartbeat'') | float(0)) %}
+
+      {% set names = {''bed_1'':''Bedroom 1'',''bed_2'':''Bedroom 2'',''bed_3'':''Bedroom 3'',''kitchen'':''Living
+      / kitchen'',''study'':''Study''} %}
+
+      {% set lead = state_attr(''sensor.actrl_status'',''lead_room'') %}
+
+      # {{ ''Status overdue'' if age > 90 else {''idle'':''Comfort on standby'',''heating'':''Warming the house'',''cooling'':''Cooling
+      the house'',''manual'':''Manual control'',''inhibited'':''Locally inhibited'',''switching'':''Changing mode'',''initializing'':''Starting
+      up''}.get(s,''Controller unavailable'') }}
+
+      {% if age > 90 %}Controller heartbeat is over 90 seconds old. Readings may be stale.
+
+      {% elif s == ''idle'' %}No heating or cooling requested right now.
+
+      {% elif s in [''heating'',''cooling''] %}{{ names.get(lead, lead) }} is leading demand.
+
+      {% elif s == ''manual'' %}Automatic control is paused by the manual-mode switch.
+
+      {% elif s == ''inhibited'' %}The unit’s local inhibit is holding automatic control.
+
+      {% endif %}
+
+
+      {% if age <= 90 and s in [''idle'',''heating'',''cooling''] %}
+
+      **Closest to demand:** {{ names.get(lead, lead) }} · {{ state_attr(''sensor.actrl_status'',''lead_temperature'')
+      | round(1, default=0) }}° → {{ state_attr(''sensor.actrl_status'',''lead_target'') | round(1, default=0) }}°
+
+      {% endif %}
+
+
+      [Detailed diagnostics →](/dashboard-advanced/weather)'
+    card_mod: &id001
+      style: 'ha-card { border-radius: 18px; box-shadow: none; }'
+  - type: entities
+    title: Plant · right now
+    show_header_toggle: false
+    entities:
+    - type: attribute
+      entity: climate.m5atom_climate
+      attribute: hvac_action
+      name: Unit activity
+    - type: attribute
+      entity: climate.m5atom_climate
+      attribute: fan_mode
+      name: Reported fan speed
+    - entity: binary_sensor.m5atom_compressor
+      name: Compressor running
+    - entity: binary_sensor.m5atom_m5atom_defrost
+      name: Defrost reported
+    - entity: sensor.m5atom_outside_temp
+      name: Outside at unit
+    - entity: input_number.aircon_comp_speed
+      name: Capacity step · estimated
+      type: simple-entity
+    - entity: sensor.shellyem_ec64c9c6932b_channel_1_power
+      name: Outdoor power
+    - entity: sensor.shellyem_ec64c9c6932b_channel_2_power
+      name: Indoor power
+    card_mod: *id001
+  - type: markdown
+    content: Capacity is an **estimated step**, not measured compressor speed. Power meters can read slightly below
+      zero at standby.
+    card_mod: *id001
+- type: grid
+  cards:
+  - type: heading
+    heading: Rooms
+    icon: mdi:floor-plan
+  - type: markdown
+    content: '**Temperature first.** Each room shows its measured temperature, requested target band and damper
+      opening. Tap a room for setpoints; scheduled targets can change again unless that room is in manual mode.'
+    card_mod: *id001
+  - type: custom:button-card
+    entity: climate.kitchen_aircon
+    name: Living / kitchen
+    icon: mdi:sofa-outline
+    show_state: true
+    show_label: true
+    state_display: '[[[ const v = states[''sensor.kitchen_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    label: '[[[
+
+      const r = "kitchen";
+
+      const val = (id) => states[id]?.state;
+
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
+      : ''—'';
+
+      const a = entity?.attributes || {};
+
+      const manual = val(`input_boolean.${r}_manual_ac`) === ''on'';
+
+      const window = val(`binary_sensor.${r}_window`) === ''on'';
+
+      const turbo = val(`timer.${r}_timed_turbo`) === ''active'';
+
+      const active = val(`timer.${r}_timed_active`) === ''active'';
+
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual targets'' : window ? ''Window
+      open'' : turbo ? ''Turbo timer'' : active ? ''Comfort timer'' : ''Scheduled targets'';
+
+      const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
+
+      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
+
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
+      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+
+      ]]]'
+    triggers_update:
+    - sensor.kitchen_average_temperature
+    - sensor.kitchen_feels_like
+    - sensor.kitchen_damper
+    - binary_sensor.kitchen_window
+    - input_boolean.kitchen_manual_ac
+    - timer.kitchen_timed_active
+    - timer.kitchen_timed_turbo
+    - input_boolean.ac_use_feels_like
+    tap_action:
+      action: more-info
+    hold_action:
+      action: none
+    styles:
+      card:
+      - border-radius: 18px
+      - padding: 18px
+      - box-shadow: none
+      - border-left: '4px solid #169d91'
+      grid:
+      - grid-template-areas: '"i n s" "l l l"'
+      - grid-template-columns: 30px 1fr auto
+      - grid-template-rows: 42px auto
+      icon:
+      - width: 23px
+      - color: '#169d91'
+      name:
+      - justify-self: start
+      - font-weight: '600'
+      - font-size: 16px
+      state:
+      - font-size: 30px
+      - font-weight: '500'
+      label:
+      - justify-self: start
+      - text-align: left
+      - white-space: normal
+      - line-height: '1.7'
+      - font-size: 13px
+      - color: var(--secondary-text-color)
+      - padding-top: 8px
+  - type: custom:button-card
+    entity: climate.study_aircon
+    name: Study
+    icon: mdi:desk
+    show_state: true
+    show_label: true
+    state_display: '[[[ const v = states[''sensor.study_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    label: '[[[
+
+      const r = "study";
+
+      const val = (id) => states[id]?.state;
+
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
+      : ''—'';
+
+      const a = entity?.attributes || {};
+
+      const manual = val(`input_boolean.${r}_manual_ac`) === ''on'';
+
+      const window = val(`binary_sensor.${r}_window`) === ''on'';
+
+      const turbo = val(`timer.${r}_timed_turbo`) === ''active'';
+
+      const active = val(`timer.${r}_timed_active`) === ''active'';
+
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual targets'' : window ? ''Window
+      open'' : turbo ? ''Turbo timer'' : active ? ''Comfort timer'' : ''Scheduled targets'';
+
+      const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
+
+      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
+
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
+      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+
+      ]]]'
+    triggers_update:
+    - sensor.study_average_temperature
+    - sensor.study_feels_like
+    - sensor.study_damper
+    - binary_sensor.study_window
+    - input_boolean.study_manual_ac
+    - timer.study_timed_active
+    - timer.study_timed_turbo
+    - input_boolean.ac_use_feels_like
+    tap_action:
+      action: more-info
+    hold_action:
+      action: none
+    styles:
+      card:
+      - border-radius: 18px
+      - padding: 18px
+      - box-shadow: none
+      - border-left: '4px solid #5986da'
+      grid:
+      - grid-template-areas: '"i n s" "l l l"'
+      - grid-template-columns: 30px 1fr auto
+      - grid-template-rows: 42px auto
+      icon:
+      - width: 23px
+      - color: '#5986da'
+      name:
+      - justify-self: start
+      - font-weight: '600'
+      - font-size: 16px
+      state:
+      - font-size: 30px
+      - font-weight: '500'
+      label:
+      - justify-self: start
+      - text-align: left
+      - white-space: normal
+      - line-height: '1.7'
+      - font-size: 13px
+      - color: var(--secondary-text-color)
+      - padding-top: 8px
+  - type: custom:button-card
+    entity: climate.bed_1_aircon
+    name: Bedroom 1
+    icon: mdi:bed-outline
+    show_state: true
+    show_label: true
+    state_display: '[[[ const v = states[''sensor.bed_1_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    label: '[[[
+
+      const r = "bed_1";
+
+      const val = (id) => states[id]?.state;
+
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
+      : ''—'';
+
+      const a = entity?.attributes || {};
+
+      const manual = val(`input_boolean.${r}_manual_ac`) === ''on'';
+
+      const window = val(`binary_sensor.${r}_window`) === ''on'';
+
+      const turbo = val(`timer.${r}_timed_turbo`) === ''active'';
+
+      const active = val(`timer.${r}_timed_active`) === ''active'';
+
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual targets'' : window ? ''Window
+      open'' : turbo ? ''Turbo timer'' : active ? ''Comfort timer'' : ''Scheduled targets'';
+
+      const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
+
+      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
+
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
+      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+
+      ]]]'
+    triggers_update:
+    - sensor.bed_1_average_temperature
+    - sensor.bed_1_feels_like
+    - sensor.bed_1_damper
+    - binary_sensor.bed_1_window
+    - input_boolean.bed_1_manual_ac
+    - timer.bed_1_timed_active
+    - timer.bed_1_timed_turbo
+    - input_boolean.ac_use_feels_like
+    tap_action:
+      action: more-info
+    hold_action:
+      action: none
+    styles:
+      card:
+      - border-radius: 18px
+      - padding: 18px
+      - box-shadow: none
+      - border-left: '4px solid #ba80cc'
+      grid:
+      - grid-template-areas: '"i n s" "l l l"'
+      - grid-template-columns: 30px 1fr auto
+      - grid-template-rows: 42px auto
+      icon:
+      - width: 23px
+      - color: '#ba80cc'
+      name:
+      - justify-self: start
+      - font-weight: '600'
+      - font-size: 16px
+      state:
+      - font-size: 30px
+      - font-weight: '500'
+      label:
+      - justify-self: start
+      - text-align: left
+      - white-space: normal
+      - line-height: '1.7'
+      - font-size: 13px
+      - color: var(--secondary-text-color)
+      - padding-top: 8px
+  - type: custom:button-card
+    entity: climate.bed_2_aircon
+    name: Bedroom 2
+    icon: mdi:bed-outline
+    show_state: true
+    show_label: true
+    state_display: '[[[ const v = states[''sensor.bed_2_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    label: '[[[
+
+      const r = "bed_2";
+
+      const val = (id) => states[id]?.state;
+
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
+      : ''—'';
+
+      const a = entity?.attributes || {};
+
+      const manual = val(`input_boolean.${r}_manual_ac`) === ''on'';
+
+      const window = val(`binary_sensor.${r}_window`) === ''on'';
+
+      const turbo = val(`timer.${r}_timed_turbo`) === ''active'';
+
+      const active = val(`timer.${r}_timed_active`) === ''active'';
+
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual targets'' : window ? ''Window
+      open'' : turbo ? ''Turbo timer'' : active ? ''Comfort timer'' : ''Scheduled targets'';
+
+      const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
+
+      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
+
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
+      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+
+      ]]]'
+    triggers_update:
+    - sensor.bed_2_average_temperature
+    - sensor.bed_2_feels_like
+    - sensor.bed_2_damper
+    - binary_sensor.bed_2_window
+    - input_boolean.bed_2_manual_ac
+    - timer.bed_2_timed_active
+    - timer.bed_2_timed_turbo
+    - input_boolean.ac_use_feels_like
+    tap_action:
+      action: more-info
+    hold_action:
+      action: none
+    styles:
+      card:
+      - border-radius: 18px
+      - padding: 18px
+      - box-shadow: none
+      - border-left: '4px solid #d19b38'
+      grid:
+      - grid-template-areas: '"i n s" "l l l"'
+      - grid-template-columns: 30px 1fr auto
+      - grid-template-rows: 42px auto
+      icon:
+      - width: 23px
+      - color: '#d19b38'
+      name:
+      - justify-self: start
+      - font-weight: '600'
+      - font-size: 16px
+      state:
+      - font-size: 30px
+      - font-weight: '500'
+      label:
+      - justify-self: start
+      - text-align: left
+      - white-space: normal
+      - line-height: '1.7'
+      - font-size: 13px
+      - color: var(--secondary-text-color)
+      - padding-top: 8px
+  - type: custom:button-card
+    entity: climate.bed_3_aircon
+    name: Bedroom 3
+    icon: mdi:bed-outline
+    show_state: true
+    show_label: true
+    state_display: '[[[ const v = states[''sensor.bed_3_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    label: '[[[
+
+      const r = "bed_3";
+
+      const val = (id) => states[id]?.state;
+
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
+      : ''—'';
+
+      const a = entity?.attributes || {};
+
+      const manual = val(`input_boolean.${r}_manual_ac`) === ''on'';
+
+      const window = val(`binary_sensor.${r}_window`) === ''on'';
+
+      const turbo = val(`timer.${r}_timed_turbo`) === ''active'';
+
+      const active = val(`timer.${r}_timed_active`) === ''active'';
+
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual targets'' : window ? ''Window
+      open'' : turbo ? ''Turbo timer'' : active ? ''Comfort timer'' : ''Scheduled targets'';
+
+      const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
+
+      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
+
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
+      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+
+      ]]]'
+    triggers_update:
+    - sensor.bed_3_average_temperature
+    - sensor.bed_3_feels_like
+    - sensor.bed_3_damper
+    - binary_sensor.bed_3_window
+    - input_boolean.bed_3_manual_ac
+    - timer.bed_3_timed_active
+    - timer.bed_3_timed_turbo
+    - input_boolean.ac_use_feels_like
+    tap_action:
+      action: more-info
+    hold_action:
+      action: none
+    styles:
+      card:
+      - border-radius: 18px
+      - padding: 18px
+      - box-shadow: none
+      - border-left: '4px solid #df7978'
+      grid:
+      - grid-template-areas: '"i n s" "l l l"'
+      - grid-template-columns: 30px 1fr auto
+      - grid-template-rows: 42px auto
+      icon:
+      - width: 23px
+      - color: '#df7978'
+      name:
+      - justify-self: start
+      - font-weight: '600'
+      - font-size: 16px
+      state:
+      - font-size: 30px
+      - font-weight: '500'
+      label:
+      - justify-self: start
+      - text-align: left
+      - white-space: normal
+      - line-height: '1.7'
+      - font-size: 13px
+      - color: var(--secondary-text-color)
+      - padding-top: 8px
+- type: grid
+  cards:
+  - type: heading
+    heading: The last six hours
+    icon: mdi:chart-line
+  - type: vertical-stack
+    cards:
+    - type: custom:apexcharts-card
+      header:
+        show: true
+        title: Room temperatures · measured
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 215
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: sensor.kitchen_average_temperature
+        name: Living / kitchen
+        color: '#169d91'
+      - entity: sensor.study_average_temperature
+        name: Study
+        color: '#5986da'
+      - entity: sensor.bed_1_average_temperature
+        name: Bedroom 1
+        color: '#ba80cc'
+      - entity: sensor.bed_2_average_temperature
+        name: Bedroom 2
+        color: '#d19b38'
+      - entity: sensor.bed_3_average_temperature
+        name: Bedroom 3
+        color: '#df7978'
+      card_mod: *id001
+  - type: vertical-stack
+    cards:
+    - type: custom:apexcharts-card
+      header:
+        show: true
+        title: Electrical power
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 215
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: sensor.shellyem_ec64c9c6932b_channel_1_power
+        name: Outdoor
+        color: '#169d91'
+      - entity: sensor.shellyem_ec64c9c6932b_channel_2_power
+        name: Indoor
+        color: '#d19b38'
+      card_mod: *id001
+  - type: vertical-stack
+    cards:
+    - type: custom:apexcharts-card
+      header:
+        show: true
+        title: Damper positions
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 215
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: sensor.kitchen_damper
+        name: Living / kitchen
+        color: '#169d91'
+      - entity: sensor.study_damper
+        name: Study
+        color: '#5986da'
+      - entity: sensor.bed_1_damper
+        name: Bedroom 1
+        color: '#ba80cc'
+      - entity: sensor.bed_2_damper
+        name: Bedroom 2
+        color: '#d19b38'
+      - entity: sensor.bed_3_damper
+        name: Bedroom 3
+        color: '#df7978'
+      card_mod: *id001
+- type: grid
+  cards:
+  - type: heading
+    heading: Control preferences
+    icon: mdi:tune
+  - type: entities
+    title: Automatic control
+    show_header_toggle: false
+    entities:
+    - entity: input_boolean.ac_use_feels_like
+      name: Use feels-like temperature
+    - entity: input_boolean.ac_use_grid_surplus_cool
+      name: Solar surplus · extra cooling
+    - entity: input_boolean.ac_use_grid_surplus_heat
+      name: Solar surplus · extra heating
+    - entity: input_boolean.ac_min_power
+      name: Minimum-power mode
+    - entity: input_boolean.ac_manual_mode
+      name: Pause actrl · manual plant control
+    card_mod: *id001
+  - type: entities
+    title: Hold room targets
+    show_header_toggle: false
+    entities:
+    - entity: input_boolean.kitchen_manual_ac
+      name: Living / kitchen
+    - entity: input_boolean.study_manual_ac
+      name: Study
+    - entity: input_boolean.bed_1_manual_ac
+      name: Bedroom 1
+    - entity: input_boolean.bed_2_manual_ac
+      name: Bedroom 2
+    - entity: input_boolean.bed_3_manual_ac
+      name: Bedroom 3
+    card_mod: *id001
+- type: grid
+  cards:
+  - type: heading
+    heading: Demand & airflow
+    icon: mdi:air-filter
+  - type: markdown
+    content: '### Controller signals
+
+
+      | Signal | Value |
+
+      | :-- | --: |
+
+      | Worst-room demand | {{ (states(''input_number.aircon_weighted_error'') | float | round(2)) if is_number(states(''input_number.aircon_weighted_error''))
+      else ''—'' }} K |
+
+      | Temperature trend | {{ (states(''input_number.aircon_avg_deriv'') | float | round(2)) if is_number(states(''input_number.aircon_avg_deriv''))
+      else ''—'' }} K |
+
+      | Capacity integral | {{ (states(''input_number.aircon_meta_integral'') | float | round(2)) if is_number(states(''input_number.aircon_meta_integral''))
+      else ''—'' }} K |
+
+      | Solar target offset | {{ (states(''input_number.grid_surplus_integral'') | float | round(2)) if is_number(states(''input_number.grid_surplus_integral''))
+      else ''—'' }} K |
+
+      | Follow-me temperature | {{ (states(''input_number.fake_temperature'') | float | round(2)) if is_number(states(''input_number.fake_temperature''))
+      else ''—'' }} °C |
+
+      '
+    card_mod: *id001
+  - type: entities
+    title: Air path
+    show_header_toggle: false
+    entities:
+    - entity: number.m5atom_static_pressure
+      name: Static pressure setting
+      type: simple-entity
+    - entity: sensor.m5atom_inside_temp
+      name: Return temperature
+    - entity: sensor.m5atom_inside_coil_inlet_temp
+      name: Indoor coil
+    - entity: sensor.m5atom_outside_coil_temp
+      name: Outdoor coil
+    card_mod: *id001

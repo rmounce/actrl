@@ -36,6 +36,8 @@ soak up energy that would otherwise be curtailed.
 - `archive/` — retired experiments (EMHASS/MPC-style planner), kept for
   reference.
 - `docs/` — implementation analysis and [ideas/roadmap](docs/ideas.md).
+- `dashboards/climate.yaml` — live Climate dashboard prototype;
+  [design and publishing notes](docs/dashboard.md).
 
 ## Requirements
 

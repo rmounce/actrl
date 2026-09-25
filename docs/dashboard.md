@@ -1,0 +1,38 @@
+# Climate dashboard prototype
+
+- Added 2026-09-25: `/dashboard-advanced/climate-prototype`, **Climate** tab
+  immediately after Weather. Existing views preserved.
+- Source: `dashboards/climate.yaml` — one Lovelace view, not a whole dashboard.
+- Published through HA WebSocket `lovelace/config/save`; verified by reading back.
+  No HA restart or AppDaemon deployment.
+- Existing dependencies: button-card, ApexCharts, card-mod. No new HACS components.
+- Responsive HA Sections layout: system, rooms, trends; preferences and control
+  signals below. Three columns on desktop, stacked on narrow screens.
+- Overview uses `sensor.actrl_status`; heartbeat older than 90 seconds displays
+  a warning. Its heartbeat attribute is authoritative, not nested timestamp attrs.
+- Room headline = measured average temperature. Secondary line distinguishes
+  feels-like/control input, requested climate target band and reported damper.
+  Target band is not actrl's internal smoothed/offset target.
+- Room tap opens native climate controls. Scheduler may change targets unless
+  room manual mode is on; hold switches provided below.
+- Plant capacity is explicitly labelled an estimate. Retain slightly negative
+  standby power readings rather than disguising meter noise as measured zero.
+- Three charts: temperatures, electrical power, dampers. Six hours, two-minute
+  averages, one-minute refresh, animations off, explicit entity lists.
+  Aggregation smooths brief events; original Weather view remains linked for diagnosis.
+- Original Weather: ten history charts, nine configured with ten-second refresh;
+  several auto-entities lists. Potential load source, not measured proof of heating.
+- Rollback: delete only the `climate-prototype` view via HA dashboard editor/API.
+  Initial local full-dashboard backup: `.git/climate-dashboard-before.json`.
+- Update: load latest dashboard, replace only this path, preserve other views,
+  check for intervening edits, save, read back. Do not overwrite live `.storage` files.
+- Performance intent: reduce history rendering and dynamic discovery. No claim
+  of measured phone CPU, battery or temperature improvement; compare on device.
+- Browser verification uses a disposable Playwright Docker container. No host
+  browser system packages installed; initial host browser download removed.
+- Diagnostic numbers render read-only; controller signals rounded to two decimals.
+  Plant overview uses reported activity/fan mode, not the spoofed follow-me
+  thermostat's `current_temperature`.
+- Chromium checks at 1440px desktop and 390px phone: five room cards, three charts,
+  no page errors or HA error cards; phone document width 390px (no page overflow).
+  Screenshots retained locally under `.git/hvac-desktop.png` and `.git/hvac-phone.png`.
