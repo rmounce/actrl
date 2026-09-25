@@ -15,8 +15,7 @@ sections:
 
       {% set age = as_timestamp(now()) - (state_attr(''sensor.actrl_status'',''heartbeat'') | float(0)) %}
 
-      {% set names = {''bed_1'':''Bedroom 1'',''bed_2'':''Bedroom 2'',''bed_3'':''Bedroom 3'',''kitchen'':''Living
-      / kitchen'',''study'':''Study''} %}
+      {% set names = {''bed_1'':''Bedroom 1'',''bed_2'':''Bedroom 2'',''bed_3'':''Bedroom 3'',''kitchen'':''Living / kitchen'',''study'':''Study''} %}
 
       {% set lead = state_attr(''sensor.actrl_status'',''lead_room'') %}
 
@@ -25,8 +24,7 @@ sections:
       {% if age <= 90 and s in [''idle'',''heating'',''cooling''] %}
 
 
-      {{ names.get(lead, lead) }} · {{ state_attr(''sensor.actrl_status'',''lead_temperature'') | round(1, default=0)
-      }}° → {{ state_attr(''sensor.actrl_status'',''lead_target'') | round(1, default=0) }}° · [Diagnostics](/dashboard-advanced/weather)
+      {{ names.get(lead, lead) }} · {{ state_attr(''sensor.actrl_status'',''lead_temperature'') | round(1, default=0) }}° → {{ state_attr(''sensor.actrl_status'',''lead_target'') | round(1, default=0) }}°
 
       {% endif %}'
     card_mod:
@@ -88,20 +86,15 @@ sections:
 
       | :-- | --: |
 
-      | Worst-room demand | {{ (states(''input_number.aircon_weighted_error'') | float | round(2)) if is_number(states(''input_number.aircon_weighted_error''))
-      else ''—'' }} K |
+      | Worst-room demand | {{ (states(''input_number.aircon_weighted_error'') | float | round(2)) if is_number(states(''input_number.aircon_weighted_error'')) else ''—'' }} K |
 
-      | Temperature trend | {{ (states(''input_number.aircon_avg_deriv'') | float | round(2)) if is_number(states(''input_number.aircon_avg_deriv''))
-      else ''—'' }} K |
+      | Temperature trend | {{ (states(''input_number.aircon_avg_deriv'') | float | round(2)) if is_number(states(''input_number.aircon_avg_deriv'')) else ''—'' }} K |
 
-      | Capacity integral | {{ (states(''input_number.aircon_meta_integral'') | float | round(2)) if is_number(states(''input_number.aircon_meta_integral''))
-      else ''—'' }} K |
+      | Capacity integral | {{ (states(''input_number.aircon_meta_integral'') | float | round(2)) if is_number(states(''input_number.aircon_meta_integral'')) else ''—'' }} K |
 
-      | Solar target offset | {{ (states(''input_number.grid_surplus_integral'') | float | round(2)) if is_number(states(''input_number.grid_surplus_integral''))
-      else ''—'' }} K |
+      | Solar target offset | {{ (states(''input_number.grid_surplus_integral'') | float | round(2)) if is_number(states(''input_number.grid_surplus_integral'')) else ''—'' }} K |
 
-      | Follow-me temperature | {{ (states(''input_number.fake_temperature'') | float | round(2)) if is_number(states(''input_number.fake_temperature''))
-      else ''—'' }} °C |
+      | Follow-me temperature | {{ (states(''input_number.fake_temperature'') | float | round(2)) if is_number(states(''input_number.fake_temperature'')) else ''—'' }} °C |
 
       '
     card_mod:
@@ -152,17 +145,15 @@ sections:
     icon: mdi:sofa-outline
     show_state: true
     show_label: true
-    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.kitchen_''
-      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
-      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.kitchen_'' + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return
+      v != null && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
       const r = "kitchen";
 
       const val = (id) => states[id]?.state;
 
-      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
-      : ''—'';
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) : ''—'';
 
       const a = entity?.attributes || {};
 
@@ -174,14 +165,12 @@ sections:
 
       const active = val(`timer.${r}_timed_active`) === ''active'';
 
-      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' :
-      turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' : turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
 
-      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like'' : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -234,17 +223,15 @@ sections:
     icon: mdi:desk
     show_state: true
     show_label: true
-    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.study_''
-      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
-      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.study_'' + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return
+      v != null && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
       const r = "study";
 
       const val = (id) => states[id]?.state;
 
-      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
-      : ''—'';
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) : ''—'';
 
       const a = entity?.attributes || {};
 
@@ -256,14 +243,12 @@ sections:
 
       const active = val(`timer.${r}_timed_active`) === ''active'';
 
-      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' :
-      turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' : turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
 
-      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like'' : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -316,17 +301,15 @@ sections:
     icon: mdi:bed-outline
     show_state: true
     show_label: true
-    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_1_''
-      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
-      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_1_'' + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return
+      v != null && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
       const r = "bed_1";
 
       const val = (id) => states[id]?.state;
 
-      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
-      : ''—'';
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) : ''—'';
 
       const a = entity?.attributes || {};
 
@@ -338,14 +321,12 @@ sections:
 
       const active = val(`timer.${r}_timed_active`) === ''active'';
 
-      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' :
-      turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' : turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
 
-      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like'' : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -398,17 +379,15 @@ sections:
     icon: mdi:bed-outline
     show_state: true
     show_label: true
-    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_2_''
-      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
-      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_2_'' + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return
+      v != null && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
       const r = "bed_2";
 
       const val = (id) => states[id]?.state;
 
-      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
-      : ''—'';
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) : ''—'';
 
       const a = entity?.attributes || {};
 
@@ -420,14 +399,12 @@ sections:
 
       const active = val(`timer.${r}_timed_active`) === ''active'';
 
-      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' :
-      turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' : turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
 
-      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like'' : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -480,17 +457,15 @@ sections:
     icon: mdi:bed-outline
     show_state: true
     show_label: true
-    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_3_''
-      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
-      ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_3_'' + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return
+      v != null && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
       const r = "bed_3";
 
       const val = (id) => states[id]?.state;
 
-      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1)
-      : ''—'';
+      const num = (v) => v !== null && v !== undefined && v !== '''' && Number.isFinite(Number(v)) ? Number(v).toFixed(1) : ''—'';
 
       const a = entity?.attributes || {};
 
@@ -502,14 +477,12 @@ sections:
 
       const active = val(`timer.${r}_timed_active`) === ''active'';
 
-      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' :
-      turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
+      const status = entity?.state === ''off'' ? ''Room off'' : manual ? ''Manual'' : window ? ''Window open'' : turbo ? ''Turbo'' : active ? ''Timed'' : ''Schedule'';
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
 
-      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like'' : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -599,6 +572,42 @@ sections:
       name: Bedroom 2
     - entity: input_boolean.bed_3_manual_ac
       name: Bedroom 3
+    card_mod:
+      style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+        .card-content { padding: 8px 12px !important; }
+
+        .card-content > div { margin: 0 !important; }
+
+        .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+        ha-card { --mdc-list-item-one-line-height: 40px; }
+
+        '
+  - type: entities
+    title: Damper override
+    show_header_toggle: false
+    entities:
+    - type: custom:slider-entity-row
+      entity: cover.kitchen
+      name: Living / kitchen
+      step: 5
+    - type: custom:slider-entity-row
+      entity: cover.study
+      name: Study
+      step: 5
+    - type: custom:slider-entity-row
+      entity: cover.bed_1
+      name: Bedroom 1
+      step: 5
+    - type: custom:slider-entity-row
+      entity: cover.bed_2
+      name: Bedroom 2
+      step: 5
+    - type: custom:slider-entity-row
+      entity: cover.bed_3
+      name: Bedroom 3
+      step: 5
     card_mod:
       style: 'ha-card { border-radius: 10px; box-shadow: none; }
 
@@ -842,6 +851,596 @@ sections:
         color: '#d19b38'
       - entity: sensor.bed_3_damper
         name: Bedroom 3
+        color: '#df7978'
+      card_mod:
+        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+          .card-content { padding: 8px 12px !important; }
+
+          .card-content > div { margin: 0 !important; }
+
+          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+          ha-card { --mdc-list-item-one-line-height: 40px; }
+
+          '
+- type: grid
+  cards:
+  - type: heading
+    heading: Room diagnostics
+    icon: mdi:chart-bell-curve-cumulative
+  - type: entities
+    show_header_toggle: false
+    entities:
+    - entity: input_boolean.climate_detailed_history
+      name: Load detailed charts
+    card_mod:
+      style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+        .card-content { padding: 8px 12px !important; }
+
+        .card-content > div { margin: 0 !important; }
+
+        .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+        ha-card { --mdc-list-item-one-line-height: 40px; }
+
+        '
+  - type: markdown
+    content: '### PID · damper target
+
+
+      | Room | PID | Target |
+
+      | :-- | --: | --: |
+
+      | Living / kitchen | {{ states(''input_number.kitchen_pid'') | float(0) | round(2) }} | {{ states(''input_number.kitchen_damper_target'') | float(0) | round(0) }}% |
+
+      | Study | {{ states(''input_number.study_pid'') | float(0) | round(2) }} | {{ states(''input_number.study_damper_target'') | float(0) | round(0) }}% |
+
+      | Bedroom 1 | {{ states(''input_number.bed_1_pid'') | float(0) | round(2) }} | {{ states(''input_number.bed_1_damper_target'') | float(0) | round(0) }}% |
+
+      | Bedroom 2 | {{ states(''input_number.bed_2_pid'') | float(0) | round(2) }} | {{ states(''input_number.bed_2_damper_target'') | float(0) | round(0) }}% |
+
+      | Bedroom 3 | {{ states(''input_number.bed_3_pid'') | float(0) | round(2) }} | {{ states(''input_number.bed_3_damper_target'') | float(0) | round(0) }}% |
+
+      '
+    card_mod:
+      style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+        .card-content { padding: 8px 12px !important; }
+
+        .card-content > div { margin: 0 !important; }
+
+        .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+        ha-card { --mdc-list-item-one-line-height: 40px; }
+
+        '
+  - type: conditional
+    conditions:
+    - entity: input_boolean.climate_detailed_history
+      state: 'on'
+    card:
+      type: custom:apexcharts-card
+      header:
+        show: true
+        title: Room PID output
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 175
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: input_number.kitchen_pid
+        name: Living / kitchen
+        color: '#169d91'
+      - entity: input_number.study_pid
+        name: Study
+        color: '#5986da'
+      - entity: input_number.bed_1_pid
+        name: Bedroom 1
+        color: '#ba80cc'
+      - entity: input_number.bed_2_pid
+        name: Bedroom 2
+        color: '#d19b38'
+      - entity: input_number.bed_3_pid
+        name: Bedroom 3
+        color: '#df7978'
+      card_mod:
+        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+          .card-content { padding: 8px 12px !important; }
+
+          .card-content > div { margin: 0 !important; }
+
+          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+          ha-card { --mdc-list-item-one-line-height: 40px; }
+
+          '
+  - type: entities
+    title: Humidity
+    show_header_toggle: false
+    entities:
+    - entity: sensor.kitchen_average_humidity
+      name: Living / kitchen
+    - entity: sensor.study_average_humidity
+      name: Study
+    - entity: sensor.bed_1_average_humidity
+      name: Bedroom 1
+    - entity: sensor.bed_2_average_humidity
+      name: Bedroom 2
+    - entity: sensor.bed_3_average_humidity
+      name: Bedroom 3
+    card_mod:
+      style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+        .card-content { padding: 8px 12px !important; }
+
+        .card-content > div { margin: 0 !important; }
+
+        .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+        ha-card { --mdc-list-item-one-line-height: 40px; }
+
+        '
+  - type: conditional
+    conditions:
+    - entity: input_boolean.climate_detailed_history
+      state: 'on'
+    card:
+      type: custom:apexcharts-card
+      header:
+        show: true
+        title: Room humidity
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 175
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: sensor.kitchen_average_humidity
+        name: Living / kitchen
+        color: '#169d91'
+      - entity: sensor.study_average_humidity
+        name: Study
+        color: '#5986da'
+      - entity: sensor.bed_1_average_humidity
+        name: Bedroom 1
+        color: '#ba80cc'
+      - entity: sensor.bed_2_average_humidity
+        name: Bedroom 2
+        color: '#d19b38'
+      - entity: sensor.bed_3_average_humidity
+        name: Bedroom 3
+        color: '#df7978'
+      card_mod:
+        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+          .card-content { padding: 8px 12px !important; }
+
+          .card-content > div { margin: 0 !important; }
+
+          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+          ha-card { --mdc-list-item-one-line-height: 40px; }
+
+          '
+- type: grid
+  cards:
+  - type: heading
+    heading: Controller diagnostics
+    icon: mdi:chart-timeline-variant
+  - type: conditional
+    conditions:
+    - entity: input_boolean.climate_detailed_history
+      state: 'on'
+    card:
+      type: custom:apexcharts-card
+      header:
+        show: true
+        title: Demand · trend · integral
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 175
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: input_number.aircon_weighted_error
+        name: Demand
+        color: '#169d91'
+      - entity: input_number.aircon_avg_deriv
+        name: Trend
+        color: '#d19b38'
+      - entity: input_number.aircon_meta_integral
+        name: Integral
+        color: '#ba80cc'
+      card_mod:
+        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+          .card-content { padding: 8px 12px !important; }
+
+          .card-content > div { margin: 0 !important; }
+
+          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+          ha-card { --mdc-list-item-one-line-height: 40px; }
+
+          '
+  - type: conditional
+    conditions:
+    - entity: input_boolean.climate_detailed_history
+      state: 'on'
+    card:
+      type: custom:apexcharts-card
+      header:
+        show: true
+        title: Estimated capacity step
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 175
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: input_number.aircon_comp_speed
+        name: Step
+        color: '#5986da'
+      card_mod:
+        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+          .card-content { padding: 8px 12px !important; }
+
+          .card-content > div { margin: 0 !important; }
+
+          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+          ha-card { --mdc-list-item-one-line-height: 40px; }
+
+          '
+  - type: conditional
+    conditions:
+    - entity: input_boolean.climate_detailed_history
+      state: 'on'
+    card:
+      type: custom:apexcharts-card
+      header:
+        show: true
+        title: Follow-me temperature
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 175
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: input_number.fake_temperature
+        name: Sent to unit
+        color: '#d19b38'
+      card_mod:
+        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+          .card-content { padding: 8px 12px !important; }
+
+          .card-content > div { margin: 0 !important; }
+
+          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+          ha-card { --mdc-list-item-one-line-height: 40px; }
+
+          '
+  - type: conditional
+    conditions:
+    - entity: input_boolean.climate_detailed_history
+      state: 'on'
+    card:
+      type: custom:apexcharts-card
+      header:
+        show: true
+        title: Solar target offset
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 175
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: input_number.grid_surplus_integral
+        name: Offset
+        color: '#169d91'
+      card_mod:
+        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+          .card-content { padding: 8px 12px !important; }
+
+          .card-content > div { margin: 0 !important; }
+
+          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+          ha-card { --mdc-list-item-one-line-height: 40px; }
+
+          '
+  - type: entities
+    title: Controller access
+    show_header_toggle: false
+    entities:
+    - entity: input_boolean.actrl_debug_logging
+      name: Debug logging
+    - entity: switch.hvac_xye_m5atom_local_inhibit
+      name: Local plant inhibit
+    - entity: script.reset_all_rooms_to_18_25c
+      name: Reset all rooms to 18–25 °C
+    card_mod:
+      style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+        .card-content { padding: 8px 12px !important; }
+
+        .card-content > div { margin: 0 !important; }
+
+        .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+        ha-card { --mdc-list-item-one-line-height: 40px; }
+
+        '
+- type: grid
+  cards:
+  - type: heading
+    heading: Plant & grid diagnostics
+    icon: mdi:heat-pump-outline
+  - type: entities
+    title: Plant controls & health
+    show_header_toggle: false
+    entities:
+    - entity: climate.m5atom_climate
+      name: Unit thermostat
+    - entity: binary_sensor.m5atom_status
+      name: Controller connected
+    - entity: binary_sensor.m5atom_outdoor_fan
+      name: Outdoor fan
+    - entity: sensor.m5atom_error_flags
+      name: Error flags
+    - entity: sensor.m5atom_protect_flags
+      name: Protection flags
+    card_mod:
+      style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+        .card-content { padding: 8px 12px !important; }
+
+        .card-content > div { margin: 0 !important; }
+
+        .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+        ha-card { --mdc-list-item-one-line-height: 40px; }
+
+        '
+  - type: conditional
+    conditions:
+    - entity: input_boolean.climate_detailed_history
+      state: 'on'
+    card:
+      type: custom:apexcharts-card
+      header:
+        show: true
+        title: Air path temperatures
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 175
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: sensor.m5atom_outside_temp
+        name: Outside · unit
+        color: '#169d91'
+      - entity: sensor.m5atom_inside_temp
+        name: Return
+        color: '#5986da'
+      - entity: sensor.m5atom_inside_coil_inlet_temp
+        name: Indoor coil
+        color: '#ba80cc'
+      - entity: sensor.m5atom_outside_coil_temp
+        name: Outdoor coil
+        color: '#df7978'
+      - entity: sensor.adelaide_west_terrace_ngayirdapira_temp
+        name: Outside · city
+        color: '#d19b38'
+      card_mod:
+        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+          .card-content { padding: 8px 12px !important; }
+
+          .card-content > div { margin: 0 !important; }
+
+          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+          ha-card { --mdc-list-item-one-line-height: 40px; }
+
+          '
+  - type: conditional
+    conditions:
+    - entity: input_boolean.climate_detailed_history
+      state: 'on'
+    card:
+      type: custom:apexcharts-card
+      header:
+        show: true
+        title: Grid import / export
+        show_states: false
+      graph_span: 6h
+      update_interval: 60s
+      all_series_config:
+        group_by:
+          func: avg
+          duration: 2min
+        stroke_width: 2
+        fill_raw: 'null'
+      apex_config:
+        chart:
+          height: 175
+          animations:
+            enabled: false
+          toolbar:
+            show: false
+        stroke:
+          curve: straight
+        legend:
+          position: bottom
+        tooltip:
+          x:
+            format: HH:mm
+        xaxis:
+          labels:
+            datetimeUTC: false
+      series:
+      - entity: sensor.sigen_plant_grid_export_power
+        name: Export
+        color: '#169d91'
+      - entity: sensor.sigen_plant_grid_import_power
+        name: Import
         color: '#df7978'
       card_mod:
         style: 'ha-card { border-radius: 10px; box-shadow: none; }

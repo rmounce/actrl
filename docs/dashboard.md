@@ -18,9 +18,9 @@
   room manual mode is on; hold switches provided below.
 - Plant capacity is explicitly labelled an estimate. Retain slightly negative
   standby power readings rather than disguising meter noise as measured zero.
-- Three charts: temperatures, electrical power, dampers. Six hours, two-minute
-  averages, one-minute refresh, animations off, explicit entity lists.
-  Aggregation smooths brief events; original Weather view remains linked for diagnosis.
+- Three overview charts: temperatures, electrical power, dampers. Six hours,
+  two-minute averages, one-minute refresh, animations off, explicit entity lists.
+  Aggregation smooths brief events.
 - Original Weather: ten history charts, nine configured with ten-second refresh;
   several auto-entities lists. Potential load source, not measured proof of heating.
 - Rollback: delete only the `climate-prototype` view via HA dashboard editor/API.
@@ -34,9 +34,26 @@
 - Diagnostic numbers render read-only; controller signals rounded to two decimals.
   Plant overview uses reported activity/fan mode, not the spoofed follow-me
   thermostat's `current_temperature`.
-- Chromium checks at 1440px desktop and 390px phone: five room cards, three charts,
-  no page errors or HA error cards; phone document width 390px (no page overflow).
+- Chromium checks at 1440px desktop and 390px phone: five room cards, three
+  overview charts, no page errors or HA error cards; phone document width 390px
+  (no page overflow). Detailed toggle rendered eleven charts, then returned to
+  three after switching off.
   Screenshots retained locally under `.git/hvac-desktop.png` and `.git/hvac-phone.png`.
+
+## Diagnostics expansion · 2026-09-25
+
+- Climate now includes direct damper sliders, plant thermostat, controller inhibit,
+  debug logging, room reset script, room PID and damper targets, humidity,
+  controller health and plant error/protection flags. Weather link removed.
+- Detailed histories: room PID, room humidity, controller demand/trend/integral,
+  estimated capacity, follow-me temperature, solar offset, air-path temperatures,
+  current Sigen grid import/export. The old Fronius grid entity no longer exists.
+- `input_boolean.climate_detailed_history` is a dedicated HA helper. Off by
+  default: only the three overview charts mount. Switch **Load detailed charts**
+  at the start of Room diagnostics to render the eight additional charts;
+  switch off to release them. Its state is shared across devices and restored by HA.
+- HA view published via WebSocket with concurrent-edit check and exact readback.
+  No HVAC service calls or AppDaemon deployment.
 
 ## Density revision · 2026-09-25
 
