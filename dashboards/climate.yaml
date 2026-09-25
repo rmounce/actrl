@@ -152,7 +152,8 @@ sections:
     icon: mdi:sofa-outline
     show_state: true
     show_label: true
-    state_display: '[[[ const v = states[''sensor.kitchen_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.kitchen_''
+      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
       ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
@@ -178,10 +179,9 @@ sections:
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
-      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
 
       return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -234,7 +234,8 @@ sections:
     icon: mdi:desk
     show_state: true
     show_label: true
-    state_display: '[[[ const v = states[''sensor.study_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.study_''
+      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
       ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
@@ -260,10 +261,9 @@ sections:
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
-      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
 
       return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -316,7 +316,8 @@ sections:
     icon: mdi:bed-outline
     show_state: true
     show_label: true
-    state_display: '[[[ const v = states[''sensor.bed_1_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_1_''
+      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
       ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
@@ -342,10 +343,9 @@ sections:
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
-      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
 
       return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -398,7 +398,8 @@ sections:
     icon: mdi:bed-outline
     show_state: true
     show_label: true
-    state_display: '[[[ const v = states[''sensor.bed_2_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_2_''
+      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
       ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
@@ -424,10 +425,9 @@ sections:
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
-      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
 
       return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -480,7 +480,8 @@ sections:
     icon: mdi:bed-outline
     show_state: true
     show_label: true
-    state_display: '[[[ const v = states[''sensor.bed_3_average_temperature'']?.state; return v != null && Number.isFinite(Number(v))
+    state_display: '[[[ const feels = states[''input_boolean.ac_use_feels_like'']?.state === ''on''; const v = states[''sensor.bed_3_''
+      + (feels ? ''feels_like'' : ''average_temperature'')]?.state; return v != null && v !== '''' && Number.isFinite(Number(v))
       ? Number(v).toFixed(1) + ''°'' : ''—''; ]]]'
     label: '[[[
 
@@ -506,10 +507,9 @@ sections:
 
       const feels = val(''input_boolean.ac_use_feels_like'') === ''on'';
 
-      const effective = val(`sensor.${r}_${feels ? ''feels_like'' : ''average_temperature''}`);
 
       return `${status} · ${num(a.target_temp_low)}–${num(a.target_temp_high)}° target<br>${feels ? ''Feels like''
-      : ''Measured''} ${num(effective)}° · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
+      : ''Measured''} · Damper ${val(`sensor.${r}_damper`) ?? ''—''}%`;
 
       ]]]'
     triggers_update:
@@ -618,64 +618,132 @@ sections:
     icon: mdi:chart-line
   - type: vertical-stack
     cards:
-    - type: custom:apexcharts-card
-      header:
-        show: true
-        title: Room temperatures · measured
-        show_states: false
-      graph_span: 6h
-      update_interval: 60s
-      all_series_config:
-        group_by:
-          func: avg
-          duration: 2min
-        stroke_width: 2
-        fill_raw: 'null'
-      apex_config:
-        chart:
-          height: 175
-          animations:
-            enabled: false
-          toolbar:
-            show: false
-        stroke:
-          curve: straight
-        legend:
-          position: bottom
-        tooltip:
-          x:
-            format: HH:mm
-        xaxis:
-          labels:
-            datetimeUTC: false
-      series:
-      - entity: sensor.kitchen_average_temperature
-        name: Living / kitchen
-        color: '#169d91'
-      - entity: sensor.study_average_temperature
-        name: Study
-        color: '#5986da'
-      - entity: sensor.bed_1_average_temperature
-        name: Bedroom 1
-        color: '#ba80cc'
-      - entity: sensor.bed_2_average_temperature
-        name: Bedroom 2
-        color: '#d19b38'
-      - entity: sensor.bed_3_average_temperature
-        name: Bedroom 3
-        color: '#df7978'
-      card_mod:
-        style: 'ha-card { border-radius: 10px; box-shadow: none; }
+    - type: conditional
+      conditions:
+      - entity: input_boolean.ac_use_feels_like
+        state: 'on'
+      card:
+        type: custom:apexcharts-card
+        header:
+          show: true
+          title: Room temperatures · feels like
+          show_states: false
+        graph_span: 6h
+        update_interval: 60s
+        all_series_config:
+          group_by:
+            func: avg
+            duration: 2min
+          stroke_width: 2
+          fill_raw: 'null'
+        apex_config:
+          chart:
+            height: 175
+            animations:
+              enabled: false
+            toolbar:
+              show: false
+          stroke:
+            curve: straight
+          legend:
+            position: bottom
+          tooltip:
+            x:
+              format: HH:mm
+          xaxis:
+            labels:
+              datetimeUTC: false
+        series:
+        - entity: sensor.kitchen_feels_like
+          name: Living / kitchen
+          color: '#169d91'
+        - entity: sensor.study_feels_like
+          name: Study
+          color: '#5986da'
+        - entity: sensor.bed_1_feels_like
+          name: Bedroom 1
+          color: '#ba80cc'
+        - entity: sensor.bed_2_feels_like
+          name: Bedroom 2
+          color: '#d19b38'
+        - entity: sensor.bed_3_feels_like
+          name: Bedroom 3
+          color: '#df7978'
+        card_mod:
+          style: 'ha-card { border-radius: 10px; box-shadow: none; }
 
-          .card-content { padding: 8px 12px !important; }
+            .card-content { padding: 8px 12px !important; }
 
-          .card-content > div { margin: 0 !important; }
+            .card-content > div { margin: 0 !important; }
 
-          .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+            .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
 
-          ha-card { --mdc-list-item-one-line-height: 40px; }
+            ha-card { --mdc-list-item-one-line-height: 40px; }
 
-          '
+            '
+    - type: conditional
+      conditions:
+      - entity: input_boolean.ac_use_feels_like
+        state: 'off'
+      card:
+        type: custom:apexcharts-card
+        header:
+          show: true
+          title: Room temperatures · measured
+          show_states: false
+        graph_span: 6h
+        update_interval: 60s
+        all_series_config:
+          group_by:
+            func: avg
+            duration: 2min
+          stroke_width: 2
+          fill_raw: 'null'
+        apex_config:
+          chart:
+            height: 175
+            animations:
+              enabled: false
+            toolbar:
+              show: false
+          stroke:
+            curve: straight
+          legend:
+            position: bottom
+          tooltip:
+            x:
+              format: HH:mm
+          xaxis:
+            labels:
+              datetimeUTC: false
+        series:
+        - entity: sensor.kitchen_average_temperature
+          name: Living / kitchen
+          color: '#169d91'
+        - entity: sensor.study_average_temperature
+          name: Study
+          color: '#5986da'
+        - entity: sensor.bed_1_average_temperature
+          name: Bedroom 1
+          color: '#ba80cc'
+        - entity: sensor.bed_2_average_temperature
+          name: Bedroom 2
+          color: '#d19b38'
+        - entity: sensor.bed_3_average_temperature
+          name: Bedroom 3
+          color: '#df7978'
+        card_mod:
+          style: 'ha-card { border-radius: 10px; box-shadow: none; }
+
+            .card-content { padding: 8px 12px !important; }
+
+            .card-content > div { margin: 0 !important; }
+
+            .card-header { padding: 10px 12px 0 !important; font-size: 16px !important; }
+
+            ha-card { --mdc-list-item-one-line-height: 40px; }
+
+            '
   - type: vertical-stack
     cards:
     - type: custom:apexcharts-card

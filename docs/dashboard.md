@@ -10,8 +10,9 @@
   rooms/preferences and trends; stacked on narrow screens.
 - Overview uses `sensor.actrl_status`; heartbeat older than 90 seconds displays
   a warning. Its heartbeat attribute is authoritative, not nested timestamp attrs.
-- Room headline = measured average temperature. Secondary line distinguishes
-  feels-like/control input, requested climate target band and reported damper.
+- Room headline and temperature chart follow `input_boolean.ac_use_feels_like`:
+  feels-like when on, measured average when off. Secondary line labels the basis,
+  requested climate target band and reported damper.
   Target band is not actrl's internal smoothed/offset target.
 - Room tap opens native climate controls. Scheduler may change targets unless
   room manual mode is on; hold switches provided below.
@@ -44,3 +45,10 @@
 - Charts 215 → 175px; entity rows tightened; smaller card headings and corners.
 - Signals and preferences follow their own columns, avoiding a second section row.
 - Expert-facing dashboard: concise labels and readings; explanations live here.
+
+## Temperature basis revision · 2026-09-25
+
+- Feels-like is primary while enabled; measured temperatures shown only when off.
+- Conditional temperature charts instantiate only the selected basis.
+- Room cards already subscribe to both sensors and the selector; no polling added.
+- Missing selected temperature displays a dash, not a misleading numeric zero.
