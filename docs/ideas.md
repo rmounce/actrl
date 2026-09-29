@@ -234,8 +234,15 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
   crossover delay, damper movement, compressor power and post-surplus
   comfort against the current rate. On 2026-09-29 at about 13:07 Adelaide
   time, InfluxDB showed grid_surplus_integral = 0 throughout the UTC day so
-  far; no live surplus crossover was available to evaluate. The configured
-  HA REST token was empty, so live forecast and room modes were unavailable.
+  far. The sibling `ai-energy-forecast-slop/config_utils.py` merges its
+  gitignored `config.secrets.yaml` into `config.yaml`; use that merged
+  configuration for HA REST queries. Around 13:10, HA showed cooling
+  surplus enabled, integral 0, and forecast curtailment from 14:25 to
+  16:40 Adelaide time (peak ~3.67 kW). This gives a live capture window
+  today for the rate/crossover question. HA recorder's history endpoint
+  returned the forecast sensor with its `forecasts` attribute and the
+  integral entity in a two-hour check, so the event can be reconstructed
+  from HA history afterward; use InfluxDB for high-rate Shelly power.
 
 ## 4. Smaller ideas
 
