@@ -854,6 +854,28 @@ overrides will give real mid-range damper coverage), together with the
   forecasts from the numeric export. At 14:10 the recorded numeric target
   highs were 30°C for bedrooms 2 and 3, despite their strong cooling.
 - Next validation needs recorded room mode/manual state, surplus enable and
-  integral, and the forecast trajectory. Replay the observed controls or
+  integral, and the forecast trajectory from HA recorder. Replay the observed controls or
   force recorded compressor/dampers before fitting cooling plant response.
   Keep the earlier 24th evening minimum-power discrepancy separate.
+
+## 2026-09-28 afternoon surplus baseline (HA recorder, checked 2026-09-29)
+
+- HA history for 13:00–17:30 Adelaide time shows the shared surplus integral
+  positive from about 13:50 to 15:38, peaking at **8.25°C**. This is not a
+  1°C target-offset cap: `grid_surplus_max_offset = 1.0` trims the integral
+  only when resulting room demand exceeds 1°C. Wide room heat/cool bands
+  allow larger offsets. Bedroom 2/3 targets were 12–30°C; their midpoint
+  bound is 8.25°C. This matches their strong afternoon cooling despite a
+  30°C nominal cooling target.
+- The integral fell from about 8.25 at 15:10 to 0 around 15:38. Reconstructing
+  cooling errors from recorded climate current temperatures and targets,
+  the highest-offset bedrooms had stopped leading by about 14:50. Study
+  appeared to lead near 15:10, then kitchen around 15:25 while its surplus
+  offset was bounded at 1.75°C. This is the interval the conditional 2×
+  decay gain is intended to shorten. The reconstructed leader omits window
+  offsets and price pressure; treat crossover timestamps as approximate.
+- Recorded Shelly outdoor + indoor energy during 14:00–15:33 was about
+  1.84 kWh. For an after-change comparison, use HA recorder for forecast,
+  integral, room modes/targets and InfluxDB for high-rate Shelly power.
+  Compare decay start-to-zero time, time with a lower-offset room leading,
+  compressor power/stop time, damper movement, and later room temperatures.

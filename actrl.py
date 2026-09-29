@@ -118,8 +118,12 @@ grid_surplus_on_buffer = 100
 # 1.0C = 2000W for 30 seconds
 # or, 2000W of a single 5 minute interval over the next 60 minutes for 6 minutes
 grid_surplus_ki = interval / (2000 * 0.5)
+# Shorten surplus wind-down when the cooling-demand leader has less surplus
+# offset than another room. Keep the integral continuous through handover.
+grid_surplus_nonlead_decay_gain = 2.0
 
-# Don't wind-up more than 1.0C
+# Trim the shared integral when demand exceeds 1.0C. Room target offsets
+# can be larger where the heat/cool band allows it.
 grid_surplus_max_offset = 1.0
 
 # set some boundaries before things get too weird
@@ -387,7 +391,7 @@ class Actrl(hass.Hass):
         cur_targets = self._get_current_targets()
         self._update_room_targets(temps, cur_targets)
 
-        self._add_grid_surplus()
+        self._add_grid_surplus(temps)
         self.price_pressure = self._get_price_pressure()
 
         errors, cooling_demand, heating_demand = self._calculate_demand(temps)
@@ -759,26 +763,11 @@ class Actrl(hass.Hass):
 
             # room in auto mode with both heat/cool targets; handle grid surplus
             if room in self.targets["heat"] and room in self.targets["cool"]:
-                # examples for a room with setpoints of 19 and 25 C
-                # (25 - 19 + (-1.5)) / 2 = 2.75
                 midpoint_offset = (
                     self.targets["cool"][room]
                     - self.targets["heat"][room]
                     + immediate_off_threshold
                 ) / 2
-                # 25 - 21 = 4
-                cool_offset = self.targets["cool"][room] - grid_surplus_min_cooling
-                # 21 - 19 = 2
-                heat_offset = grid_surplus_max_heating - self.targets["heat"][room]
-
-                max_mode_offset = {}
-                max_mode_offset["cool"] = min(midpoint_offset, cool_offset)
-                max_mode_offset["heat"] = min(midpoint_offset, heat_offset)
-                open_window_offset = self.window_handler.get_offset(room)
-
-                # self.log(
-                #    f"Adjusting {room} offset within limits of heat: {heat_offset:.3f}, midpoint: {midpoint_offset:.3f}, cool: {cool_offset:.3f}, window: {open_window_offset:.3f}"
-                # )
 
                 if midpoint_offset <= 0:
                     self.log(
@@ -786,13 +775,8 @@ class Actrl(hass.Hass):
                     )
                 else:
                     for mode in errors.keys():
-                        window_limited_offset = max(
-                            0,
-                            min(
-                                max_mode_offset[mode],
-                                self.grid_surplus_integral,
-                            )
-                            - open_window_offset,
+                        window_limited_offset = self._grid_surplus_room_offset(
+                            room, mode
                         )
                         grid_surplus_overshoot = max(
                             0, self.grid_surplus_integral - window_limited_offset
@@ -872,7 +856,45 @@ class Actrl(hass.Hass):
         self.get_entity("input_number.aircon_avg_deriv").set_state(state=null_state)
         self.get_entity("input_number.aircon_meta_integral").set_state(state=null_state)
 
-    def _add_grid_surplus(self):
+    def _grid_surplus_room_offset(self, room, mode):
+        """Current target offset for one heat_cool room, before enable gates."""
+        low = self.targets["heat"][room]
+        high = self.targets["cool"][room]
+        midpoint = (high - low + immediate_off_threshold) / 2
+        bound = (
+            high - grid_surplus_min_cooling
+            if mode == "cool"
+            else grid_surplus_max_heating - low
+        )
+        return max(
+            0.0,
+            min(midpoint, bound, self.grid_surplus_integral)
+            - self.window_handler.get_offset(room),
+        )
+
+    def _surplus_decay_gain(self, temps):
+        """Accelerate only when the cooling leader lacks the largest offset."""
+        if (
+            self.mode != "cool"
+            or self.get_state("input_boolean.ac_use_grid_surplus_cool") != "on"
+        ):
+            return 1.0
+        errors = {}
+        offsets = {}
+        for room, target in self.targets["cool"].items():
+            offset = 0.0
+            if room in self.targets["heat"]:
+                offset = self._grid_surplus_room_offset(room, "cool")
+            offsets[room] = offset
+            errors[room] = temps[room] - target + offset
+        if not errors:
+            return 1.0
+        leader = max(errors, key=errors.get)
+        if max(offsets.values()) > offsets[leader] + 1e-9:
+            return grid_surplus_nonlead_decay_gain
+        return 1.0
+
+    def _add_grid_surplus(self, temps):
         # Define the number of 5-minute intervals to look ahead (12 * 5 = 60 minutes)
         lookahead_intervals = 12
         grid_surplus = 0  # Default to 0 surplus
@@ -923,8 +945,10 @@ class Actrl(hass.Hass):
                 grid_surplus - grid_surplus_upper_threshold
             )
         elif grid_surplus < grid_surplus_lower_threshold:
-            self.grid_surplus_integral += grid_surplus_ki * (
-                grid_surplus - grid_surplus_lower_threshold
+            self.grid_surplus_integral += (
+                self._surplus_decay_gain(temps)
+                * grid_surplus_ki
+                * (grid_surplus - grid_surplus_lower_threshold)
             )
 
         self.grid_surplus_integral = max(0.0, self.grid_surplus_integral)

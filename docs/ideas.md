@@ -227,7 +227,8 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
   those inputs and compare curtailment used, post-curtailment temperature,
   grid imports, starts, and comfort for candidate policies. Prioritize a
   cooling plant fit before trusting simulated kWh (docs/calibration.md).
-  Candidate: while cooling surplus is decaying, double the integral rate
+  Prepared in source, awaiting review/deployment: while cooling surplus is
+  decaying, double the integral rate
   when the room with the largest applied surplus offset is not setting
   cooling demand. This shortens the continuous traverse to a demand-leader
   crossover without jumping damper positions to the crossover. Compare

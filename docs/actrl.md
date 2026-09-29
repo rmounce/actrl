@@ -56,10 +56,14 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
    the PIDs' derivative terms (MyDeriv also compensates for target deltas
    directly).
 4. `_add_grid_surplus`: average EMHASS curtailment forecast over the next hour
-   (`sensor.mpc_p_pv_curtailment` attr `forecasts`) feeds an integral that can
-   widen room targets by up to 1.0 °C (bounded by 21 °C min cooling / max
-   heating and the room's heat/cool band midpoint). Window-open offsets erode
-   it; overshoot is bled off to prevent wind-up.
+   (`sensor.mpc_p_pv_curtailment` attr `forecasts`) feeds a shared integral.
+   Applied room offsets are bounded by 21 °C min cooling / max heating and
+   the room's heat/cool band midpoint; they can exceed 1.0 °C. The 1.0 °C
+   constant limits resulting demand by trimming the integral. Window-open
+   offsets erode applied offsets; overshoot is bled off to prevent wind-up.
+   During cooling decay, the integral rate doubles when the demand-leading
+   room has less applied surplus offset than another room. Growth and
+   matched-leader decay retain the original rate.
 5. `_calculate_demand`: per-room signed errors for both modes; demand = max
    room error per mode. If demand exceeds `grid_surplus_max_offset` the
    surplus integral is trimmed and errors recomputed.
