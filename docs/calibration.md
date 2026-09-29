@@ -928,3 +928,33 @@ overrides will give real mid-range damper coverage), together with the
   and historical mode inputs are absent, and `sim/closed_loop.py` still
   negates the winter heat output as a cooling placeholder. Daytime solar
   gain remains a confounder, especially for room-by-room thermal slopes.
+
+## First forced-input cooling fit — 2026-09-29
+
+- Reproduce with `analysis/cooling_forced_replay.py --parquet
+  data/processed/sep23_28.parquet --parquet data/processed/sep28_29.parquet`
+  (run with `./.venv/bin/python`). The script bypasses the controller and
+  Midea emulator. It starts each window from measured room temperatures,
+  then drives `sim.house.House` with recorded Shelly outdoor + indoor power,
+  recorded dampers, outdoor temperature, and optionally the existing solar
+  model. The single fitted coefficient `e` maps electrical kW to negative
+  house-average K/h. The 28th/29th are fitting windows; the 24th/27th are
+  held out. Fit score is damper-weighted measured-air RMSE after run onset.
+
+  | Window | Best `e`, no solar | Best `e`, existing solar | RMSE with common `e=0.55`, no solar |
+  | --- | ---: | ---: | ---: |
+  | 24 Sep evening (held out) | 1.20 | 1.20 | 0.55°C |
+  | 27 Sep afternoon (held out) | 0.30 | 0.30 | 0.83°C |
+  | 28 Sep afternoon (fit) | 0.50 | 0.55 | 0.51°C |
+  | 29 Sep afternoon (fit) | 0.55 | 0.65 | 0.49°C |
+
+- The shared fit across the 28th/29th is `e=0.55` without solar
+  (effective COP **proxy** 2.64 using winter's 4.8 kWh/K thermal-capacity
+  anchor), or `e=0.60` with the existing solar model (proxy 2.88). These
+  are **not measured equipment COPs**. The night run prefers ~1.20 and the
+  27th prefers ~0.30; one constant cooling coefficient does not validate
+  across the four runs. Solar sensitivity moves the 29th's fitted value
+  0.55→0.65, and room-level residuals remain material. No cooling physics
+  constant was changed in `sim/` yet. More runs, including off-period solar
+  checks and low-power cooling, are needed before fitting power/temperature
+  dependence or declaring a usable closed-loop cooling energy score.
