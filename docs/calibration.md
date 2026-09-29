@@ -916,3 +916,15 @@ overrides will give real mid-range damper coverage), together with the
   25.55→26.01°C (bed 2), 25.00→25.68°C (bed 3), 22.38→23.21°C
   (kitchen), 23.40→23.68°C (study). These rebounds include ambient and
   solar gain; they do not alone measure the value of more pre-cooling.
+- **Cooling-model value:** 53 minutes of the 13:30–16:40 window had outdoor
+  draw 2–4 kW; the 28th had none in that bin. While running above 200 W,
+  median dampers were kitchen 100%, bed 1 80%, bed 2/3/study 0%, versus
+  28th's bed 1/2/3 medians 92/80/95%. The two afternoons therefore give
+  complementary high- and mid-power cooling response/airflow cases. Fit
+  the cooling electrical minimum, delivered-cooling scale and airflow
+  split with recorded power and damper inputs, initialised from measured
+  room temperatures; hold out one run for validation. Do not tune those
+  parameters against current whole-day closed-loop replay: its surplus
+  and historical mode inputs are absent, and `sim/closed_loop.py` still
+  negates the winter heat output as a cooling placeholder. Daytime solar
+  gain remains a confounder, especially for room-by-room thermal slopes.
