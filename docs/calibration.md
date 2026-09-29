@@ -879,3 +879,8 @@ overrides will give real mid-range damper coverage), together with the
   integral, room modes/targets and InfluxDB for high-rate Shelly power.
   Compare decay start-to-zero time, time with a lower-offset room leading,
   compressor power/stop time, damper movement, and later room temperatures.
+- Conditional 2× decay patch `f3e8965` deployed 2026-09-29 about 13:20
+  Adelaide time after user review. AppDaemon reloaded successfully; HA
+  `sensor.actrl_status` heartbeat updated at 13:21, surplus integral 0,
+  cooling surplus switch on. The 2026-09-29 event is the first comparison
+  run; evaluate only after its forecast curtailment ends.
