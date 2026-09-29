@@ -884,3 +884,35 @@ overrides will give real mid-range damper coverage), together with the
   `sensor.actrl_status` heartbeat updated at 13:21, surplus integral 0,
   cooling surplus switch on. The 2026-09-29 event is the first comparison
   run; evaluate only after its forecast curtailment ends.
+
+## First 2× cooling surplus run — 2026-09-29 afternoon
+
+- Source: HA recorder for forecast attribute, room climates and surplus
+  integral; InfluxDB Shelly channels for power. Local 13:30–16:40 window.
+  The shared integral became positive about 13:38, peaked near 3.97°C,
+  and reached zero about 16:19. Recorded outdoor-unit runs above 200 W:
+  13:30–13:55 (already running at window start), 13:58–15:11, and
+  15:21–16:03. Outdoor + indoor energy was 4.09 kWh. The house was much
+  warmer than the 28th and drew up to 3.20 kW outdoors, so daily energy
+  is not a controlled before/after efficiency comparison (28th: 1.85 kWh
+  over the same clock window, outdoor peak 1.74 kW).
+- The 2× branch did operate during decay. Around 15:58, the integral fell
+  about 0.065°C per 10 s while the recorded first-12 forecast average was
+  about 106 W. The original gain would give about 0.032°C per 10 s from
+  that input. Reconstructed demand at this point had kitchen leading with
+  its applied offset capped near 1.75°C while other rooms retained a
+  larger offset. The record also shows two distinct build/decay pulses;
+  a single decay-duration comparison with the 28th would be misleading.
+- **One-hour forecast dilution at the tail:** at 16:04 the curtailment
+  sensor state showed ~1.75 kW, but its first 12 five-minute forecasts
+  averaged only ~292 W (two nonzero entries, then ten zeros). That is
+  below the 300 W decay threshold, so the integral kept falling. The
+  outdoor unit had stopped by ~16:04 while the sensor state stayed
+  positive through at least 16:39. Integrating these *forecast states*
+  from 16:04–16:40 gives ~0.65 kWh; this is not measured curtailment.
+  A shorter lookahead would react differently to that tail, but its effect
+  on earlier start, comfort and total energy needs separate evaluation.
+- Temperatures at 16:03 → 16:40 rose from 23.78→24.68°C (bed 1),
+  25.55→26.01°C (bed 2), 25.00→25.68°C (bed 3), 22.38→23.21°C
+  (kitchen), 23.40→23.68°C (study). These rebounds include ambient and
+  solar gain; they do not alone measure the value of more pre-cooling.

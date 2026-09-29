@@ -244,6 +244,11 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
   returned the forecast sensor with its `forecasts` attribute and the
   integral entity in a two-hour check, so the event can be reconstructed
   from HA history afterward; use InfluxDB for high-rate Shelly power.
+  First post-deploy run: the 2× decay rate was observed; the one-hour
+  forecast average dropped below 300 W at 16:04 while the current forecast
+  still showed ~1.75 kW curtailment (docs/calibration.md). Evaluate a shorter
+  lookahead and/or energy-in-window rule against both afternoons before
+  changing the window; forecast-state power is not measured curtailment.
 
 ## 4. Smaller ideas
 
