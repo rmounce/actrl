@@ -60,3 +60,24 @@ def test_satisfied_house_stays_off():
     assert all(r["q_kw"] == 0.0 for r in rows[6:])  # after startup settles
     # Free-running: house drifts, no heat input
     assert abs(rows[-1]["T_bed_1"] - (start["bed_1"])) < 0.5
+
+
+def test_cooling_loop_uses_cooling_power_and_negative_delivery():
+    targets = {room: 24.0 for room in TARGETS}
+    start = {room: 27.0 for room in TARGETS}
+    world = base_world(setpoint=24.0)
+    room_climates(world, 'cool', targets, start)
+    world['binary_sensor.m5atom_outdoor_fan']['state'] = 'on'
+    world['binary_sensor.m5atom_compressor']['state'] = 'on'
+    loop = ClosedLoop(world, start, setpoint=24.0)
+    loop.unit.mode = 'cool'
+    loop.unit.mode_sign = 1.0
+    loop.unit.reset()
+    try:
+        rows = [loop.step(t_out=27.0) for _ in range(360)]
+        assert min(row['q_kw'] for row in rows) < 0
+        assert max(row['q_kw'] for row in rows) == 0
+        assert rows[-1]['T_bed_1'] < start['bed_1']
+        assert loop._p_lag.value <= loop.hvac.power_kw(14, 'cool', 27)
+    finally:
+        loop.close()

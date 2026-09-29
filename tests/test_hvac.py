@@ -129,3 +129,13 @@ def test_defrost_disabled_when_trigger_s_not_positive():
     dfr = Defrost(params)
     for _ in range(1000):
         assert not dfr.step(True, 2.0, 10.0)
+
+
+def test_cooling_power_and_signed_output(hvac):
+    assert hvac.power_kw(0, 'cool', 20) == pytest.approx(0.381)
+    assert hvac.power_kw(0, 'cool', 30) == pytest.approx(0.541)
+    assert hvac.power_kw(0, 'cool', -20) == pytest.approx(0.331)
+    assert hvac.power_kw(14, 'cool', 30) == pytest.approx(3.055)
+    power, cooling = hvac.cooling_output(0, 30)
+    assert cooling == pytest.approx(-power * 0.60 * 4.8)
+    assert hvac.power_kw(0) == pytest.approx(0.720)

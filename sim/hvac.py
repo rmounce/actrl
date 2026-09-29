@@ -15,8 +15,8 @@ see docs/calibration.md and analysis/actron_tables.py):
   - 0.101*(P-0.7) + 0.0522*(Tout-10)) times the effective house thermal
   capacity C_eff ~ 4.8 kWh/K. COP here is referenced to heat delivered
   INTO THE ROOMS (duct losses folded in), which is what the house model
-  wants. Winter/heating fit only — cooling uses the rated tables as a
-  placeholder until summer data exists.
+  wants. Cooling has a separate provisional response coefficient and
+  minimum-power curve from September 2026 (docs/calibration.md).
 - Defrost (analysis/defrost_fit.py, 2026-07-03, 9 June episodes): the
   trigger isn't separately identifiable from this data (defrost logic
   lives in the unit's own firmware) so it's modelled as a simple
@@ -69,6 +69,18 @@ class HvacParams:
     # Indoor fan [W], linear in increment (fan mode follows comp speed).
     p_indoor_min_w: float = 55.0
     p_indoor_max_w: float = 105.0
+    # Provisional cooling minimum, September 2026 steady speed-zero traces.
+    # Outdoor draw varies with ambient; high-speed interpolation still uses
+    # the original upper anchor until more steady speed coverage exists.
+    cool_p_outdoor_min_w: float = 300.0
+    cool_p_outdoor_per_k: float = 16.0
+    cool_p_ref_tout: float = 20.0
+    cool_p_outdoor_floor_w: float = 250.0
+    cool_p_indoor_min_w: float = 81.0
+    # House-average cooling K/h per electrical kW. Fit on 28/29 September;
+    # validated against newer night runs. Effective room-delivered COP
+    # proxy is 0.60 * 4.8 = 2.88, not a measured equipment COP.
+    cool_e: float = 0.60
     # Heating efficiency proxy e(P_kW, Tout) [K/h per kW]: the
     # docs/calibration.md open-loop fit (e0=1.045, per_kw=-0.101,
     # per_k=0.0522, r2=0.28) scaled by 0.80 — a closed-loop energy refit
@@ -198,25 +210,39 @@ class Defrost:
 class Hvac:
     """Maps compressor increment + outdoor temp to (P_elec_kW, Q_kW).
 
-    Heating only for now (the calibrated season). Q is heat delivered to
-    the rooms (duct losses folded into the calibration), so
+    Heating calibration plus provisional September cooling. Q is heat
+    delivered to the rooms (duct losses folded into the calibration), so
     q_house [K/h] = Q_kW / c_eff_kwh_per_k feeds sim.house directly.
     """
 
     def __init__(self, params: HvacParams = HvacParams()):
         self.params = params
 
-    def power_kw(self, increment: float) -> float:
+    def power_kw(self, increment: float, mode: str = "heat", t_out: float = 20.0) -> float:
         p = self.params
         n = max(0.0, min(float(increment), float(p.max_increment)))
         frac = n / p.max_increment
-        outdoor = p.p_outdoor_min_w + frac * (p.p_outdoor_max_w - p.p_outdoor_min_w)
-        indoor = p.p_indoor_min_w + frac * (p.p_indoor_max_w - p.p_indoor_min_w)
+        outdoor_min, indoor_min = p.p_outdoor_min_w, p.p_indoor_min_w
+        if mode == "cool":
+            outdoor_min = max(
+                p.cool_p_outdoor_floor_w,
+                min(p.p_outdoor_max_w, p.cool_p_outdoor_min_w
+                    + p.cool_p_outdoor_per_k * (t_out - p.cool_p_ref_tout)),
+            )
+            indoor_min = p.cool_p_indoor_min_w
+        elif mode != "heat":
+            raise ValueError(f"unsupported HVAC mode: {mode}")
+        outdoor = outdoor_min + frac * (p.p_outdoor_max_w - outdoor_min)
+        indoor = indoor_min + frac * (p.p_indoor_max_w - indoor_min)
         return (outdoor + indoor) / 1000.0
 
-    def efficiency(self, p_kw: float, t_out: float) -> float:
-        """Fitted efficiency proxy e [K/h per kW] (heating)."""
+    def efficiency(self, p_kw: float, t_out: float, mode: str = "heat") -> float:
+        """Positive response magnitude e [K/h per kW] for the selected mode."""
         p = self.params
+        if mode == "cool":
+            return p.cool_e
+        if mode != "heat":
+            raise ValueError(f"unsupported HVAC mode: {mode}")
         e = (
             p.e0
             + p.e_per_kw * (p_kw - p.e_ref_p_kw)
@@ -224,8 +250,13 @@ class Hvac:
         )
         return max(p.e_floor, e)
 
-    def cop(self, p_kw: float, t_out: float) -> float:
-        return self.efficiency(p_kw, t_out) * self.params.c_eff_kwh_per_k
+    def cop(self, p_kw: float, t_out: float, mode: str = "heat") -> float:
+        return self.efficiency(p_kw, t_out, mode) * self.params.c_eff_kwh_per_k
+
+    def cooling_output(self, increment: float, t_out: float) -> tuple[float, float]:
+        """Electrical kW and signed room-delivered cooling kW (negative)."""
+        power = self.power_kw(increment, "cool", t_out)
+        return power, -self.cop(power, t_out, "cool") * power
 
     def heating_output(self, increment: float, t_out: float) -> tuple[float, float]:
         """(electrical power kW, delivered heat kW) when compressor runs at

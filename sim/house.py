@@ -132,7 +132,7 @@ _DEFAULT_LEAD = {
     "kitchen": 0.45,
     "study": 0.40,
 }
-# q-sensitivity of the lead amplitude: lead_eff = lead_h * (1 + lead_q_h * q).
+# q-sensitivity of the lead amplitude: lead_eff = lead_h * (1 + lead_q_h * abs(q)).
 # The constant leads above were fitted on midday MIN-POWER cycling; recorded
 # cold-morning warmup onsets show the kitchen sensor running 0.3-1 K/h ahead
 # of the sim's — a lead that grows with delivered q (docs/calibration.md
@@ -181,11 +181,11 @@ class RoomParams:
     # defaults stay 0.0 until a separate calibration commit lands values.
     tau_meas_h: float = 0.0
     lead_h: float = 0.0
-    # lead_eff = lead_h * (1 + lead_q_h * q_i): the sensor's lead amplitude
+    # lead_eff = lead_h * (1 + lead_q_h * abs(q_i)): the sensor's lead amplitude
     # grows with delivered heat (0.0 = plain linear lead, exact pre-existing
     # behaviour). Fitted only where warmup-onset data demanded it.
     lead_q_h: float = 0.0
-    # tau_eff = tau_meas_h / (1 + tau_q_h * q_i): the sensor pocket couples
+    # tau_eff = tau_meas_h / (1 + tau_q_h * abs(q_i)): the sensor pocket couples
     # faster the harder air is being delivered (high fan). 0.0 = constant
     # tau, exact pre-existing behaviour.
     tau_q_h: float = 0.0
@@ -363,8 +363,10 @@ class House:
             # approximation.
             if p.tau_meas_h > 0.0:
                 tm_i = current_measured[room]
-                lead_eff = p.lead_h * (1.0 + p.lead_q_h * q_i)
-                tau_eff = p.tau_meas_h / (1.0 + p.tau_q_h * q_i)
+                # Airflow changes the lead's magnitude in either HVAC mode.
+                # q_i retains its sign below so cooling leads colder.
+                lead_eff = p.lead_h * (1.0 + p.lead_q_h * abs(q_i))
+                tau_eff = p.tau_meas_h / (1.0 + p.tau_q_h * abs(q_i))
                 dTmdt = ((t_i + lead_eff * q_i) - tm_i) / tau_eff
                 new_temps_measured[room] = tm_i + dt_h * dTmdt
             else:

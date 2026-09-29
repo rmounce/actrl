@@ -227,6 +227,9 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
   those inputs and compare curtailment used, post-curtailment temperature,
   grid imports, starts, and comfort for candidate policies. Prioritize a
   cooling plant fit before trusting simulated kWh (docs/calibration.md).
+  Initial separate cooling power/response defaults added 2026-09-30;
+  newer night traces validate minimum draw and short-run response. Older
+  evening mismatch and high-speed electrical curve remain unresolved.
   Deployed 2026-09-29 13:20 Adelaide time: while cooling surplus is
   decaying, double the integral rate
   when the room with the largest applied surplus offset is not setting

@@ -958,3 +958,56 @@ overrides will give real mid-range damper coverage), together with the
   constant was changed in `sim/` yet. More runs, including off-period solar
   checks and low-power cooling, are needed before fitting power/temperature
   dependence or declaring a usable closed-loop cooling energy score.
+
+## Initial cooling sim update — 2026-09-30
+
+- New HA-confirmed cooling: 29 Sep 20:40–22:47, 23:39–30 Sep
+  00:07, 30 Sep 01:27–01:50; morning 08:27–08:40 too short for this
+  thermal fit. Long evening run: outdoor median 397 W, fan ~81 W;
+  bed 1 cooled 3.44°C, kitchen 0.55°C. Diverse airflow remains material.
+- Reproduce: `./.venv/bin/python analysis/cooling_forced_replay.py --parquet
+  data/processed/sep23_29.parquet`. Export/load 23–29 Sep UTC inclusive.
+  Seven local-time windows; thermal fitting remains 28/29 afternoons,
+  three newer night windows held out. Numeric history from Influx; HA
+  recorder confirms cooling modes and missing damper seeds. Script seeds
+  only confirmed closed bed 2/3/study states and the 24 Sep kitchen opening;
+  missing power/damper inputs fail validation rather than becoming zero.
+- Method corrections supersede the preceding fit table: use the simulator's
+  15 s dead time + 180 s delivery lag, reset at shutdown; use heat/cooling
+  **magnitude** for sensor lead/time-constant adjustment. Signed forcing
+  previously reversed kitchen sensor lead at strong cooling. Heating is
+  unchanged. Baseline below reproduces the former signed sensor behavior.
+- `sim/hvac.py`: provisional cooling `e=0.60 K/h per electrical kW`,
+  effective room-delivered COP proxy 2.88 using existing 4.8 kWh/K capacity.
+  This is not measured equipment COP. Shared no-solar fit is 0.50; retain
+  existing solar model and room/airflow parameters. Individual solar-enabled
+  best fits range 0.30–1.30: a constant cannot explain every run.
+
+  | Window | Former model RMSE | Updated model RMSE |
+  | --- | ---: | ---: |
+  | 24 Sep evening, held out | 0.25°C | 0.54°C |
+  | 27 Sep afternoon, held out | 2.20°C | 0.85°C |
+  | 28 Sep afternoon, fit | 2.22°C | 0.50°C |
+  | 29 Sep afternoon, fit | 2.88°C | 0.55°C |
+  | 29 Sep evening, held out | 1.05°C | 0.97°C |
+  | 29 Sep late, held out | 0.51°C | 0.16°C |
+  | 30 Sep night, held out | 0.36°C | 0.18°C |
+
+- Scores: damper-weighted measured-air RMSE after run onset, including
+  off-period rebound. Forced recorded power/dampers: tests thermal response,
+  not controller policy or whole-day predicted energy.
+- Cooling minimum electrical draw: outdoor `300 + 16*(Tout-20)` W,
+  floor 250 W; indoor fan 81 W. Fit uses 268 old-window minutes, outdoor
+  150–600 W and trailing seven-minute speed-zero samples; unconstrained OLS
+  298.8 W at 20°C +16.4 W/K. New-night outdoor-power RMSE: 52/51/47 W,
+  versus winter minimum's 270/339/374 W. Observed speed is an estimate.
+  Retain original 2950 W outdoor /105 W indoor upper anchors and linear
+  speed interpolation; higher-speed cooling curve remains unvalidated.
+- `sim/closed_loop.py` selects mode-specific power and thermal response.
+  Heating defaults unchanged; regression tests cover cooling sign, power
+  anchors and sensor symmetry. No deployed HVAC behavior changed.
+- Next: accumulate cooling/off-period traces across weather, airflow and
+  speeds; investigate older evening mismatch and long-evening residuals.
+  Fit ambient/power dependence only once held-out evidence supports it.
+  Historical surplus enable/mode/forecast replay still needed before using
+  whole-day simulated kWh to choose surplus windows or gains.

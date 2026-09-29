@@ -315,3 +315,18 @@ def test_zero_s_ne_s_nw_ignores_sun_kwargs():
         house_with_sun.step(t_out=t_out, q=q, dt_s=10, sun_ne=0.7, sun_nw=0.4)
         house_without_sun.step(t_out=t_out, q=q, dt_s=10)
         assert house_with_sun.temps == house_without_sun.temps
+
+
+def test_sensor_response_magnitude_is_symmetric_for_heating_and_cooling():
+    params = HouseParams(rooms={room: RoomParams(
+        tau_out=1000, tau_cpl=math.inf, gain=0,
+        tau_meas_h=0.1, lead_h=0.1, lead_q_h=0.2, tau_q_h=0.1,
+    ) for room in ROOMS})
+    hot = House(params, {room: 20.0 for room in ROOMS}, dt_s=10)
+    cold = House(params, {room: 20.0 for room in ROOMS}, dt_s=10)
+    for _ in range(6):
+        hot.step(t_out=20, q={room: 10.0 for room in ROOMS}, dt_s=10)
+        cold.step(t_out=20, q={room: -10.0 for room in ROOMS}, dt_s=10)
+    for room in ROOMS:
+        assert cold.temps_measured[room] < cold.temps[room] < 20
+        assert hot.temps_measured[room] - 20 == pytest.approx(20 - cold.temps_measured[room])

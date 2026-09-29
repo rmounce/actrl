@@ -223,13 +223,13 @@ class ClosedLoop:
                 self.unit.step(r)
             increment = self.unit.comp_speed
             if self.unit.running:
-                p_target = self.hvac.power_kw(increment)
+                p_target = self.hvac.power_kw(increment, unit_mode, t_out)
                 p_kw = self._p_lag.step(p_target, 10.0)
             else:
                 self._p_lag.reset()  # instant cut, per recorded shutdowns
                 self._q_lag.reset()
                 p_kw = 0.0
-            q_target = self.hvac.cop(p_kw, t_out) * p_kw if p_kw > 0 else 0.0
+            q_target = self.hvac.cop(p_kw, t_out, unit_mode) * p_kw if p_kw > 0 else 0.0
             q_kw = self._q_lag.step(q_target)
             if unit_mode == "heat" and self._defrost.step(self.unit.running, t_out, 10.0):
                 p_kw = self.hvac.params.defrost_power_kw
@@ -237,7 +237,7 @@ class ClosedLoop:
                 self._p_lag.reset(p_kw)  # resume post-defrost from this level
                 self._q_lag.reset(0.0)
             if unit_mode == "cool":
-                q_kw = -q_kw  # placeholder until a cooling calibration exists
+                q_kw = -q_kw
         else:
             self.unit.running = False
             self.unit.comp_speed = 0

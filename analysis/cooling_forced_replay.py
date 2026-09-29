@@ -7,8 +7,9 @@ and the existing orientation solar terms. A single scalar maps electrical
 kW to house-average cooling K/h. Reported "COP proxy" is scalar * the
 winter effective house capacity (4.8 kWh/K), not a measured equipment COP.
 
-This is a diagnostic for September 2026's first four cooling runs. It does
-not overwrite sim parameters: room solar gains, sensor lead, and airflow
+This is a diagnostic for September 2026's first seven cooling windows. It does
+not overwrite sim parameters. Its initial cooling defaults are documented
+in docs/calibration.md; room solar gains, sensor lead, and airflow
 split are not independently identified from these few windows.
 
 Run from the repo root after exporting/loading September history::
@@ -39,7 +40,7 @@ for path in (ROOT, ROOT / "tests"):
 
 from sim.closed_loop import AIRFLOW_WEIGHTS, MASS_WEIGHTS  # noqa: E402
 from sim.house import House, HouseParams, ROOMS  # noqa: E402
-from sim.hvac import FirstOrderLag  # noqa: E402
+from sim.hvac import DeadTimeLag, Hvac  # noqa: E402
 from sim.solar import AZ_NE, AZ_NW, vertical_irradiance  # noqa: E402
 
 LOCAL_TZ = "Australia/Adelaide"
@@ -48,6 +49,9 @@ WINDOWS = {
     "27-afternoon": ("2026-09-27 13:15", "2026-09-27 17:20", "2026-09-27 13:44"),
     "28-afternoon": ("2026-09-28 13:15", "2026-09-28 16:20", "2026-09-28 14:00"),
     "29-afternoon": ("2026-09-29 10:45", "2026-09-29 16:40", "2026-09-29 11:25"),
+    "29-evening": ("2026-09-29 20:00", "2026-09-29 23:15", "2026-09-29 20:40"),
+    "29-late": ("2026-09-29 23:15", "2026-09-30 00:40", "2026-09-29 23:40"),
+    "30-night": ("2026-09-30 00:55", "2026-09-30 02:25", "2026-09-30 01:27"),
 }
 TRAIN = ("28-afternoon", "29-afternoon")
 GRID = np.arange(0.1, 1.51, 0.05)  # house-average K/h per electrical kW
@@ -57,6 +61,22 @@ def load_archives(paths: list[Path]) -> pd.DataFrame:
     data = pd.concat([pd.read_parquet(path) for path in paths]).sort_index()
     data = data[~data.index.duplicated(keep="last")]
     data.index = data.index.tz_convert(LOCAL_TZ)
+    # HA recorder queried 2026-09-30 confirms these covers were closed at
+    # the archive's head (2026-09-23 UTC). Numeric exports omit unchanged
+    # states and the September seed archive has a gap. Seed only this
+    # confirmed cohort; never interpret arbitrary missing dampers as shut.
+    seed = pd.Timestamp("2026-09-23", tz="UTC").tz_convert(LOCAL_TZ)
+    if seed in data.index:
+        for room in ("bed_2", "bed_3", "study"):
+            column = f"damper.{room}"
+            if pd.isna(data.loc[seed, column]):
+                data.loc[seed, column] = 0.0
+            data[column] = data[column].ffill()
+    kitchen_seed = pd.Timestamp("2026-09-24 21:45", tz=LOCAL_TZ)
+    if kitchen_seed in data.index and pd.isna(data.loc[kitchen_seed, "damper.kitchen"]):
+        # HA recorder: kitchen still 100% at 21:45, closed 22:09:23.
+        data.loc[kitchen_seed, "damper.kitchen"] = 100.0
+        data["damper.kitchen"] = data["damper.kitchen"].ffill()
     # Same cloudiness proxy as analysis/replay_day.py: daily PV power
     # divided by the archive's minute-of-day envelope. PV is forecast, not
     # measured irradiance; solar sensitivity is reported separately.
@@ -78,10 +98,12 @@ def window_arrays(data: pd.DataFrame, name: str, spec: tuple[str, str, str]) -> 
     if not np.isfinite(observed).all():
         raise ValueError(f"{name}: room temperature gap")
     dampers = np.array(
-        [window[f"damper.{room}"].ffill().fillna(0).to_numpy(float) / 100 for room in ROOMS]
+        [window[f"damper.{room}"].to_numpy(float) / 100 for room in ROOMS]
     ).T
-    outdoor_w = window["power.outdoor_unit"].clip(lower=0).fillna(0).to_numpy(float)
-    indoor_w = window["power.indoor_unit"].clip(lower=0).fillna(0).to_numpy(float)
+    outdoor_w = window["power.outdoor_unit"].clip(lower=0).to_numpy(float)
+    indoor_w = window["power.indoor_unit"].clip(lower=0).to_numpy(float)
+    if not all(np.isfinite(values).all() for values in (dampers, outdoor_w, indoor_w)):
+        raise ValueError(f"{name}: missing recorded damper or power input")
     power_kw = np.where(outdoor_w > 100, (outdoor_w + indoor_w) / 1000, 0)
     t_out = window["temperature_adelaide"].ffill().bfill().to_numpy(float)
     cloudiness = window["_cloudiness"].to_numpy(float)
@@ -98,10 +120,19 @@ def window_arrays(data: pd.DataFrame, name: str, spec: tuple[str, str, str]) -> 
     return window, observed, dampers, power_kw, t_out, sun_ne, sun_nw, score_mask, active_weight
 
 
-def replay(inputs: tuple, cooling_scale: float, solar_scale: float = 1.0) -> np.ndarray:
+def replay(
+    inputs: tuple, cooling_scale: float | None, solar_scale: float = 1.0,
+    *, legacy_sensor: bool = False,
+) -> np.ndarray:
     window, observed, dampers, power_kw, t_out, sun_ne, sun_nw, _, _ = inputs
-    house = House(HouseParams(), dict(zip(ROOMS, observed[0])), dt_s=10)
-    delivered_lag = FirstOrderLag(180)  # existing heat-delivery lag
+    params = HouseParams()
+    if legacy_sensor:
+        # For negative forcing, reversing the magnitude coefficient exactly
+        # reproduces the former signed-q kitchen sensor adjustment.
+        params = params.replace_room("kitchen", lead_q_h=-params.rooms["kitchen"].lead_q_h)
+    house = House(params, dict(zip(ROOMS, observed[0])), dt_s=10)
+    hvac = Hvac()
+    delivered_lag = DeadTimeLag(15, 180, cycle_s=10)
     predicted = np.empty_like(observed)
     predicted[0] = observed[0]
     masses = np.array([MASS_WEIGHTS[room] for room in ROOMS])
@@ -111,9 +142,15 @@ def replay(inputs: tuple, cooling_scale: float, solar_scale: float = 1.0) -> np.
         flows = dampers[i] * airflow
         shares = flows / flows.sum() if flows.sum() > 0 else np.zeros(len(ROOMS))
         room_scale = shares / mass_fraction
-        q_target = -cooling_scale * power_kw[i]
+        efficiency = (
+            hvac.efficiency(power_kw[i], t_out[i])
+            if cooling_scale is None else cooling_scale
+        )
+        q_target = -efficiency * power_kw[i]
         for _ in range(6):  # 10-second house/control cadence
-            q_house = delivered_lag.step(q_target, 10)
+            if power_kw[i] == 0:
+                delivered_lag.reset()  # same shutdown handling as ClosedLoop
+            q_house = delivered_lag.step(q_target)
             house.step(
                 t_out[i],
                 dict(zip(ROOMS, q_house * room_scale)),
@@ -162,7 +199,37 @@ def main() -> None:
         )
         print(f"  shared train e={shared:.2f} (effective COP proxy {shared * 4.8:.2f})")
         for name in windows:
-            print(f"    {name:15s} score={scores[name, float(shared)]:.2f}°C")
+            legacy = score(windows[name], replay(windows[name], None, solar_scale, legacy_sensor=True))[0]
+            print(f"    {name:15s} legacy={legacy:.2f}°C candidate={scores[name, float(shared)]:.2f}°C")
+    electrical_fit(data, specs)
+
+
+def electrical_fit(data: pd.DataFrame, specs: dict) -> None:
+    """Minimum-power fit on old runs; independent overnight validation."""
+    samples = {}
+    for name, (start, end, _) in specs.items():
+        window = data.loc[start:end]
+        stable = window["aircon_comp_speed"].rolling(7).max() < 0.2
+        power = window["power.outdoor_unit"]
+        samples[name] = window[stable & power.between(150, 600)]
+    fit_names = ("24-evening", "27-afternoon", "28-afternoon", "29-afternoon")
+    train = pd.concat([samples[name] for name in fit_names])
+    features = np.column_stack([np.ones(len(train)), train["temperature_adelaide"] - 20])
+    target = train["power.outdoor_unit"].to_numpy()
+    coefficient = np.linalg.lstsq(features, target, rcond=None)[0]
+    print(f"minimum electrical fit n={len(train)}: {coefficient[0]:.1f} W at 20°C, {coefficient[1]:.1f} W/K")
+    hvac = Hvac()
+    for name in ("29-evening", "29-late", "30-night"):
+        window = samples[name]
+        predicted = np.array([
+            hvac.power_kw(0, "cool", temperature) * 1000
+            - hvac.params.cool_p_indoor_min_w
+            for temperature in window["temperature_adelaide"]
+        ])
+        actual = window["power.outdoor_unit"].to_numpy()
+        candidate_error = np.sqrt(np.mean((actual - predicted) ** 2))
+        legacy_error = np.sqrt(np.mean((actual - hvac.params.p_outdoor_min_w) ** 2))
+        print(f"  {name:15s} n={len(window)} outdoor RMSE legacy={legacy_error:.0f} W candidate={candidate_error:.0f} W")
 
 
 if __name__ == "__main__":
