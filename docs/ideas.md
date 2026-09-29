@@ -227,6 +227,15 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
   those inputs and compare curtailment used, post-curtailment temperature,
   grid imports, starts, and comfort for candidate policies. Prioritize a
   cooling plant fit before trusting simulated kWh (docs/calibration.md).
+  Candidate: while cooling surplus is decaying, double the integral rate
+  when the room with the largest applied surplus offset is not setting
+  cooling demand. This shortens the continuous traverse to a demand-leader
+  crossover without jumping damper positions to the crossover. Compare
+  crossover delay, damper movement, compressor power and post-surplus
+  comfort against the current rate. On 2026-09-29 at about 13:07 Adelaide
+  time, InfluxDB showed grid_surplus_integral = 0 throughout the UTC day so
+  far; no live surplus crossover was available to evaluate. The configured
+  HA REST token was empty, so live forecast and room modes were unavailable.
 
 ## 4. Smaller ideas
 
