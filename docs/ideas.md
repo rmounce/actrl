@@ -221,6 +221,12 @@ moves efficiency ~5%/K, dwarfing the ~14% min→max compressor-speed penalty.
 - Tune constants (PID gains, thresholds) offline against comfort/energy
   objectives.
 - Quantify grid-surplus strategy value in kWh shifted vs comfort cost.
+  2026-09-29 cooling follow-up: current one-hour mean forecast and shared
+  integral have no recorded forecast/enable/mode history in the calibration
+  export, so recent runs cannot yet validate window or gain tuning. Capture
+  those inputs and compare curtailment used, post-curtailment temperature,
+  grid imports, starts, and comfort for candidate policies. Prioritize a
+  cooling plant fit before trusting simulated kWh (docs/calibration.md).
 
 ## 4. Smaller ideas
 

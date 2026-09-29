@@ -833,3 +833,27 @@ overrides will give real mid-range damper coverage), together with the
   `load_day()` so the model starts at measured temperatures. The standard
   scorecard's >300 W running threshold misses most of this low-power
   cooling run; its on-fraction is not meaningful here.
+
+# Cooling follow-up — 2026-09-29
+
+- Exported 2026-09-26..29 UTC and loaded 2026-09-23..28 at 1 min into
+  `data/processed/sep23_28.parquet`. The 29th export was incomplete at
+  analysis time. The 27th contains both warming and cooling room responses;
+  do not score it as a cooling-only day.
+- On 2026-09-28 local, the recorded 14:00–15:33 run used about 1.84 kWh
+  (Shelly outdoor + indoor), with outdoor power peaking near 1.74 kW.
+  Bedrooms 2 and 3 fell 2.8 and 2.6°C during the run. This is useful
+  cooling response data at higher power than the 24th's evening run.
+- `analysis/replay_day.py --date 2026-09-28 --parquet
+  data/processed/sep23_28.parquet` gives whole-day room RMSE 0.38–1.26°C
+  and 0.78 vs 3.09 kWh simulated/recorded. A focused 13:30–16:00 local
+  replay initialized at measured temperatures never starts, against 1.85
+  recorded kWh. This is a controller-input mismatch, not a valid cooling
+  COP estimate: replay defaults the surplus switches off and does not
+  reconstruct historical room HVAC modes, manual override, or curtailment
+  forecasts from the numeric export. At 14:10 the recorded numeric target
+  highs were 30°C for bedrooms 2 and 3, despite their strong cooling.
+- Next validation needs recorded room mode/manual state, surplus enable and
+  integral, and the forecast trajectory. Replay the observed controls or
+  force recorded compressor/dampers before fitting cooling plant response.
+  Keep the earlier 24th evening minimum-power discrepancy separate.
