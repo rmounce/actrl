@@ -161,6 +161,17 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   inflation, so these jumps do not establish integral resets. Cause of the
   device's `off` reports remains unverified; static pressure / all door
   states were not independently recovered from this Influx window.
+  Follow-up: built ESPHome `midea_xye/air_conditioner.cpp` immediately
+  publishes commanded fan mode in `control()`, then C0 polls overwrite it
+  from the reported fan-speed nibble, including `FAN_MODE_OFF`. Actrl
+  reissues `low` every 10s when it sees `off`; observed low publications
+  coincide with those cycles. HVAC state stayed `heat`. Shelly 30s means:
+  outdoor power rose ~98W at 06:39:30 → 2.00kW at 06:40:30, then
+  settled ~575W; indoor power rose ~7W → 63–71W at 06:41:30–06:43:00,
+  then ~51W after 06:44. Thus command/feedback alternation is confirmed;
+  physical on/off cycling is unsupported. Initial fan delay is consistent
+  with heating warm-up, but later `off` reports persisted with indoor draw
+  ~51W: do not equate reported fan `off` with physical fan stopped.
 
 - Hypothesis raised during the 2026-09-09 study timer review: an incumbent
   zone's integral advantage delays airflow redistribution. The newly cold
