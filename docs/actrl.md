@@ -147,6 +147,21 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
 
 ### Zone activation: capacity / minimum-airflow feedback
 
+- 2026-10-06 Adelaide 06:41–06:44, confirmed from raw InfluxDB climate /
+  zone PID history and AppDaemon logs: reported `m5atom_climate.fan_mode`
+  alternated `off`/`low` after the 06:39:28 start; held `low` from
+  06:41:18.443 to 06:43:49.630, then resumed alternating. PID calculation
+  precedes the cycle's fan command. `off` is absent from the airflow power
+  table, so it falls back to `high`. At SP2-equivalent minimum, bed 1 fully
+  open plus kitchen 24.227% supplies 144/97 duct-equivalents; kitchen's
+  published PID is 0.7773. At 06:41:28 the lower minimum removed the
+  stateless top-up: kitchen PID fell to -0.0543 and its damper closed;
+  bed 2/3/study fell roughly 0.8 while bed 1 stayed 2.0. At 06:43:58
+  top-up returned and kitchen reopened. Published zone PID includes airflow
+  inflation, so these jumps do not establish integral resets. Cause of the
+  device's `off` reports remains unverified; static pressure / all door
+  states were not independently recovered from this Influx window.
+
 - Hypothesis raised during the 2026-09-09 study timer review: an incumbent
   zone's integral advantage delays airflow redistribution. The newly cold
   zone retains a large error; capacity demand uses the maximum room error
