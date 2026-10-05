@@ -180,8 +180,16 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   that zone receives its intended airflow. Temperature derivative feedback
   is airflow-weighted and also changes with allocation.
 - `_determine_fan_mode` raises requested fan speed with estimated compressor
-  steps. `_calculate_pid_outputs` uses reported fan mode and static pressure
-  to set minimum total airflow. A higher minimum can require satisfied rooms
+  steps. Source fix 2026-10-06 (pending deployment): fan hysteresis uses the
+  last requested speed, independent of reported `off` / command echoes.
+  `_calculate_pid_outputs` uses static pressure and the higher of the last
+  requested speed and the currently planned speed to set minimum airflow.
+  Increases prepare airflow before the command; decreases retain protection
+  until the lower request has been sent. Startup seeds the request from a
+  valid low/medium/high report, otherwise from the restored compressor
+  estimate. Unknown requested speeds retain the conservative high fallback.
+  Reported feedback still triggers retransmission of the requested command.
+  A higher minimum can require satisfied rooms
   to remain open even after the new room reaches full opening, reducing its
   share of total airflow and delivering unwanted heat elsewhere. This is a
   dynamic feedback path; the airflow top-up itself is stateless.
@@ -212,8 +220,9 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   it does not establish comparative energy savings.
 - Reported-state quirk: before continuous medium, fan reports alternate
   requested low/medium with off while `hvac_action=idle`, then medium/low
-  while heating. `off` is outside the airflow power table and falls back
-  to high. Do not equate every reported transition with physical fan speed.
+  while heating. The deployed version treats `off` as outside the airflow
+  table and falls back to high; the pending requested-speed fix above removes
+  that dependency. Do not equate every report with physical fan speed.
   Need cycle-aligned fan/pressure/door inputs and pre/post-top-up PID outputs
   to establish when the constraint bound. Pressure query returned no rows;
   P/I/D components were not logged at INFO. Preserve this uncertainty.

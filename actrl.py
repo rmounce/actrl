@@ -262,6 +262,12 @@ class Actrl(hass.Hass):
         self.capacity.guesstimated_comp_speed = int(
             float(self.get_state("input_number.aircon_comp_speed"))
         )
+        reported_fan = self.get_entity(climate_entity).get_state("fan_mode")
+        self.requested_fan_mode = (
+            reported_fan if reported_fan in ("low", "medium", "high") else None
+        )
+        if self.requested_fan_mode is None:
+            self.requested_fan_mode = self._determine_fan_mode()
         self.grid_surplus_integral = float(
             self.get_state("input_number.grid_surplus_integral")
         )
@@ -1101,7 +1107,16 @@ class Actrl(hass.Hass):
         baseline_power = sp_power[2]["low"]
 
         cur_static_pressure = int(float(self.get_state(static_pressure_entity)))
-        cur_fan_speed = self.get_entity(climate_entity).get_state("fan_mode")
+        # ESPHome publishes both command echoes and device feedback here;
+        # reported `off` can occur while heating remains active. Protect the
+        # requested speed, including an imminent increase, rather than letting
+        # that feedback toggle the airflow minimum. Keep the previous request
+        # for a decrease until the lower-speed command has actually been sent.
+        fan_order = {"low": 0, "medium": 1, "high": 2}
+        cur_fan_speed = max(
+            (self.requested_fan_mode, self._determine_fan_mode()),
+            key=lambda mode: fan_order.get(mode, 2),
+        )
 
         # Default to the safest values
         if cur_static_pressure not in sp_power:
@@ -1239,7 +1254,7 @@ class Actrl(hass.Hass):
             time.sleep(0.1)
 
     def _determine_fan_mode(self):
-        current_fan_mode = self.get_entity(climate_entity).get_state("fan_mode")
+        current_fan_mode = self.requested_fan_mode
 
         low_to_medium = compressor_power_safety_margin
         medium_to_low = 0
@@ -1275,3 +1290,4 @@ class Actrl(hass.Hass):
                 "climate/set_fan_mode", entity_id=climate_entity, fan_mode=fan_mode
             )
             time.sleep(0.1)
+        self.requested_fan_mode = fan_mode
