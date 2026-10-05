@@ -170,3 +170,35 @@ From the implementation worktree; add the named regression files/fixture:
   heating capture or bus evidence acquired; recipe ready for future approved
   adoption. No push, merge, OTA, deployment, live fan commands, actrl behavior
   changes or public-baseline edits. Main checkouts left clean.
+
+- 2026-10-06: user requested upstream cross-check. Fetched mdrobnak branches,
+  exciton dev/midea_xye, HomeOps branches, wtahler main/reorg; no code change.
+  Relevant tips: mdrobnak units_switch `361989b965dcf5943c4a38c2d94db775a6480b40`,
+  delays_updated `2e85a12a32c3969ab30eacceb8cd92bd16a5bbbf`;
+  exciton dev `160bdca396214e0d0e7cffb5bc66fe367923063a`,
+  midea_xye `fb187532f7b293bdd419dbb20577c9bd04f47d31`;
+  HomeOps main `2c648a7a34e3fd3c80f68fe3ed640bfa27c73ab2`,
+  fan-sync branch `2bce083287252d61b4098750d7e3aecb3e83534c`;
+  wtahler main `b0055042ae4a1d2366f73e7d2a5b8950dcc5cd07`,
+  reorg `55a66567df25add9ee6889dc28b82ba13cff7442`.
+- 2026-10-06: mdrobnak units_switch/delays_updated already leave requested
+  climate fan unchanged by C0 feedback; C3 uses that retained field. Earlier
+  exciton code overwrites manual requests from C0 (protects Auto only).
+  Our C0 overwrite was introduced in `ddae4debc385bf62ad5eb08b034408ef8d829fb6`
+  (2026-02-21); `b17009e1d` subsequently rewrote the same assignment. Initial
+  blame attribution to b170 was refined by reviewing its parent diff.
+- 2026-10-06: HomeOps main likewise excludes C0 feedback from command state;
+  optional numeric fan_speed diagnostic is a decoded level, not raw full byte.
+  Opt-in `sync_fan_mode_from_device` (default false) reads C4 byte 17 as
+  thermostat-commanded fan speed, with post-SET grace; merged feature
+  `9243612f27c9999b459d470184b009312bedcf83` (#124, 2026-05-23).
+  C4 field research: `cbf0210a71231f6260331d70260aa4e7121a9bb6` (#122),
+  issue https://github.com/HomeOps/ESPHome-Midea-XYE/issues/120.
+  Validate byte 17 passively on this unit before adopting its semantics;
+  upstream zero=idle terminology is not proof of physical stopped motion here.
+- 2026-10-06: HomeOps has substantial protocol/API refactoring; replacement
+  is separate migration work. Its single queuedCommand is not our multi-C6
+  queue/confirmed-off safety behavior. Our explicit request field, raw-byte
+  diagnostics and compiled regressions remain useful in this fork. wtahler
+  is a separate YAML/lambda implementation, not a drop-in component patch.
+  This was source review only; upstream builds/live behavior were not tested.
