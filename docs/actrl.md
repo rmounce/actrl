@@ -182,6 +182,45 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   remained zero. No app reload in the event window. The requested-speed fix
   deployed at 07:35 removes this reported-state dependency too.
 
+### Indoor fan feedback: temperature-gated speed, 2026-10-06
+
+- Correction to the initial diagnosis: 07:03 includes a real sustained
+  indoor electrical-power increase, not just command/report alternation.
+  Raw Shelly indoor channel 2, 06:53–07:13: minute means ~50–51W before
+  the event, ~70W afterward. Individual samples: 07:03:07 50.15W,
+  :14 52.85W, :15 56.67W, :16 59.76W, :17 63.51W, :19 73.02W,
+  :24 69.27W. Report switched to stable low at 07:03:11, before the
+  kitchen damper command at :18. The fan change cannot be attributed
+  solely to that later damper movement. Outdoor minute means rose
+  gradually ~626W → 691W beforehand, then settled ~671–675W.
+- Coil inlet sensor: initial low-report transition at 06:41:18 bracketed
+  by 31°C at :17 and 32°C at :21; off-report transition at 06:43:49
+  coincided with 27.5°C. Coil then warmed slowly; second low transition
+  at 07:03:11 coincided with 32°C. Consistent with heating cold-draft
+  protection selecting a reduced fan regime below a coil-temperature
+  threshold, with hysteresis. Hypothesis, not a proven threshold or RPM
+  mapping. ~50W versus ~70W suggests two running regimes; motor RPM and
+  actual duct flow were not measured. Static pressure was not recovered.
+- Cached built ESPHome `midea_xye/air_conditioner.cpp` / `.h`: C0 RX byte
+  9 low nibble maps 0=off, 4=low, 2=medium, 1=high; bit 0x80 selects auto.
+  `hvac_action` in heat is derived from whether that same nibble is zero,
+  so idle/heating is not independent compressor evidence. Both labels
+  misdescribe this running reduced-power regime if zero is intentional.
+  Command `control()` publishes fan_mode optimistically; C0 overwrites it.
+  C3 TX uses mutable fan_mode when the queued command is sent; off maps
+  to auto in its default branch. Actual TX bytes were not captured, so
+  command/feedback races and auto fallback remain unquantified.
+- Deployed actrl fix removes artificial high-minimum inflation and report
+  driven hysteresis changes. It does not explain/measure physical fan
+  regulation, prove the low-speed airflow table for this reduced regime,
+  or separate request from feedback inside ESPHome.
+- Next evidence: passively log timestamped C0 byte 9 (full byte), C3 TX
+  fan byte 7, coil temperature, protect flags, static pressure and indoor
+  watts over natural transitions. Compare requested low/medium/high with
+  actual reports/power and temperature hysteresis. Preserve raw codes;
+  do not rename zero to stopped or assign an RPM without measurement.
+  No live fan experiments or firmware changes made in this investigation.
+
 - Hypothesis raised during the 2026-09-09 study timer review: an incumbent
   zone's integral advantage delays airflow redistribution. The newly cold
   zone retains a large error; capacity demand uses the maximum room error
