@@ -202,3 +202,50 @@ From the implementation worktree; add the named regression files/fixture:
   diagnostics and compiled regressions remain useful in this fork. wtahler
   is a separate YAML/lambda implementation, not a drop-in component patch.
   This was source review only; upstream builds/live behavior were not tested.
+
+- 2026-10-06: user authorized deployment after HVAC stopped. Publication,
+  installation adoption and OTA now authorized for this fix, superseding
+  the original deployment exclusions for this deployment only.
+- 2026-10-06: published reviewed component
+  `2cef7ea8357dae6d22df3401d90c3ce8f0946597` to origin branch
+  `task/016-xye-requested-fan-feedback`; no merge to moving XYE branch.
+  Installation `aa-midea-xye-hvac.yaml` pins full SHA, adds full-byte C0/C3
+  sensors, removes UART poll dumps and enables component DEBUG logs.
+  Local inhibit callback and bespoke actrl/display packages preserved.
+- 2026-10-06: direct HA pre-OTA check: climate OFF; compressor/outdoor fan
+  OFF; indoor Shelly draw 4.64W (2026-10-05 21:56 UTC). No fan/mode/pressure
+  test commands issued. No HA token repair; used existing config loader's
+  secret overlay without printing/copying credentials.
+- 2026-10-06: deployment build PASS:
+  `docker exec esphome esphome compile /config/hvac-xye.yaml` using installed
+  ESPHome 2026.7.3; copied XYE source matches reviewed source exactly.
+  RAM 109,395/341,760 B; flash 1,001,635/3,932,160 B;
+  config hash `0x1dd04a00`, build time `2026-10-05 21:54:20 +0000`.
+- 2026-10-06: OTA PASS:
+  `docker exec esphome esphome upload /config/hvac-xye.yaml --device 172.23.17.109`;
+  1,001,744-byte image; upload 4.38s. Controller reconnected; HA status ON
+  and version/config hash/build time match deployment. Climate stays OFF,
+  compressor/outdoor fan OFF, pressure 2, error/protect flags 0.
+  Requested fan AUTO reflects documented startup default.
+- 2026-10-06: live diagnostics verified:
+  `sensor.hvac_xye_m5atom_c0_fan_feedback_byte` = 128 (`0x80`),
+  `sensor.hvac_xye_m5atom_c3_fan_command_byte` = unknown (no C3 emitted
+  since reboot). Indoor power ~5W. No interpretation of zero-code motion
+  made; next natural heating event and C4 byte-17 validation remain passive
+  follow-up work, not a deployment acceptance prerequisite.
+- 2026-10-06: inventory appended verified hvac-xye row, MAC
+  `48:CA:43:B5:EF:70`, ATOM S3/Tail485, deployed revision/version/OTA/IP;
+  existing rows untouched. Inventory was already untracked and remains so.
+  Only HVAC package committed; unrelated inherited dirty config preserved.
+  Public baseline and actrl behavior unchanged.
+- 2026-10-06: logs:
+  `/tmp/hvac-xye-20261006-deploy-build.log`,
+  `/tmp/hvac-xye-20261006-ota.log`,
+  `/tmp/hvac-xye-20261006-post-ota.log`,
+  `/tmp/hvac-xye-20261006-verified-state.jsonl`.
+  Short passive API log capture successful; no protocol errors observed.
+
+- 2026-10-06: installation commit `053c12e` records only the deployed HVAC
+  package. Commit initially failed on root-owned `.git/objects/7f`; identified
+  exact failed path with strace and corrected ownership of that directory.
+  No unrelated config changes committed; inherited untracked inventory retained.
