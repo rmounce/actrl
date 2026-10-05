@@ -172,6 +172,15 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   physical on/off cycling is unsupported. Initial fan delay is consistent
   with heating warm-up, but later `off` reports persisted with indoor draw
   ~51W: do not equate reported fan `off` with physical fan stopped.
+- Same morning 07:03:11: raw climate history changed from alternating
+  `off`/`low`, `hvac_action=idle`, to stable `low`, `hvac_action=heating`;
+  HVAC mode remained heat. At 07:03:18 kitchen PID 0.777250 → 0.554720,
+  damper command 24.227% → 14.607% (AppDaemon log). Bed 1 stayed 2.0;
+  bed 2/3/study dropped ~0.23–0.33. Same pre-fix airflow fallback removal,
+  despite ongoing unit operation; smaller jump because kitchen's underlying
+  output was already positive. Compressor estimate and surplus integral
+  remained zero. No app reload in the event window. The requested-speed fix
+  deployed at 07:35 removes this reported-state dependency too.
 
 - Hypothesis raised during the 2026-09-09 study timer review: an incumbent
   zone's integral advantage delays airflow redistribution. The newly cold
