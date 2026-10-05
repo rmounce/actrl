@@ -107,7 +107,7 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   window; the global temp derivative predicts 10 min ahead over 5 min.
 - `MyPID` — textbook P+I+D with externally adjustable integral. That external
   adjustment is the interesting part:
-  - **Target-step catch-up** (source only; pending deployment): a requested
+  - **Target-step catch-up** (deployed 2026-10-06): a requested
     heating target rise / cooling target fall of ≥1.0°C in one observed
     cycle copies the current raw PID leader's integral into that room when it
     is an increase, preserving the room's own P+D response. This can make a
@@ -180,7 +180,7 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   that zone receives its intended airflow. Temperature derivative feedback
   is airflow-weighted and also changes with allocation.
 - `_determine_fan_mode` raises requested fan speed with estimated compressor
-  steps. Source fix 2026-10-06 (pending deployment): fan hysteresis uses the
+  steps. Fix deployed 2026-10-06 07:35 Adelaide: fan hysteresis uses the
   last requested speed, independent of reported `off` / command echoes.
   `_calculate_pid_outputs` uses static pressure and the higher of the last
   requested speed and the currently planned speed to set minimum airflow.
@@ -220,8 +220,8 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   it does not establish comparative energy savings.
 - Reported-state quirk: before continuous medium, fan reports alternate
   requested low/medium with off while `hvac_action=idle`, then medium/low
-  while heating. The deployed version treats `off` as outside the airflow
-  table and falls back to high; the pending requested-speed fix above removes
+  while heating. The pre-fix version treated `off` as outside the airflow
+  table and fell back to high; the requested-speed fix above removes
   that dependency. Do not equate every report with physical fan speed.
   Need cycle-aligned fan/pressure/door inputs and pre/post-top-up PID outputs
   to establish when the constraint bound. Pressure query returned no rows;
@@ -281,6 +281,12 @@ accepted by design — warm starts are rare and don't need perfect continuity,
 only a consistent state, which the persisted speed estimate provides. The
 weak spot would be a restart mid-ramp-up with a stale
 `input_number.aircon_comp_speed`.
+
+Deployment 2026-10-06 07:35:25 Adelaide: `./deploy.sh`; AppDaemon reloaded
+actrl and room schedulers, inferred the AC already running, and entered the
+first control cycle at 07:35:35 without logged errors. Scheduler initialization
+warned about missing optional price/adaptive-start input booleans. Direct HA
+REST verification using the documented config token returned HTTP 401.
 
 ## Known issues / risks
 
