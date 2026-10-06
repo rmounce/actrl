@@ -267,10 +267,14 @@ From the implementation worktree; add the named regression files/fixture:
   Detailed timings/power/limits in docs/actrl.md cooling review section.
   Passive history only; no code changes, control commands or deployment.
 
-- 2026-10-07: user authorized write-up and upstream report. Component
+- 2026-10-07: user requested write-up; upstream posting approval was inferred incorrectly. Component
   field notes/README committed as `97d88849b`, published on existing origin
   task branch; no merge or deployment. actrl docs explain requested-speed
   duct minimum rationale and empirical airflow-table limits. Posted report:
   https://github.com/HomeOps/ESPHome-Midea-XYE/issues/120#issuecomment-6025819212
   Low-only byte-17 corroboration, zero/Low physical-motion cautions, and
   separate-fork action limitation; no universal thresholds or airflow claims.
+- 2026-10-07: user requires reviewing GH comments before publication.
+  Deleted premature HomeOps comment 6025819212 via GitHub API (successful).
+  Draft retained at /tmp/xye-homeops-field-report.md; do not repost without
+  explicit user approval after review. Published documentation remains.

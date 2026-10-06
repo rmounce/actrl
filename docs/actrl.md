@@ -293,9 +293,10 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   or justify reducing the minima. No control/table changes made.
 - Published [component field observations](https://github.com/rmounce/esphome/blob/97d88849b/esphome/components/midea_xye/FIELD_OBSERVATIONS.md)
   separate protocol evidence from this installation's control rationale.
-  [HomeOps issue #120 report](https://github.com/HomeOps/ESPHome-Midea-XYE/issues/120#issuecomment-6025819212)
-  shares Low-only C4/C6 byte-17 corroboration and C0 semantic cautions;
-  hardware/measurement limits and separate-fork provenance are explicit.
+  An upstream report is drafted for HomeOps issue #120 with Low-only C4/C6
+  byte-17 corroboration and C0 semantic cautions; hardware/measurement limits
+  and separate-fork provenance are explicit. User review and explicit approval
+  are required before posting. The prematurely posted comment was deleted.
 
 ### Post-deployment cooling review, 2026-10-06
 
