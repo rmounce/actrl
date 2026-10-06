@@ -275,6 +275,50 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   to establish when the constraint bound. Pressure query returned no rows;
   P/I/D components were not logged at INFO. Preserve this uncertainty.
 
+
+### Post-deployment passive recheck, 2026-10-07
+
+- Reviewed 06:20–07:49 Australia/Adelaide (2026-10-06 19:50–21:19 UTC).
+  Verified live HA firmware 2026.7.3/config hash `0x1dd04a00`, matching
+  deployed component `2cef7ea8357dae6d22df3401d90c3ce8f0946597`.
+- Requested climate fan remained low throughout the observed heating window;
+  yesterday's corresponding history alternated low/off. Last emitted C3
+  byte held `0x04`; no recorded auto fallback. C3 diagnostic publishes value
+  changes, not every command: its last transition was yesterday 17:17:16
+  local. A 30s passive capture today contained no C3 emission; do not claim
+  an independently captured C3 trace for the whole morning.
+- C0 transitions (local times): 06:20:41 → `0x00` (startup), 06:22:45 →
+  `0x04` at coil ~32°C, 06:24:41 → `0x00` at ~27.5°C,
+  07:05:53 → `0x04` at ~32°C, 07:20:39 → `0x00` at ~27.5°C.
+  Millisecond offsets between fan/coil publications require bracketing
+  adjacent readings. Repeat of yesterday's transition temperatures;
+  supports temperature-gated regulation with hysteresis, not universal
+  calibrated thresholds or measured RPM/airflow.
+- Time-weighted Shelly indoor means: zero-code 06:24:41–07:05:53 ≈50.9W;
+  low-code 07:05:53–07:20:39 ≈83.4W; zero-code 07:20:39–07:49:16 ≈59.2W.
+  Indoor power ~51→70W in first minute after 07:05:53; ~87→63W across
+  07:20:39. Electrical regimes persist after command-state separation;
+  do not attribute the physical regulation to the former HA fan-mode
+  alternation or assign fixed airflow from these power levels.
+- Live at 07:48: requested low, C0 `0x00`, last C3 `0x04`, coil 30°C,
+  indoor ~58W/outdoor ~634W; compressor/outdoor-fan reports on while
+  hvac_action idle. Confirms idle/heating action remains fan-code-derived.
+  Error/protect flags remained 0; configured static pressure remained 2.
+- Passive capture 07:48:58–07:49:20: 11 C4 and 3 C6 responses, all valid
+  additive checksums. Byte 17 was `0x04` in every response while live C0
+  was zero: consistent with HomeOps' commanded-speed interpretation on
+  this unit at low. Only low observed; no command sweeps, general mapping
+  validation or automatic synchronization added. Bytes 19–20 engineering
+  values remain uninterpreted.
+- Same outdoor sensor's reviewed-window ranges: yesterday 11.5–13°C,
+  today 11–12.5°C. Comparable conditions, not a controlled experiment.
+- Evidence: `/tmp/xye-history-2026-10-06.json`,
+  `/tmp/xye-review-20261007-analysis.txt`, `/tmp/xye-20261007-live.log`,
+  `/tmp/xye-review-20261007.csv`, `/tmp/xye-review-20261007.png`.
+  Power averages use preceding values on a 1s grid, discard holds >60s;
+  temperature/diagnostic histories are change-only. No live controls,
+  firmware changes, deployments or calibration changes in this review.
+
 ## Capacity control (`compress` + `midea_runtime_quirks`)
 
 The Midea controller, fed follow-me temperatures, behaves like a stepper:

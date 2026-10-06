@@ -249,3 +249,12 @@ From the implementation worktree; add the named regression files/fixture:
   package. Commit initially failed on root-owned `.git/objects/7f`; identified
   exact failed path with strace and corrected ownership of that directory.
   No unrelated config changes committed; inherited untracked inventory retained.
+
+- 2026-10-07: passive next-morning review completed; requested low retained
+  despite C0 zero/low changes; last emitted C3 byte remained 0x04 with no
+  recorded auto fallback. Repeated coil ~32°C rising/~27.5°C falling
+  transitions and nonzero indoor draw confirm distinct reported/commanded
+  states. C4/C6 byte 17 captured 0x04 while C0 zero; low-only corroboration
+  of upstream requested-speed field, not full mapping validation. Details
+  in docs/actrl.md, "Post-deployment passive recheck, 2026-10-07".
+  No live commands, code changes or deployment. Chart/data under /tmp.
