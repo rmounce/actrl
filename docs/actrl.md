@@ -276,6 +276,36 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   P/I/D components were not logged at INFO. Preserve this uncertainty.
 
 
+### Post-deployment cooling review, 2026-10-06
+
+Passive Influx history reviewed on 2026-10-07, window 16:38–17:54
+Australia/Adelaide, with 16:30–18:05 context. No live control commands.
+
+- Cooling/20°C selected 16:39:36. Brief C3 AUTO 0x80 at startup,
+  followed by LOW 0x04 at 16:39:37; C0 LOW at 16:39:42.
+  History does not identify the source of the initial AUTO command.
+- MEDIUM requested 16:52:15, C3 0x02 at 16:52:16, C0 0x02 at
+  16:52:19. LOW requested 17:17:15, C3 0x04 at 17:17:16,
+  C0 0x04 at 17:17:19. Requested/commanded/feedback agree;
+  no recorded feedback-driven request corruption.
+- Coil inlet cooled from 22.5°C to a minimum 10°C. No C0 zero transition
+  during this cooling run; heating's observed zero/low gating is not
+  a universal fan rule across operating modes.
+- Indoor mean draw: initial low/startup 94.42W, medium 104.45W,
+  subsequent low 90.35W. Different demand/damper states prevent treating
+  these as calibrated airflow measurements.
+- Compressor reported OFF 17:50:33, outdoor fan OFF 17:51:01;
+  climate OFF 17:52:45. Indoor draw subsequently returned to ~5W.
+  C0 retained 0x04 through 18:05: feedback code alone cannot establish
+  physical fan motion, especially while climate OFF.
+- Climate action reported idle throughout cooling, despite compressor
+  ON and substantial outdoor power. Existing action derivation remains
+  unsuitable as independent evidence of actual compressor operation.
+- Error/protect flags remained 0; pressure setting remained 2.
+  C3 history is a change-only held sensor, not every transmitted frame.
+  Data `/tmp/xye-cooling-history-2026-10-06.json`, analysis
+  `/tmp/xye-cooling-analysis.txt`, plot `/tmp/xye-cooling-20261006.png`.
+
 ### Post-deployment passive recheck, 2026-10-07
 
 - Reviewed 06:20–07:49 Australia/Adelaide (2026-10-06 19:50–21:19 UTC).

@@ -258,3 +258,11 @@ From the implementation worktree; add the named regression files/fixture:
   of upstream requested-speed field, not full mapping validation. Details
   in docs/actrl.md, "Post-deployment passive recheck, 2026-10-07".
   No live commands, code changes or deployment. Chart/data under /tmp.
+
+- 2026-10-07: reviewed prior-day cooling 16:38–17:54 Adelaide.
+  Low/medium/low C3 requests followed by matching C0 within 3–5s;
+  brief initial AUTO followed by LOW, source not captured. No C0 zero;
+  C0 LOW persists after shutdown despite standby power. Climate action
+  idle throughout actual cooling confirms existing derivation limitation.
+  Detailed timings/power/limits in docs/actrl.md cooling review section.
+  Passive history only; no code changes, control commands or deployment.
