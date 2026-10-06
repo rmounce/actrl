@@ -266,3 +266,11 @@ From the implementation worktree; add the named regression files/fixture:
   idle throughout actual cooling confirms existing derivation limitation.
   Detailed timings/power/limits in docs/actrl.md cooling review section.
   Passive history only; no code changes, control commands or deployment.
+
+- 2026-10-07: user authorized write-up and upstream report. Component
+  field notes/README committed as `97d88849b`, published on existing origin
+  task branch; no merge or deployment. actrl docs explain requested-speed
+  duct minimum rationale and empirical airflow-table limits. Posted report:
+  https://github.com/HomeOps/ESPHome-Midea-XYE/issues/120#issuecomment-6025819212
+  Low-only byte-17 corroboration, zero/Low physical-motion cautions, and
+  separate-fork action limitation; no universal thresholds or airflow claims.

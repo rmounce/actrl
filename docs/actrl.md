@@ -276,6 +276,27 @@ a one-zone Midea ducted unit. Two control problems are solved simultaneously:
   P/I/D components were not logged at INFO. Preserve this uncertainty.
 
 
+### Minimum duct opening after fan characterisation, 2026-10-07
+
+- Current requested-speed policy remains reasonable: C0 zero during heating
+  does not revoke the Low request; the unit can resume its higher-power
+  regime without a new fan request. Keep enough opening for the requested
+  speed rather than contracting it on C0 zero or fan-derived idle action.
+- Existing ordering protects an imminent fan increase before sending it and
+  retains the old speed allowance until issuing a decrease. Cooling feedback
+  followed Low/Medium/Low C3 commands after ~3–5s, supporting that approach;
+  command issuance is not proof that physical speed has already decreased.
+- C0 Low persisted after cooling shutdown while indoor power returned to
+  ~5W. Do not use C0 as a stopped/running detector or infer airflow from it.
+- The SP/fan electrical-power table and duct weights remain empirical
+  command-space proxies. New observations do not calibrate actual airflow
+  or justify reducing the minima. No control/table changes made.
+- Published [component field observations](https://github.com/rmounce/esphome/blob/97d88849b/esphome/components/midea_xye/FIELD_OBSERVATIONS.md)
+  separate protocol evidence from this installation's control rationale.
+  [HomeOps issue #120 report](https://github.com/HomeOps/ESPHome-Midea-XYE/issues/120#issuecomment-6025819212)
+  shares Low-only C4/C6 byte-17 corroboration and C0 semantic cautions;
+  hardware/measurement limits and separate-fork provenance are explicit.
+
 ### Post-deployment cooling review, 2026-10-06
 
 Passive Influx history reviewed on 2026-10-07, window 16:38–17:54
